@@ -143,3 +143,19 @@ jobs:
             http://localhost:3333/api/class/"$a_id"/items)"
           test "$code_ok" = "200"
           echo "PASS: REST token A gets 403 for class B, 200 for class A"
+
+      - name: Concurrent 25-seat class acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run start --prefix apps/trainlive -- -p 3337 > /tmp/trainlive-capacity.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3337/api/health >/dev/null; then break; fi
+            sleep 1
+          done
+          d="$(TZ=Asia/Makassar date +%F)"
+          node tools/trainlive/create-class.mjs "$d" CAPACITY > /tmp/trainlive-capacity-class.json
+          code="$(jq -r '.join_code' /tmp/trainlive-capacity-class.json)"
+          node tools/trainlive/test-capacity.mjs http://localhost:3337 "$code"
