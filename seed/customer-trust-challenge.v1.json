@@ -1,0 +1,839 @@
+{
+  "program": {
+    "code": "CTC-BPDSULTENG",
+    "title": "Customer Trust Challenge",
+    "organization": "PT Bank Pembangunan Daerah Sulawesi Tengah",
+    "timezone": "Asia/Makassar",
+    "default_capacity": 25,
+    "points": {
+      "quiz_correct": 10,
+      "chat_read_aloud": 5,
+      "worksheet_complete": 20
+    }
+  },
+  "modules": [
+    {
+      "no": 0,
+      "title": "Pembukaan",
+      "start": "09:00",
+      "end": "09:20"
+    },
+    {
+      "no": 1,
+      "title": "The Customer Trust Challenge",
+      "start": "09:20",
+      "end": "10:00"
+    },
+    {
+      "no": 2,
+      "title": "Regulatory Masterclass",
+      "start": "10:15",
+      "end": "11:25"
+    },
+    {
+      "no": 3,
+      "title": "Fair Treatment in Action",
+      "start": "11:25",
+      "end": "12:15"
+    },
+    {
+      "no": 4,
+      "title": "Consumer Protection Self Assessment",
+      "start": "13:15",
+      "end": "14:15"
+    },
+    {
+      "no": 5,
+      "title": "Customer Trust Incident Simulation",
+      "start": "14:15",
+      "end": "15:05"
+    },
+    {
+      "no": 6,
+      "title": "Customer Trust Action Plan",
+      "start": "15:05",
+      "end": "15:35"
+    },
+    {
+      "no": 7,
+      "title": "Penutup",
+      "start": "15:35",
+      "end": "16:00"
+    }
+  ],
+  "recaps": {
+    "1": [
+      "Kepercayaan berdiri di atas kemampuan, integritas, dan kepedulian.",
+      "Adil tidak sama dengan puas; layanan tidak adil yang membuat nasabah senang sesaat paling berbahaya.",
+      "Conduct risk muncul di setiap tahap customer journey dan menjalar ke risiko kepatuhan, hukum, dan reputasi."
+    ],
+    "2": [
+      "Tujuh prinsip Pasal 3 POJK 22/2023 wajib diterapkan; sanksi bertingkat hingga denda Rp15 miliar dan pencabutan izin.",
+      "Transparansi harus dapat dibuktikan: ringkasan informasi personal sebelum tanda tangan dan konfirmasi pemahaman.",
+      "Pengaduan wajib diterima, dicatat, dan dikonfirmasi — tanpa biaya, dengan jalur lanjutan ke OJK atau LAPS."
+    ],
+    "3": [
+      "Jelaskan angka secara utuh: yang diterima, yang dibayar, dan totalnya.",
+      "Teach-back memastikan pemahaman nyata; tanda tangan saja tidak membuktikan nasabah paham.",
+      "Hadapi keluhan dengan lima langkah: dengar, akui, jelaskan, tawarkan, konfirmasi."
+    ],
+    "4": [
+      "Penilaian sendiri menemukan kesenjangan sebelum nasabah mengeluh atau OJK memeriksa.",
+      "Bukti kuat membuktikan pelaksanaan dan dapat diperiksa orang lain.",
+      "Gali akar penyebab di proses lebih dulu sebelum menyalahkan orang."
+    ],
+    "5": [
+      "Empat kasus berbeda, akar yang sama: penjelasan tidak utuh dan tidak ada bukti pemahaman.",
+      "Pengaduan harus menjadi satu catatan dengan satu nomor dan satu PIC.",
+      "Setiap kasus butuh tindakan korektif hari ini dan preventif untuk bulan depan."
+    ]
+  },
+  "items": [
+    {
+      "key": "PRE",
+      "type": "test",
+      "tag": "focus",
+      "module": 0,
+      "slide": 7,
+      "title": "Pre-Test",
+      "timer_sec": 300,
+      "questions": [
+        {
+          "q": "Berapa jumlah prinsip pelindungan konsumen dalam Pasal 3 POJK 22/2023?",
+          "options": [
+            "5",
+            "6",
+            "7",
+            "9"
+          ],
+          "correct": "C"
+        },
+        {
+          "q": "Prinsip yang ditambahkan POJK 22/2023 dibanding aturan sebelumnya adalah…",
+          "options": [
+            "Edukasi dan transparansi",
+            "Penegakan kepatuhan dan persaingan yang sehat",
+            "Pelindungan data dan penanganan pengaduan",
+            "Perlakuan adil dan edukasi"
+          ],
+          "correct": "B"
+        },
+        {
+          "q": "Denda administratif maksimum atas pelanggaran prinsip pelindungan konsumen adalah…",
+          "options": [
+            "Rp1 miliar",
+            "Rp5 miliar",
+            "Rp15 miliar",
+            "Rp50 miliar"
+          ],
+          "correct": "C"
+        },
+        {
+          "q": "Ringkasan informasi produk versi personal wajib disampaikan…",
+          "options": [
+            "Setelah dana dicairkan",
+            "Sebelum nasabah menandatangani perjanjian",
+            "Saat nasabah mengajukan keluhan",
+            "Hanya bila nasabah memintanya"
+          ],
+          "correct": "B"
+        },
+        {
+          "q": "Penawaran produk melalui telepon pribadi nasabah hanya boleh dilakukan…",
+          "options": [
+            "Kapan saja bila target belum tercapai",
+            "Dengan persetujuan nasabah, Senin–Sabtu 08.00–18.00 waktu setempat",
+            "Setiap hari pukul 07.00–21.00",
+            "Hanya pada hari Minggu"
+          ],
+          "correct": "B"
+        },
+        {
+          "q": "Nasabah menyampaikan keluhan secara lisan lewat telepon. Bank wajib…",
+          "options": [
+            "Tidak mencatatnya karena tidak tertulis",
+            "Mencatat dan memberi konfirmasi penerimaan pengaduan",
+            "Mencatat hanya bila nasabah memintanya",
+            "Meminta nasabah datang ke kantor pusat"
+          ],
+          "correct": "B"
+        },
+        {
+          "q": "Bolehkah bank memakai data calon nasabah yang permohonannya ditolak untuk menawarkan produk lain?",
+          "options": [
+            "Boleh",
+            "Boleh bila produk milik mitra",
+            "Dilarang",
+            "Boleh setelah 30 hari"
+          ],
+          "correct": "C"
+        },
+        {
+          "q": "Perubahan ketentuan produk yang memengaruhi perjanjian wajib diberitahukan paling lambat…",
+          "options": [
+            "7 hari kalender sebelum berlaku",
+            "14 hari kerja sebelum berlaku",
+            "30 hari kerja sebelum berlaku",
+            "60 hari kalender setelah berlaku"
+          ],
+          "correct": "C"
+        },
+        {
+          "q": "Teknik teach-back adalah…",
+          "options": [
+            "Meminta nasabah menjelaskan kembali dengan kata-katanya sendiri",
+            "Membacakan seluruh perjanjian sampai habis",
+            "Memberikan brosur produk",
+            "Meminta nasabah menandatangani dua kali"
+          ],
+          "correct": "A"
+        },
+        {
+          "q": "Bukti paling kuat dalam penilaian sendiri adalah…",
+          "options": [
+            "SOP yang berlaku",
+            "Pernyataan pimpinan unit",
+            "Sampel berkas acak bertanggal disertai konfirmasi pemahaman",
+            "Brosur produk"
+          ],
+          "correct": "C"
+        }
+      ]
+    },
+    {
+      "key": "CHAT-WARMUP",
+      "type": "open_text",
+      "tag": "chat",
+      "module": 0,
+      "slide": 8,
+      "prompt": "Kapan terakhir kali Anda merasa diperlakukan tidak adil sebagai nasabah — di mana pun? Satu kalimat saja.",
+      "display": "word_cloud_and_feed",
+      "timer_sec": 120
+    },
+    {
+      "key": "POLL-TRUST-BREAKER",
+      "type": "multi_choice",
+      "tag": "poll",
+      "module": 1,
+      "slide": 13,
+      "multi_max": 2,
+      "anonymous": true,
+      "prompt": "Pilih maksimal dua perilaku yang paling sering Anda lihat di lingkungan kerja.",
+      "options": [
+        "Menjelaskan manfaat produk, tetapi biaya dan risikonya dilewati",
+        "Melayani “kenalan” lebih dulu tanpa dasar prioritas yang jelas",
+        "Menjawab keluhan dengan “sudah aturannya” tanpa penjelasan",
+        "Menawarkan produk tambahan karena target, bukan kebutuhan nasabah"
+      ],
+      "timer_sec": 45
+    },
+    {
+      "key": "RF1",
+      "type": "single_choice",
+      "tag": "focus",
+      "module": 2,
+      "slide": 26,
+      "reveal_slide": 27,
+      "title": "Red Flag 1 / 4",
+      "scenario": "Teller menolak membuka rekening seorang nasabah tunanetra karena “tidak bisa membaca formulir”, dan memintanya kembali bersama keluarga.",
+      "prompt": "Tindakan ini termasuk…",
+      "options": [
+        "Pelanggaran",
+        "Potensi pelanggaran",
+        "Perlu informasi tambahan"
+      ],
+      "correct": "A",
+      "explanation": "Perlakuan diskriminatif yang menghambat akses. Kebijakan bank wajib memuat layanan khusus bagi penyandang disabilitas dan lanjut usia — misalnya membacakan formulir dengan saksi.",
+      "legal_basis": "POJK 22/2023 — nondiskriminasi & kebijakan layanan khusus"
+    },
+    {
+      "key": "RF2",
+      "type": "single_choice",
+      "tag": "quiz",
+      "module": 2,
+      "slide": 28,
+      "reveal_slide": 29,
+      "title": "Red Flag 2 / 4",
+      "scenario": "Nasabah mengeluh lewat telepon. CS berjanji menindaklanjuti, tetapi tidak mencatat keluhan dan tidak memberi konfirmasi atau nomor referensi apa pun.",
+      "prompt": "Tindakan ini termasuk…",
+      "options": [
+        "Pelanggaran",
+        "Potensi pelanggaran",
+        "Perlu informasi tambahan"
+      ],
+      "correct": "A",
+      "explanation": "Bank wajib menerima, mencatat, dan mendokumentasikan setiap pengaduan, serta menyampaikan konfirmasi penerimaan untuk pengaduan lisan.",
+      "legal_basis": "Pasal 70 dan Pasal 72 POJK 22/2023"
+    },
+    {
+      "key": "RF3",
+      "type": "single_choice",
+      "tag": "quiz",
+      "module": 2,
+      "slide": 30,
+      "reveal_slide": 31,
+      "title": "Red Flag 3 / 4",
+      "scenario": "RM menjelaskan deposito hanya dari sisi bunga. Penalti pencairan sebelum jatuh tempo tidak disebut, tetapi tercantum di ringkasan informasi yang ditandatangani nasabah.",
+      "prompt": "Tindakan ini termasuk…",
+      "options": [
+        "Pelanggaran",
+        "Potensi pelanggaran",
+        "Perlu informasi tambahan"
+      ],
+      "correct": "B",
+      "explanation": "Tanda tangan saja belum membuktikan pemahaman. Bank wajib memberi pemahaman tentang biaya, manfaat, dan risiko; perlu dicek apakah ringkasan personal benar-benar dijelaskan dan pemahaman dikonfirmasi.",
+      "legal_basis": "POJK 22/2023 — penyampaian informasi & konfirmasi pemahaman"
+    },
+    {
+      "key": "RF4",
+      "type": "single_choice",
+      "tag": "quiz",
+      "module": 2,
+      "slide": 32,
+      "reveal_slide": 33,
+      "title": "Red Flag 4 / 4",
+      "scenario": "Nasabah mengeluh biaya administrasi bulanan tabungannya naik dan merasa tidak pernah diberi tahu.",
+      "prompt": "Tindakan ini termasuk…",
+      "options": [
+        "Pelanggaran",
+        "Potensi pelanggaran",
+        "Perlu informasi tambahan"
+      ],
+      "correct": "C",
+      "explanation": "Perlu dicek: apakah bank memberi tahu paling lambat 30 hari kerja sebelum perubahan berlaku, lewat kanal apa, dan apakah perubahan termasuk yang dikecualikan. Tanpa fakta ini, belum dapat dinilai.",
+      "legal_basis": "POJK 22/2023 — pemberitahuan perubahan ketentuan"
+    },
+    {
+      "key": "SC1",
+      "type": "single_choice",
+      "tag": "quiz",
+      "module": 3,
+      "slide": 40,
+      "reveal_slide": 41,
+      "title": "Script Clinic 1 / 2",
+      "scenario": "Ibu Hasnah, 72 tahun, ingin memindahkan tabungan ke deposito karena “bunganya lebih besar”. Ia tidak membawa kacamata dan berkata, “Langsung saja, saya percaya.”",
+      "prompt": "Respons mana yang paling mencerminkan perlakuan adil?",
+      "options": [
+        "“Baik Bu, saya isikan formulirnya. Ibu tanda tangan di sini saja.”",
+        "“Saya jelaskan pelan-pelan dulu, Bu. Uang deposito tidak bisa diambil sebelum jatuh tempo tanpa potongan. Kira-kira kapan Ibu mungkin butuh uangnya?”",
+        "“Maaf Bu, tanpa kacamata Ibu tidak bisa membuka deposito hari ini.”"
+      ],
+      "correct": "B",
+      "explanation": "B menjelaskan risiko utama, memeriksa kesesuaian dengan kebutuhan, dan membuka ruang teach-back. A melewatkan penjelasan dan konfirmasi pemahaman; C menolak layanan — hambatan akses bagi lansia."
+    },
+    {
+      "key": "SC2",
+      "type": "single_choice",
+      "tag": "quiz",
+      "module": 3,
+      "slide": 42,
+      "reveal_slide": 43,
+      "title": "Script Clinic 2 / 2",
+      "scenario": "Bu Wati, pemilik warung, berkata keras di depan antrean: “Kenapa ada denda Rp350 ribu? Saya cuma telat tiga hari dan tidak pernah dikasih tahu!”",
+      "prompt": "Kalimat pembuka terbaik?",
+      "options": [
+        "“Bu, itu sudah ada di perjanjian yang Ibu tanda tangani.”",
+        "“Saya mengerti Ibu kaget dan kecewa. Mari duduk di meja saya, kita periksa rincian dendanya bersama sekarang.”",
+        "“Silakan ajukan pengaduan tertulis ke kantor pusat, Bu.”"
+      ],
+      "correct": "B",
+      "explanation": "B mendengar dan mengakui dulu, memindahkan percakapan ke tempat lebih privat, dan memeriksa fakta. Keluhan ini wajib dicatat sebagai pengaduan. A defensif; C memindahkan masalah tanpa menerimanya."
+    },
+    {
+      "key": "M4Q1",
+      "type": "single_choice",
+      "tag": "quiz",
+      "module": 4,
+      "slide": 53,
+      "reveal_slide": 54,
+      "title": "Kuis Modul 4",
+      "scenario": "Item: ringkasan informasi personal disampaikan sebelum nasabah menandatangani perjanjian.",
+      "prompt": "Bukti mana yang paling kuat untuk item ini?",
+      "options": [
+        "SOP penyampaian ringkasan informasi produk",
+        "Pernyataan kepala cabang bahwa prosedur selalu dijalankan",
+        "Sampel acak berkas berisi ringkasan personal bertanggal sebelum akad, ditambah formulir konfirmasi",
+        "Brosur produk yang tersedia di meja CS"
+      ],
+      "correct": "C",
+      "explanation": "C membuktikan pelaksanaan dan urutan waktunya dapat diuji. SOP hanya membuktikan aturan ada; pernyataan tidak dapat diperiksa; brosur adalah versi umum, bukan personal."
+    },
+    {
+      "key": "K1",
+      "type": "single_choice",
+      "tag": "quiz",
+      "module": 5,
+      "slide": 59,
+      "reveal_slide": 60,
+      "title": "Kasus 1 / 4 · Hidden Charges",
+      "scenario": "Pak Andi menerima pencairan kredit Rp48,35 juta dari plafon Rp50 juta. Ia mengira akan menerima utuh, merasa dibohongi, dan tidak memegang salinan perjanjian.",
+      "prompt": "Menurut Anda, masalah utama kasus ini adalah…",
+      "options": [
+        "Nasabah kurang teliti membaca",
+        "Potongan pencairan tidak dijelaskan, tanpa bukti pemahaman dan salinan perjanjian",
+        "Sistem salah menghitung"
+      ],
+      "correct": "B",
+      "explanation": "Potongan Rp1,65 juta sah sesuai perjanjian, tetapi tidak dijelaskan; ringkasan personal, konfirmasi pemahaman, dan salinan perjanjian tidak terbukti."
+    },
+    {
+      "key": "K2",
+      "type": "single_choice",
+      "tag": "quiz",
+      "module": 5,
+      "slide": 61,
+      "reveal_slide": 62,
+      "title": "Kasus 2 / 4 · Unfair Service",
+      "scenario": "Antrean 40 menit. Seorang “kenalan pimpinan” langsung dilayani di ruang belakang. Nasabah lain merekam dan mengunggahnya ke media sosial.",
+      "prompt": "Menurut Anda, masalah utama kasus ini adalah…",
+      "options": [
+        "Nasabah mengunggah ke media sosial",
+        "Perlakuan berbeda tanpa dasar yang jelas, dan aturan prioritas tidak transparan",
+        "Jumlah teller kurang"
+      ],
+      "correct": "B",
+      "explanation": "Satu nasabah didahulukan tanpa dasar prioritas yang diumumkan — potensi pelanggaran kewajiban perlakuan tidak diskriminatif."
+    },
+    {
+      "key": "K3",
+      "type": "single_choice",
+      "tag": "quiz",
+      "module": 5,
+      "slide": 63,
+      "reveal_slide": 64,
+      "title": "Kasus 3 / 4 · Digital Complaint",
+      "scenario": "Saldo Rp2 juta terdebet saat transfer gagal. Setiap kali menelepon, nasabah mendapat jawaban berbeda dan tidak pernah diberi nomor tiket. Sembilan hari belum kembali.",
+      "prompt": "Menurut Anda, masalah utama kasus ini adalah…",
+      "options": [
+        "Gangguan TI yang tidak dapat dihindari",
+        "Pengaduan tidak tercatat dengan nomor tiket, tanpa pembaruan status dan koordinasi",
+        "Nasabah salah memasukkan data"
+      ],
+      "correct": "B",
+      "explanation": "Kewajiban mencatat dan mengonfirmasi pengaduan tidak terpenuhi; perlu satu nomor tiket, satu PIC, dan pembaruan status berkala.",
+      "legal_basis": "Pasal 70 dan Pasal 72 POJK 22/2023"
+    },
+    {
+      "key": "K4",
+      "type": "single_choice",
+      "tag": "quiz",
+      "module": 5,
+      "slide": 65,
+      "reveal_slide": 66,
+      "title": "Kasus 4 / 4 · Aggressive Selling",
+      "scenario": "Saat membuka tabungan, nasabah ikut didaftarkan asuransi kecelakaan dengan autodebet premi bulanan. Ia baru tahu dari mutasi. RM sedang mengikuti program insentif.",
+      "prompt": "Menurut Anda, masalah utama kasus ini adalah…",
+      "options": [
+        "Asuransi bermanfaat, jadi tidak bermasalah",
+        "Biaya & autodebet tidak dijelaskan, persetujuan tidak jelas, dan benturan kepentingan tidak diungkap",
+        "Nasabah seharusnya rutin membaca mutasi"
+      ],
+      "correct": "B",
+      "explanation": "Kesesuaian kebutuhan tidak dinilai, persetujuan tidak jelas, dan benturan kepentingan tidak diinformasikan.",
+      "legal_basis": "Pasal 40 POJK 22/2023"
+    },
+    {
+      "key": "POST",
+      "type": "test",
+      "tag": "focus",
+      "module": 7,
+      "slide": 72,
+      "title": "Post-Test",
+      "timer_sec": 300,
+      "paired_with": "PRE",
+      "questions": [
+        {
+          "q": "Manakah yang BUKAN termasuk tujuh prinsip pelindungan konsumen Pasal 3 POJK 22/2023?",
+          "options": [
+            "Edukasi yang memadai",
+            "Persaingan yang sehat",
+            "Maksimalisasi laba bank",
+            "Penegakan kepatuhan"
+          ],
+          "correct": "C"
+        },
+        {
+          "q": "Sanksi pembekuan produk atau kegiatan usaha dapat dikenakan…",
+          "options": [
+            "Hanya setelah tiga kali peringatan",
+            "Dengan atau tanpa didahului peringatan tertulis",
+            "Hanya oleh pengadilan",
+            "Tidak pernah untuk bank umum"
+          ],
+          "correct": "B"
+        },
+        {
+          "q": "Plafon kredit Rp50 juta dengan potongan pencairan Rp1,65 juta. Dana yang diterima nasabah adalah…",
+          "options": [
+            "Rp50 juta",
+            "Rp48,35 juta",
+            "Rp51,65 juta",
+            "Rp46,7 juta"
+          ],
+          "correct": "B"
+        },
+        {
+          "q": "Yang TIDAK termasuk isi minimal ringkasan informasi produk adalah…",
+          "options": [
+            "Risiko",
+            "Biaya",
+            "Target penjualan petugas",
+            "Manfaat"
+          ],
+          "correct": "C"
+        },
+        {
+          "q": "Nasabah menarik persetujuan untuk dihubungi lewat telepon. Bank wajib…",
+          "options": [
+            "Tetap menawarkan sampai akhir bulan",
+            "Menghentikan penawaran melalui sarana tersebut",
+            "Meminta alasan tertulis lebih dulu",
+            "Mengenakan biaya administrasi"
+          ],
+          "correct": "B"
+        },
+        {
+          "q": "Bank mengenakan biaya Rp25.000 untuk layanan pengaduan. Hal ini…",
+          "options": [
+            "Sah",
+            "Dilarang",
+            "Sah bila nasabah setuju",
+            "Sah untuk nasabah prioritas"
+          ],
+          "correct": "B"
+        },
+        {
+          "q": "Klausul “bank berhak mengubah ketentuan secara sepihak dan nasabah tunduk pada perubahan tersebut” adalah…",
+          "options": [
+            "Klausul standar yang sah",
+            "Klausul eksonerasi yang dilarang",
+            "Klausul yang wajib dicantumkan",
+            "Sah bila dicetak tebal"
+          ],
+          "correct": "B"
+        },
+        {
+          "q": "Permohonan kredit nasabah ditolak. Bank wajib…",
+          "options": [
+            "Tidak memberi informasi apa pun",
+            "Menyampaikan penolakan beserta alasannya, kecuali diatur lain",
+            "Menyampaikan hanya secara lisan",
+            "Menyampaikan setelah 90 hari"
+          ],
+          "correct": "B"
+        },
+        {
+          "q": "Mengakui perasaan nasabah yang marah (“Saya mengerti Ibu kecewa”) berarti…",
+          "options": [
+            "Mengakui kesalahan bank",
+            "Langkah menurunkan tensi tanpa harus mengakui kesalahan",
+            "Menjanjikan ganti rugi",
+            "Tidak perlu dilakukan"
+          ],
+          "correct": "B"
+        },
+        {
+          "q": "Dari 10 berkas sampel, 4 tidak memuat konfirmasi pemahaman. Langkah pertama yang tepat adalah…",
+          "options": [
+            "Langsung menegur petugas",
+            "Menggali penyebab di proses, misalnya apakah konfirmasi ada di checklist berkas",
+            "Mengabaikan karena mayoritas sudah lengkap",
+            "Mengganti formulir dengan brosur"
+          ],
+          "correct": "B"
+        }
+      ]
+    },
+    {
+      "key": "EVAL",
+      "type": "survey",
+      "tag": "note",
+      "module": 7,
+      "questions": [
+        {
+          "q": "Materi relevan dengan pekerjaan saya",
+          "scale": 5
+        },
+        {
+          "q": "Format online dengan kuis membuat saya tetap terlibat",
+          "scale": 5
+        },
+        {
+          "q": "Fasilitator menjelaskan dengan jelas",
+          "scale": 5
+        },
+        {
+          "q": "Durasi dan jadwal sesuai",
+          "scale": 5
+        },
+        {
+          "q": "Satu hal yang paling bermanfaat hari ini",
+          "type": "open_text"
+        },
+        {
+          "q": "Satu hal yang perlu diperbaiki",
+          "type": "open_text"
+        }
+      ]
+    }
+  ],
+  "worksheets": [
+    {
+      "key": "LK1",
+      "title": "Trust Breaker di Unit Anda",
+      "module": 1,
+      "slide": 15,
+      "fields": [
+        {
+          "id": "perilaku",
+          "label": "Perilaku",
+          "type": "textarea",
+          "required": true,
+          "hint": "Contoh: denda keterlambatan tidak disebut saat akad"
+        },
+        {
+          "id": "tahap",
+          "label": "Tahap customer journey",
+          "type": "select",
+          "required": true,
+          "options": [
+            "Pemasaran",
+            "Pembukaan",
+            "Penggunaan",
+            "Pengaduan",
+            "Penutupan"
+          ]
+        },
+        {
+          "id": "dampak",
+          "label": "Dampak bagi nasabah",
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "id": "risiko",
+          "label": "Risiko bagi bank",
+          "type": "multiselect",
+          "required": true,
+          "options": [
+            "Operasional",
+            "Kepatuhan",
+            "Hukum",
+            "Reputasi"
+          ]
+        },
+        {
+          "id": "pencegahan",
+          "label": "Tindakan pencegahan",
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "id": "pic",
+          "label": "PIC",
+          "type": "text",
+          "required": true
+        }
+      ]
+    },
+    {
+      "key": "LK2",
+      "title": "Red Flag Sheet",
+      "module": 2,
+      "auto_generated_from": [
+        "RF1",
+        "RF2",
+        "RF3",
+        "RF4"
+      ],
+      "note": "Dibuat otomatis dari jawaban peserta + kunci + dasar ketentuan; tidak perlu diisi manual."
+    },
+    {
+      "key": "LK3",
+      "title": "Fair Treatment Checklist",
+      "module": 3,
+      "slide": 45,
+      "fields": [
+        {
+          "id": "c1",
+          "label": "Saya menjelaskan biaya, bukan hanya manfaat",
+          "type": "checkbox"
+        },
+        {
+          "id": "c2",
+          "label": "Saya menyebut total kewajiban, bukan hanya angsuran",
+          "type": "checkbox"
+        },
+        {
+          "id": "c3",
+          "label": "Saya memakai bahasa sehari-hari",
+          "type": "checkbox"
+        },
+        {
+          "id": "c4",
+          "label": "Saya meminta nasabah menjelaskan kembali",
+          "type": "checkbox"
+        },
+        {
+          "id": "c5",
+          "label": "Saya mencatat konfirmasi pemahaman",
+          "type": "checkbox"
+        },
+        {
+          "id": "c6",
+          "label": "Saya menawarkan produk tambahan hanya bila sesuai",
+          "type": "checkbox"
+        },
+        {
+          "id": "c7",
+          "label": "Saya menyampaikan alasan saat menolak",
+          "type": "checkbox"
+        },
+        {
+          "id": "c8",
+          "label": "Saya mencatat setiap keluhan, termasuk lisan",
+          "type": "checkbox"
+        },
+        {
+          "id": "c9",
+          "label": "Saya melayani sesuai antrean dan aturan prioritas",
+          "type": "checkbox"
+        },
+        {
+          "id": "c10",
+          "label": "Saya tidak membagikan data nasabah tanpa dasar",
+          "type": "checkbox"
+        }
+      ],
+      "completion_rule": "submitted"
+    },
+    {
+      "key": "LK4",
+      "title": "Mini Self-Assessment — Satu Item dari Unit Anda",
+      "module": 4,
+      "slide": 55,
+      "fields": [
+        {
+          "id": "kelompok",
+          "label": "Kelompok kertas kerja",
+          "type": "select",
+          "required": true,
+          "options": [
+            "1 Ketentuan umum",
+            "2 Literasi & inklusi",
+            "3 Data & informasi",
+            "4 Desain produk",
+            "5 Penyediaan informasi",
+            "6 Pemasaran",
+            "7 Perjanjian",
+            "8 Layanan produk",
+            "9 Pengaduan & sengketa"
+          ]
+        },
+        {
+          "id": "persyaratan",
+          "label": "Persyaratan yang dinilai",
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "id": "kondisi",
+          "label": "Kondisi saat ini",
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "id": "jawaban",
+          "label": "Jawaban",
+          "type": "select",
+          "required": true,
+          "options": [
+            "Terpenuhi",
+            "Terpenuhi sebagian",
+            "Belum terpenuhi"
+          ]
+        },
+        {
+          "id": "bukti",
+          "label": "Bukti yang tersedia",
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "id": "kekuatan_bukti",
+          "label": "Kekuatan bukti",
+          "type": "select",
+          "required": true,
+          "options": [
+            "Kuat",
+            "Lemah"
+          ]
+        },
+        {
+          "id": "gap",
+          "label": "Kesenjangan & akar penyebab",
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "id": "rencana",
+          "label": "Satu langkah perbaikan",
+          "type": "textarea",
+          "required": true
+        }
+      ],
+      "disclaimer": "Simulasi pelatihan. Penilaian resmi mengikuti format dan lampiran SEOJK 18/SEOJK.08/2024 yang berlaku."
+    },
+    {
+      "key": "LK5",
+      "title": "30-Day Action Plan",
+      "module": 6,
+      "slide": 71,
+      "repeatable_group": {
+        "min": 3,
+        "max": 5,
+        "label": "Inisiatif",
+        "fields": [
+          {
+            "id": "masalah",
+            "label": "Masalah",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "tindakan",
+            "label": "Tindakan (tanpa anggaran tambahan)",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "pic",
+            "label": "PIC (nama/jabatan, bukan “tim”)",
+            "type": "text",
+            "required": true
+          },
+          {
+            "id": "indikator",
+            "label": "Indikator terukur",
+            "type": "text",
+            "required": true
+          },
+          {
+            "id": "target",
+            "label": "Target tanggal (≤ hari ke-30)",
+            "type": "date",
+            "required": true,
+            "validate": "<= class.start_at + 30 days"
+          },
+          {
+            "id": "bukti",
+            "label": "Bukti yang akan ditunjukkan",
+            "type": "text",
+            "required": true
+          }
+        ]
+      },
+      "followup_link": "H30"
+    }
+  ]
+}
