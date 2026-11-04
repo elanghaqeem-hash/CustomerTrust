@@ -3,7 +3,7 @@
 Repository utama: https://github.com/elanghaqeem-hash/CustomerTrust (branch main).
 Vercel production: https://ct-kohl.vercel.app/ (project ct, team collman).
 
-> **Release status (2026-11-04):** The existing root index.html is an initialization landing page. The functional TrainLive application is being built in apps/trainlive and is **not yet deployed** as the root production app. The Postgres migrations, seed, API and preliminary mobile participant UI are source code, not a claim of a fully operating system. The realtime socket, worksheet forms/exports, full reporting, follow-ups, browser notifications and staff SSO remain outstanding.
+> **Release status (2026-11-05):** The existing production root index.html remains an initialization landing page. Next.js TrainLive is deployed to **protected staging** (https://ct-trainlive-staging.vercel.app), where the application loads but /api/health correctly reports setup_required until its Postgres database and JWT signing secret are configured. On the code branch, mobile participation, worksheets, class-specific CSV/XLSX/PDF exports, facilitator console, chat moderation, browser alerts, and report are implemented with passing CI. Production database, staff SSO/MFA, class-scoped realtime broadcast, data handling approval, and end-to-end UAT remain **NO-GO** gates.
 
 ## Source layout
 
@@ -12,11 +12,13 @@ Vercel production: https://ct-kohl.vercel.app/ (project ct, team collman).
 - db/migrations/003_runtime.sql — checked join, staff class action, immutable point awards, Top 10 class leaderboard
 - db/migrations/004_worksheets.sql — worksheet awards and auto-generated, class-specific LK2 after RF1–RF4 reveal
 - db/migrations/005_observer_audit.sql — staff export audit policy includes assigned observers
+- db/migrations/006_join_throttle.sql — database-coordinated join attempts throttle without plaintext IP storage
 - db/tests/01_rls_isolation.sql — actual PostgreSQL transactional A/B isolation fixtures
 - db/tests/02_worksheet.sql — class-specific LK2 and idempotent scoring integration test
+- db/tests/03_join_throttle.sql — 100 allowed attempts followed by enforcement
 - seed/customer-trust-challenge.v1.json — **canonical** Bank Sulteng CTC v1 content: 16 interactive items, 11 scenario quizzes, 20 pre/post questions, LK1–LK5
 - tools/trainlive — idempotent content seeder, class factory and seed validation
-- apps/trainlive — Next.js 14 mobile participant UI, facilitator staging console, individual worksheets, report and scoped CSV export
+- apps/trainlive — patched Next.js 15.5.28 / React 19 mobile UI, facilitator staging console, individual worksheets, reports and class-scoped CSV/XLSX/PDF exports
 - .github/workflows/trainlive-ci.yml — real Postgres CI tests, build and REST cross-class smoke test
 - docs/DECISIONS.md — decisions, limitations and security boundaries
 
@@ -35,6 +37,8 @@ Vercel production: https://ct-kohl.vercel.app/ (project ct, team collman).
    psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/004_worksheets.sql
 
    psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/005_observer_audit.sql
+
+   psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/006_join_throttle.sql
 
 4. Provision a distinct **non-owner** login role that is a member of trainlive_app; use a strong password stored privately. Example SQL (replace values locally): CREATE ROLE trainlive_web LOGIN PASSWORD 'replace-me'; GRANT trainlive_app TO trainlive_web;. Configure DATABASE_URL_APP for this restricted login.
 5. Set TRAINLIVE_JWT_SECRET to a random secret of **at least 32 bytes**, known only to the server.
@@ -60,7 +64,7 @@ It creates two simultaneous classes A/B using the same immutable version, checks
 3. On the day, the facilitator transitions class_session.status to live through a protected management workflow. In this staging baseline, it can be done with node tools/trainlive/provision-facilitator.mjs CLASS_UUID facilitator@example.invalid. This enables the assigned class and prints a short-lived staff JWT. **This tool is NOT production authentication**: it requires trusted local management credentials. Open /host/CLASS_UUID and enter that token. Staff SSO and MFA remain pending.
 4. Open each item, close at timer expiry, reveal correct answers, and show Top 10. Participant routes already support join/items/respond/leaderboard; staff API supports run_item. Realtime notification/presenter view is a later release gate.
 5. Participants use /class/CLASS_UUID/worksheets to save and submit LK1, LK3, LK4 and LK5. LK2 is created after the RF1–RF4 answers are revealed and the participant has answered all four. Open /host/CLASS_UUID/report with a class staff JWT for pre/post metrics, participation, quiz correctness and audited class-scoped CSV. Never export across classes.
-6. H+1 / H+7 / H+30 / H+60 follow-up and configured retention need an authenticated background job, not a handwritten reminder.
+6. H+1 / H+7 / H+30 / H+60 follow-up and configured retention need an authenticated background job plus signed-off consent and retention policy.
 
 ## Data protection and production blockers
 
@@ -70,7 +74,7 @@ It creates two simultaneous classes A/B using the same immutable version, checks
 - Raw answer keys are hidden before reveal. Participant free text warns against sharing bank secrets; a numeric-pattern confirmation is not a substitute for a data-loss-prevention control.
 - The current app uses **3-second polling as a temporary UI refresh**, not the required subsecond class-specific WebSocket broadcast. Participants send a 60-second heartbeat when their tab is visible.
 - Anonymous polls persist a keyed deduplication digest instead of a participant_id; an operational privacy review is still required.
-- The deploy currently serves the static root. To activate TrainLive, explicitly switch the Vercel project root to apps/trainlive after Postgres, credentials, tests, staff SSO, and readiness gates are met. CSV report export exists; XLSX/PDF export and action-plan followups are not yet delivered.
+- The production deploy currently serves the static root (Next.js is deployed separately to protected staging). To activate TrainLive, explicitly switch the Vercel project root to apps/trainlive after Postgres, credentials, tests, staff SSO, and readiness gates are met. CSV report export exists; XLSX/PDF export and action-plan followups are not yet delivered.
 - Data residency/hosting location must be approved against the bank's policies and Indonesian data protection obligations.
 
 See AGENTS.md for how ChatGPT-driven changes are committed to GitHub and verified.
@@ -78,3 +82,10 @@ See AGENTS.md for how ChatGPT-driven changes are committed to GitHub and verifie
 ## Production readiness gates (2026-11-05)
 
 The deploy is **not yet production-ready**: the Vercel project currently serves the static landing page, the project has no TrainLive runtime environment variables, and staff identity/realtime gates are open. See [docs/PRODUCTION-READINESS.md](docs/PRODUCTION-READINESS.md). The Next.js `/api/health` handler now performs a database and migration probe, and returns HTTP 503 until configuration and schema readiness are satisfied. Never switch production traffic solely because CI builds successfully.
+
+## Staging, security and load-test evidence
+
+- Protected staging: https://ct-trainlive-staging.vercel.app/ (Node 22, Singapore function region). **Health is 503 setup_required** until trusted backend configuration exists.
+- CI includes PostgreSQL migrations 001–006, RLS class-isolation, report/export verification, a 25-seat concurrent join test, JWT REST negative tests, and Next.js build.
+- Authorized report exports: CSV, XLSX, PDF; facilitator chat moderation: hide/unhide/read aloud with idempotent point rewards.
+- [Runbook](docs/RUNBOOK.md) · [600-user load test](docs/LOAD-TEST.md) · [Release criteria](docs/PRODUCTION-READINESS.md).
