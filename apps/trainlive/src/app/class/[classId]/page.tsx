@@ -1,5 +1,5 @@
 'use client';
-import { useEffect,useState } from 'react';
+import { useEffect,useRef,useState } from 'react';
 type Payload={title?:string;prompt?:string;scenario?:string;tag?:string;options?:string[];multi_max?:number;
  questions?:Array<{q:string;options?:string[];scale?:number;type?:string}>;
  correct?:string;explanation?:string;legal_basis?:string;timer_sec?:number};
@@ -15,6 +15,8 @@ export default function ClassPage({params}:{params:{classId:string}}){
  const [answers,setAnswers]=useState<Record<string,unknown>>({}),[submitted,setSubmitted]=useState<Record<string,boolean>>({});
  const [loading,setLoading]=useState(true),[error,setError]=useState(''),[busy,setBusy]=useState(false);
  const [now,setNow]=useState(Date.now()),[tab,setTab]=useState<'active'|'score'>('active');
+ const [alerts,setAlerts]=useState(false);
+ const audioContext=useRef<AudioContext|null>(null),previousAlertItem=useRef<string|null>(null);
  useEffect(()=>{
   const pulse=()=>{if(document.visibilityState==='visible')void fetch('/api/class/'+id+'/heartbeat',{method:'POST'}).catch(()=>{});};
   pulse();
@@ -38,6 +40,43 @@ export default function ClassPage({params}:{params:{classId:string}}){
   return()=>{cancelled=true;clearInterval(update);clearInterval(tick)};
  },[id]);
  const opened=items.filter(x=>x.state==='open').sort((a,b)=>b.order_no-a.order_no)[0];
+
+ const alertworthy=opened?.payload.tag==='focus'||opened?.payload.tag==='quiz';
+ useEffect(()=>{
+  if(!alerts||!opened||!alertworthy||previousAlertItem.current===opened.id)return;
+  previousAlertItem.current=opened.id;
+  try{
+   const context=audioContext.current;
+   if(context){
+    const oscillator=context.createOscillator(),gain=context.createGain();
+    oscillator.type='sine';oscillator.frequency.value=880;gain.gain.value=0.06;
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start();oscillator.stop(context.currentTime+0.18);
+   }
+   if('Notification' in window&&Notification.permission==='granted')
+    new Notification('Kuis dibuka',{body:'Silakan kembali ke layar TrainLive.',tag:'trainlive-focus'});
+  }catch { /* Browser permissions may block audio/notifications; the visible activity remains available. */ }
+ },[opened?.id,alerts,alertworthy]);
+ useEffect(()=>{
+  if(!alerts||!opened||!alertworthy){
+   document.title='TrainLive | Customer Trust Challenge';return;
+  }
+  let flashing=false;
+  const timer=setInterval(()=>{
+   flashing=!flashing;
+   document.title=flashing?'● KUIS DIBUKA | TrainLive':'TrainLive | Customer Trust Challenge';
+  },800);
+  return()=>{clearInterval(timer);document.title='TrainLive | Customer Trust Challenge';};
+ },[opened?.id,alerts,alertworthy]);
+ async function enableAlerts(){
+  try{
+   const context=new window.AudioContext();await context.resume();audioContext.current=context;
+   if('Notification' in window&&Notification.permission==='default')
+    await Notification.requestPermission();
+  }catch{/* Continue with visible tab cue even if browser denies audio. */}
+  setAlerts(true);
+ }
+
  const revealed=items.filter(x=>x.state==='revealed').sort((a,b)=>b.order_no-a.order_no)[0];
  const current=opened||revealed;
  const deadline=current?.opened_at?new Date(current.opened_at).getTime()+current.timer_sec*1000:0;
@@ -120,6 +159,12 @@ export default function ClassPage({params}:{params:{classId:string}}){
    </div>
   </header>
   <div className="mx-auto max-w-3xl px-4 pt-7 md:px-5">
+   <button type="button" onClick={()=>{if(alerts){setAlerts(false);audioContext.current?.close();audioContext.current=null;}
+    else void enableAlerts();}}
+    className="mb-4 min-h-12 w-full rounded-xl border border-teal bg-white px-4 font-semibold text-teal"
+    aria-pressed={alerts}>
+    {alerts?'Notifikasi kuis: aktif · Ketuk untuk mematikan':'Aktifkan suara dan notifikasi saat kuis dibuka'}
+   </button>
    <a href={'/class/'+id+'/worksheets'}
     className="mb-5 flex min-h-14 items-center justify-between rounded-xl border border-[#b5cfc8] bg-[#e8f5f1] px-5 py-3 font-bold text-teal">
     <span>Isi Lembar Kerja LK1–LK5</span><span aria-hidden="true">→</span>
