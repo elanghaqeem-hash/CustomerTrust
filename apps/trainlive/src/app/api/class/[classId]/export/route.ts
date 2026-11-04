@@ -84,7 +84,7 @@ export async function GET(req:Request,{params}:{params:{classId:string}}) {
         "INSERT INTO trainlive.audit_log(actor_id,actor_role,class_id,action,target,payload_json) VALUES($1,'staff',$2,$3,$4,$5)",
         [staff.staffId,staff.classId,'export.'+exportFormat,'class-report',JSON.stringify({rows:rows.length})]);
     });
-    return new NextResponse(body,{headers:{
+    return new NextResponse(body instanceof Uint8Array?new Blob([Uint8Array.from(body).buffer]):body,{headers:{
       'Content-Type':contentType,
       'Content-Disposition':'attachment; filename="trainlive_'+staff.classId+'_participants.'+exportFormat+'"',
       'Cache-Control':'private, no-store','X-Class-Id':staff.classId,'X-Content-Type-Options':'nosniff'
