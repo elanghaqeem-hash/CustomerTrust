@@ -87,10 +87,14 @@ jobs:
           b_id="$(jq -r '.class_id' /tmp/trainlive-class-b.json)"
           staff_token="$(node tools/trainlive/provision-facilitator.mjs "$a_id" staff@example.invalid | tail -n 1)"
           test -n "$staff_token"
+          node tools/trainlive/test-report-fixture.mjs "$a_id"
           curl -fsS -H "Authorization: Bearer $staff_token" \
             "http://localhost:3335/api/class/$a_id/report" > /tmp/trainlive-report.json
           echo "Staff report returned class: $(jq -r '.classId' /tmp/trainlive-report.json); expected: $a_id"
           test "$(jq -r '.classId' /tmp/trainlive-report.json)" = "$a_id"
+          test "$(jq -r '.summary.pre_mean' /tmp/trainlive-report.json)" = "70"
+          test "$(jq -r '.summary.post_mean' /tmp/trainlive-report.json)" = "90"
+          test "$(jq -r '.summary.paired_mean_gain' /tmp/trainlive-report.json)" = "20"
           denied="$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $staff_token" \
             "http://localhost:3335/api/class/$b_id/report")"
           echo "Cross-class staff report HTTP status: $denied"
