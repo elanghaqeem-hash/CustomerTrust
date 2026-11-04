@@ -74,3 +74,7 @@ It creates two simultaneous classes A/B using the same immutable version, checks
 - Data residency/hosting location must be approved against the bank's policies and Indonesian data protection obligations.
 
 See AGENTS.md for how ChatGPT-driven changes are committed to GitHub and verified.
+
+## Production readiness gates (2026-11-05)
+
+The deploy is **not yet production-ready**: the Vercel project currently serves the static landing page, the project has no TrainLive runtime environment variables, and staff identity/realtime gates are open. See [docs/PRODUCTION-READINESS.md](docs/PRODUCTION-READINESS.md). The Next.js `/api/health` handler now performs a database and migration probe, and returns HTTP 503 until configuration and schema readiness are satisfied. Never switch production traffic solely because CI builds successfully.
