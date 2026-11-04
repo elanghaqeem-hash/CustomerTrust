@@ -1,4 +1,5 @@
 'use client';
+import {useParams} from 'next/navigation';
 import { useEffect,useRef,useState } from 'react';
 type Payload={title?:string;prompt?:string;scenario?:string;tag?:string;options?:string[];multi_max?:number;
  questions?:Array<{q:string;options?:string[];scale?:number;type?:string}>;
@@ -9,8 +10,8 @@ type Leader={participant_id:string;display_name:string;unit:string;points:number
 const letters=['A','B','C','D','E','F','G','H','I','J'];
 const kindLabel=(i:Item)=>i.payload.tag==='focus'?'FOKUS PENUH':i.payload.tag==='poll'?'POLLING':
  i.payload.tag==='chat'?'KETIK DI CHAT':i.type==='test'?'PRE / POST TEST':i.type==='survey'?'EVALUASI':'KUIS';
-export default function ClassPage({params}:{params:{classId:string}}){
- const id=params.classId;
+export default function ClassPage(){
+ const id=useParams<{classId:string}>().classId;
  const [items,setItems]=useState<Item[]>([]),[leader,setLeader]=useState<Leader[]>([]);
  const [answers,setAnswers]=useState<Record<string,unknown>>({}),[submitted,setSubmitted]=useState<Record<string,boolean>>({});
  const [loading,setLoading]=useState(true),[error,setError]=useState(''),[busy,setBusy]=useState(false);

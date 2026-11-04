@@ -26,8 +26,9 @@ function safeSpreadsheetText(value:unknown):string {
 function safePdfText(value:unknown):string {
   return String(value??'').replace(/[^\x20-\x7e]/g,'?').slice(0,95);
 }
-export async function GET(req:Request,{params}:{params:{classId:string}}) {
-  const auth=await guardClass(params.classId,'staff');
+export async function GET(req:Request,{params}:{params:Promise<{classId:string}>}) {
+ const {classId}=await params;
+  const auth=await guardClass(classId,'staff');
   if(auth.response)return auth.response;
   const staff=auth.session!;
   if(staff.kind!=='staff')return NextResponse.json({error:'forbidden'},{status:403});

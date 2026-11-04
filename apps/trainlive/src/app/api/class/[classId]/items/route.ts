@@ -15,8 +15,9 @@ function safePayload(row:Row,forStaff:boolean){
  }
  return p;
 }
-export async function GET(_req:Request,{params}:{params:{classId:string}}) {
- const auth=await guardClass(params.classId);
+export async function GET(_req:Request,{params}:{params:Promise<{classId:string}>}) {
+ const {classId}=await params;
+ const auth=await guardClass(classId);
  if(auth.response) return auth.response;
  const session=auth.session!;
  try {
@@ -25,9 +26,9 @@ export async function GET(_req:Request,{params}:{params:{classId:string}}) {
    staffId:session.kind==='staff'?session.staffId:undefined},async db=>
    (await db.query<Row>(
     'SELECT id,item_key,type,module_no,slide_ref,order_no,payload,hidden,state,timer_sec,opened_at,closed_at FROM trainlive.class_item WHERE class_id=$1 ORDER BY order_no',
-    [params.classId])).rows
+    [classId])).rows
   );
-  return NextResponse.json({classId:params.classId,items:rows.filter(r=>!r.hidden||session.kind==='staff').map(r=>({...r,payload:safePayload(r,session.kind==='staff')}))},
+  return NextResponse.json({classId:classId,items:rows.filter(r=>!r.hidden||session.kind==='staff').map(r=>({...r,payload:safePayload(r,session.kind==='staff')}))},
    {headers:{'Cache-Control':'no-store'}});
  }catch(err){return privateError(err)}
 }

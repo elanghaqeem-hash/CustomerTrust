@@ -38,8 +38,9 @@ function normalize(item:Item,answer:unknown,confirmed:boolean) {
  }
  throw new Error('unsupported_type');
 }
-export async function POST(req:Request,{params}:{params:{classId:string}}) {
- const auth=await guardClass(params.classId,'participant');
+export async function POST(req:Request,{params}:{params:Promise<{classId:string}>}) {
+ const {classId}=await params;
+ const auth=await guardClass(classId,'participant');
  if(auth.response) return auth.response;
  const session=auth.session!;
  if(session.kind!=='participant')return NextResponse.json({error:'forbidden'},{status:403});

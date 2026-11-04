@@ -1,9 +1,10 @@
 'use client';
+import {useParams} from 'next/navigation';
 import { useEffect,useState } from 'react';
 type Item={id:string;item_key:string;state:string;type:string;module_no:number;slide_ref:number|null;payload:{title?:string;prompt?:string}};
 type Score={participant_id:string;display_name:string;unit:string;points:number;rank_no:number};
-export default function HostPage({params}:{params:{classId:string}}){
- const id=params.classId;
+export default function HostPage(){
+ const id=useParams<{classId:string}>().classId;
  const [token,setToken]=useState(''),[items,setItems]=useState<Item[]>([]),[score,setScore]=useState<Score[]>([]);
  const [active,setActive]=useState<string|null>(null),[results,setResults]=useState<{answered:number;joined:number;counts:{choice:string;count:number}[]}|null>(null);
  const [error,setError]=useState(''),[busy,setBusy]=useState(false);

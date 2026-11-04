@@ -1,4 +1,5 @@
 'use client';
+import {useParams} from 'next/navigation';
 import {useState} from 'react';
 type Summary={
  participants:number;pre_submitted:number;post_submitted:number;post_pass_75:number;
@@ -11,8 +12,8 @@ type Participant={
 };
 type Quiz={item_key:string;title:string|null;answered:number;correct:number;correct_pct:number|null};
 type Report={classId:string;summary:Summary;participants:Participant[];quizzes:Quiz[]};
-export default function ClassReport({params}:{params:{classId:string}}){
- const classId=params.classId;
+export default function ClassReport(){
+ const classId=useParams<{classId:string}>().classId;
  const [token,setToken]=useState(''),[data,setData]=useState<Report|null>(null);
  const [busy,setBusy]=useState(false),[error,setError]=useState('');
  async function load(){

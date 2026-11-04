@@ -36,8 +36,9 @@ function checkData(ws:Ws,data:Record<string,unknown>,maxTarget:string):string|nu
  }
  return null;
 }
-export async function GET(_req:Request,{params}:{params:{classId:string}}){
- const auth=await guardClass(params.classId,'participant');if(auth.response)return auth.response;
+export async function GET(_req:Request,{params}:{params:Promise<{classId:string}>}){
+ const {classId}=await params;
+ const auth=await guardClass(classId,'participant');if(auth.response)return auth.response;
  const s=auth.session!;if(s.kind!=='participant')return NextResponse.json({error:'forbidden'},{status:403});
  try {
   const rows=await transaction({classId:s.classId,participantId:s.participantId},async db=>{
@@ -50,8 +51,9 @@ export async function GET(_req:Request,{params}:{params:{classId:string}}){
   return NextResponse.json({worksheets:rows},{headers:{'Cache-Control':'no-store'}});
  } catch(e){return privateError(e)}
 }
-export async function POST(req:Request,{params}:{params:{classId:string}}){
- const auth=await guardClass(params.classId,'participant');if(auth.response)return auth.response;
+export async function POST(req:Request,{params}:{params:Promise<{classId:string}>}){
+ const {classId}=await params;
+ const auth=await guardClass(classId,'participant');if(auth.response)return auth.response;
  const s=auth.session!;if(s.kind!=='participant')return NextResponse.json({error:'forbidden'},{status:403});
  const input=schema.safeParse(await req.json().catch(()=>null));
  if(!input.success)return NextResponse.json({error:'Data lembar kerja tidak valid.'},{status:400});

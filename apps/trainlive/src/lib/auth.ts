@@ -19,9 +19,9 @@ export async function signParticipant(classId:string,participantId:string) {
   .setAudience('trainlive-web').setIssuedAt().setExpirationTime('72h').sign(key());
 }
 export async function readSession(requestedClassId:string):Promise<Session|null> {
- const bearer=headers().get('authorization');
+ const bearer=(await headers()).get('authorization');
  const token=(bearer?.startsWith('Bearer ')?bearer.slice(7):null)
-  ??cookies().get(sessionCookie(requestedClassId))?.value;
+  ??(await cookies()).get(sessionCookie(requestedClassId))?.value;
  if(!token) return null;
  try {
   const {payload}=await jwtVerify(token,key(),{issuer:'trainlive',audience:'trainlive-web',algorithms:['HS256']});

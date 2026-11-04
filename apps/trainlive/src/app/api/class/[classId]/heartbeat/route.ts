@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import { transaction } from '@/lib/db';
 import { guardClass,privateError } from '@/lib/api';
 export const runtime='nodejs';
-export async function POST(_req:Request,{params}:{params:{classId:string}}){
- const auth=await guardClass(params.classId,'participant');
+export async function POST(_req:Request,{params}:{params:Promise<{classId:string}>}){
+ const {classId}=await params;
+ const auth=await guardClass(classId,'participant');
  if(auth.response)return auth.response;
  const s=auth.session!;
  if(s.kind!=='participant')return NextResponse.json({error:'forbidden'},{status:403});
