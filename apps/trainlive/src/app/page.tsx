@@ -10,7 +10,7 @@ export default function JoinPage(){
   e.preventDefault();setError('');setBusy(true);
   try{
    const res=await fetch('/api/join',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({code,name,displayName:name,unit,email,consent})});
+    body:JSON.stringify({code,displayName:name,unit,email,consent})});
    const json=await res.json();
    if(!res.ok)throw Error(json.error||'Kode tidak dapat digunakan pada jendela kelas.');
    window.location.assign('/class/'+json.classId);
