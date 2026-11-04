@@ -1,0 +1,95 @@
+name: TrainLive integration
+on:
+  push:
+    paths:
+      - "db/**"
+      - "seed/**"
+      - "tools/trainlive/**"
+      - "apps/trainlive/**"
+      - ".github/workflows/trainlive-ci.yml"
+  pull_request:
+    paths:
+      - "db/**"
+      - "seed/**"
+      - "tools/trainlive/**"
+      - "apps/trainlive/**"
+      - ".github/workflows/trainlive-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  isolation-and-build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: trainlive
+          POSTGRES_USER: trainlive_owner
+          POSTGRES_PASSWORD: trainlive_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U trainlive_owner -d trainlive"
+          --health-interval 5s --health-timeout 5s --health-retries 15
+    env:
+      DATABASE_URL_ADMIN: postgresql://trainlive_owner:trainlive_ci_only@localhost:5432/trainlive
+      DATABASE_URL_APP: postgresql://trainlive_web:trainlive_ci_web_only@localhost:5432/trainlive
+      TRAINLIVE_JWT_SECRET: trainlive_ci_test_key_not_used_in_production_2026
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Check seed fidelity and shape
+        run: node tools/trainlive/validate-seed.mjs
+      - name: Apply database migrations
+        run: |
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/001_core.sql
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/002_rls.sql
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/003_runtime.sql
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -c "CREATE ROLE trainlive_web LOGIN PASSWORD 'trainlive_ci_web_only'; GRANT trainlive_app TO trainlive_web"
+      - name: Real-PostgreSQL RLS isolation tests
+        run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/01_rls_isolation.sql
+      - name: Install database tooling
+        run: npm install --prefix tools/trainlive --no-audit --no-fund
+      - name: Seed v1 twice (idempotency and immutability)
+        run: |
+          node tools/trainlive/seed.mjs
+          node tools/trainlive/seed.mjs
+      - name: Create two independent classes with the same master
+        run: |
+          d="$(TZ=Asia/Makassar date +%F)"
+          node tools/trainlive/create-class.mjs "$d" A > /tmp/trainlive-class-a.json
+          node tools/trainlive/create-class.mjs "$d" B > /tmp/trainlive-class-b.json
+          test "$(jq -r '.class_id' /tmp/trainlive-class-a.json)" != "$(jq -r '.class_id' /tmp/trainlive-class-b.json)"
+      - name: Typecheck and build Next.js application
+        run: |
+          npm install --prefix apps/trainlive --no-audit --no-fund
+          npm run typecheck --prefix apps/trainlive
+          npm run build --prefix apps/trainlive
+      - name: REST cross-class token smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run start --prefix apps/trainlive -- -p 3333 > /tmp/trainlive-server.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3333/api/health >/dev/null; then break; fi
+            sleep 1
+          done
+          a_code="$(jq -r '.join_code' /tmp/trainlive-class-a.json)"
+          b_id="$(jq -r '.class_id' /tmp/trainlive-class-b.json)"
+          a_id="$(jq -r '.class_id' /tmp/trainlive-class-a.json)"
+          curl -fsS -c /tmp/trainlive-cookies.txt -H 'content-type: application/json' \
+            --data "{\"code\":\"$a_code\",\"displayName\":\"Fixture A\",\"unit\":\"HQ\",\"email\":\"\",\"consent\":true}" \
+            http://localhost:3333/api/join > /tmp/trainlive-join.json
+          test "$(jq -r '.classId' /tmp/trainlive-join.json)" = "$a_id"
+          code="$(curl -s -o /dev/null -w '%{http_code}' -b /tmp/trainlive-cookies.txt \
+            http://localhost:3333/api/class/"$b_id"/items)"
+          test "$code" = "403"
+          code_ok="$(curl -s -o /dev/null -w '%{http_code}' -b /tmp/trainlive-cookies.txt \
+            http://localhost:3333/api/class/"$a_id"/items)"
+          test "$code_ok" = "200"
+          echo "PASS: REST token A gets 403 for class B, 200 for class A"
