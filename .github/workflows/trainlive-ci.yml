@@ -89,9 +89,11 @@ jobs:
           test -n "$staff_token"
           curl -fsS -H "Authorization: Bearer $staff_token" \
             "http://localhost:3335/api/class/$a_id/report" > /tmp/trainlive-report.json
+          echo "Staff report returned class: $(jq -r '.classId' /tmp/trainlive-report.json); expected: $a_id"
           test "$(jq -r '.classId' /tmp/trainlive-report.json)" = "$a_id"
           denied="$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $staff_token" \
             "http://localhost:3335/api/class/$b_id/report")"
+          echo "Cross-class staff report HTTP status: $denied"
           test "$denied" = "403"
           curl -fsS -H "Authorization: Bearer $staff_token" \
             "http://localhost:3335/api/class/$a_id/export?format=csv" > /tmp/trainlive-report.csv
