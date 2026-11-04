@@ -16,6 +16,12 @@ export default function ClassPage({params}:{params:{classId:string}}){
  const [loading,setLoading]=useState(true),[error,setError]=useState(''),[busy,setBusy]=useState(false);
  const [now,setNow]=useState(Date.now()),[tab,setTab]=useState<'active'|'score'>('active');
  useEffect(()=>{
+  const pulse=()=>{if(document.visibilityState==='visible')void fetch('/api/class/'+id+'/heartbeat',{method:'POST'}).catch(()=>{});};
+  pulse();
+  const interval=setInterval(pulse,60000);
+  return()=>clearInterval(interval);
+ },[id]);
+ useEffect(()=>{
   let cancelled=false;
   const refresh=async()=>{
    try{
