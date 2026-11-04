@@ -23,3 +23,13 @@
 - Avoid destructive or force pushes. Respect branch protection, approvals and CI.
 - Preserve attribution and project document fidelity; avoid unrequested content rewrites.
 - When implementation is blocked, disclose what was and was not completed.
+
+## Production deployment target — Vercel
+- **Production URL:** https://ct-kohl.vercel.app/
+- **Vercel project:** `ct` (project ID `prj_csqddt8RBv8OEk33vJi2WObzHvR8`).
+- **Vercel team:** `collman` (team ID `team_Y6DNKOu4wHEjmSax8LeZ1B7J`).
+- **Git source:** GitHub `elanghaqeem-hash/CustomerTrust`, branch `main`.
+- Git integration is already linked; pushes to `main` trigger Vercel production builds.
+- After every successful code commit affecting deployment, verify Vercel's **latest production deployment SHA and READY state**, then request the production URL and confirm HTTP 200 and relevant UI/functional checks. A READY build alone does not prove the app works.
+- If the build or smoke test fails, report the failure, inspect Vercel logs and correct it; never claim the deployment is live before verification.
+- Do not deploy placeholder-only features as completed product features; the initial `index.html` is an explicit landing page pending functional TrainLive implementation.
