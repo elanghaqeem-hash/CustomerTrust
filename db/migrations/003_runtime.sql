@@ -16,7 +16,7 @@ BEGIN
    AND now() BETWEEN join_open_from AND join_open_until
  FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'join unavailable' USING ERRCODE='22023'; END IF;
- IF (SELECT count(*) FROM trainlive.participant WHERE class_id=c.id) >= c.capacity
+ IF (SELECT count(*) FROM trainlive.participant p WHERE p.class_id=c.id) >= c.capacity
  THEN RAISE EXCEPTION 'class full' USING ERRCODE='22023'; END IF;
  INSERT INTO trainlive.participant(class_id,display_name,unit,email,consent_at)
  VALUES(c.id,btrim(p_name),btrim(p_unit),nullif(btrim(coalesce(p_email,'')),''),now())
