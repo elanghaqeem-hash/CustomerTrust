@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { createHmac } from 'node:crypto';
 import { transaction } from '@/lib/db';
 import { signParticipant,sessionCookie } from '@/lib/auth';
 import { privateError } from '@/lib/api';
@@ -16,6 +17,17 @@ export async function POST(req:NextRequest) {
  if(!parsed.success) return NextResponse.json({error:'Lengkapi data dan persetujuan peserta.'},{status:400});
  try {
   const data=parsed.data;
+  // Database-backed throttling works across serverless instances. Allow staff behind
+  // the same bank NAT to join a 25-person class without blocking legitimate users.
+  // The source IP is hashed; it is never stored as plaintext in the database.
+  const forwarded=req.headers.get('x-forwarded-for');
+  const clientIp=(forwarded?.split(',')[0]||req.headers.get('x-real-ip')||'unidentified').trim();
+  const key=createHmac('sha256',process.env.TRAINLIVE_JWT_SECRET||'')
+    .update('join-ip:'+clientIp).digest('hex');
+  const allowed=await transaction(null,async db=>
+    (await db.query<{allowed:boolean}>('SELECT trainlive.allow_join_attempt($1) AS allowed',[key])).rows[0]?.allowed);
+  if(!allowed)return NextResponse.json({error:'Terlalu banyak percobaan bergabung. Coba lagi beberapa menit kemudian.'},
+    {status:429,headers:{'Retry-After':'600','Cache-Control':'no-store'}});
   const row=await transaction(null,async db=>(await db.query<{class_id:string;participant_id:string}>(
    'SELECT * FROM trainlive.join_class($1,$2,$3,$4,$5)',
    [data.code.toUpperCase(),data.displayName,data.unit,data.email||null,true]

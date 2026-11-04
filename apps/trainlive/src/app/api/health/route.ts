@@ -23,6 +23,7 @@ export async function GET() {
           AND to_regclass('trainlive.class_item') IS NOT NULL
           AND to_regclass('trainlive.participant') IS NOT NULL
           AND to_regprocedure('trainlive.claim_class()') IS NOT NULL
+          AND to_regprocedure('trainlive.allow_join_attempt(text)') IS NOT NULL
         ) AS ready`
       );
       return result.rows[0]?.ready === true;
