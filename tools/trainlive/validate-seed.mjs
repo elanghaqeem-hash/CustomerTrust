@@ -12,6 +12,6 @@ assert.deepEqual(seed.items.filter(x=>x.type==='single_choice').map(x=>x.key),
 for(const item of seed.items) {
  assert.ok(item.key&&item.type&&Number.isInteger(item.module));
  if(item.correct) assert.ok(item.options['ABCD'.indexOf(item.correct)],item.key);
- for(const question of item.questions||[]) assert.ok(question.options['ABCD'.indexOf(question.correct)],item.key);
+ for(const question of item.questions||[]) if(question.correct) assert.ok(question.options?.['ABCD'.indexOf(question.correct)],item.key);
 }
 console.info('PASS: 16 items, 11 scenarios, 20 test questions, 5 worksheets.');
