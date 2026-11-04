@@ -114,6 +114,10 @@ export default function ClassPage({params}:{params:{classId:string}}){
    </div>
   </header>
   <div className="mx-auto max-w-3xl px-4 pt-7 md:px-5">
+   <a href={'/class/'+id+'/worksheets'}
+    className="mb-5 flex min-h-14 items-center justify-between rounded-xl border border-[#b5cfc8] bg-[#e8f5f1] px-5 py-3 font-bold text-teal">
+    <span>Isi Lembar Kerja LK1–LK5</span><span aria-hidden="true">→</span>
+   </a>
    <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl bg-white p-1 shadow-sm" role="tablist" aria-label="Menu peserta">
     <button type="button" role="tab" aria-selected={tab==='active'} onClick={()=>setTab('active')}
      className={'rounded-lg px-4 py-3 font-bold '+(tab==='active'?'bg-teal text-white':'text-navy')}>Aktivitas</button>
