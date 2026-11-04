@@ -2,6 +2,15 @@
 
 Repository utama (**Single Source of Truth**) untuk proyek CustomerTrust.
 
+## Live environment (Vercel)
+
+- **Production:** https://ct-kohl.vercel.app/
+- **Vercel project:** `ct` (team `collman`)
+- **Source:** GitHub `elanghaqeem-hash/CustomerTrust` → branch `main`
+- **Deployment:** otomatis saat perubahan berhasil di-push ke `main`. Periksa status deployment dan hasil smoke test sebelum menyebut fitur live.
+
+Saat ini situs menampilkan **halaman inisialisasi**; polling, kuis, dan papan skor TrainLive masih dalam tahap pengembangan.
+
 ## Aturan kerja ChatGPT ↔ GitHub
 
 Seluruh perubahan *file proyek* yang dikerjakan melalui ChatGPT diarahkan ke repository ini, dengan branch utama `main`.
