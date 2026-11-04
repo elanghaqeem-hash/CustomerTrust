@@ -3,8 +3,9 @@ import { z } from 'zod';
 import { guardClass,privateError } from '@/lib/api';
 import { transaction } from '@/lib/db';
 export const runtime='nodejs';
-export async function GET(req:Request,{params}:{params:{classId:string}}){
- const auth=await guardClass(params.classId,'staff');if(auth.response)return auth.response;
+export async function GET(req:Request,{params}:{params:Promise<{classId:string}>}){
+ const {classId}=await params;
+ const auth=await guardClass(classId,'staff');if(auth.response)return auth.response;
  const s=auth.session!;if(s.kind!=='staff')return NextResponse.json({error:'forbidden'},{status:403});
  const itemId=new URL(req.url).searchParams.get('itemId');
  if(!z.string().uuid().safeParse(itemId).success)return NextResponse.json({error:'itemId required'},{status:400});

@@ -4,8 +4,9 @@ import { transaction } from '@/lib/db';
 import { guardClass,privateError } from '@/lib/api';
 export const runtime='nodejs';
 const schema=z.object({itemId:z.string().uuid(),action:z.enum(['open','close','reveal'])}).strict();
-export async function POST(req:Request,{params}:{params:{classId:string}}) {
- const auth=await guardClass(params.classId,'staff');
+export async function POST(req:Request,{params}:{params:Promise<{classId:string}>}) {
+ const {classId}=await params;
+ const auth=await guardClass(classId,'staff');
  if(auth.response)return auth.response;
  const s=auth.session!;
  if(s.kind!=='staff')return NextResponse.json({error:'forbidden'},{status:403});

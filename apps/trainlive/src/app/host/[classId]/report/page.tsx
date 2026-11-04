@@ -1,4 +1,5 @@
 'use client';
+import {useParams} from 'next/navigation';
 import {useState} from 'react';
 type Summary={
  participants:number;pre_submitted:number;post_submitted:number;post_pass_75:number;
@@ -11,8 +12,8 @@ type Participant={
 };
 type Quiz={item_key:string;title:string|null;answered:number;correct:number;correct_pct:number|null};
 type Report={classId:string;summary:Summary;participants:Participant[];quizzes:Quiz[]};
-export default function ClassReport({params}:{params:{classId:string}}){
- const classId=params.classId;
+export default function ClassReport(){
+ const classId=useParams<{classId:string}>().classId;
  const [token,setToken]=useState(''),[data,setData]=useState<Report|null>(null);
  const [busy,setBusy]=useState(false),[error,setError]=useState('');
  async function load(){
@@ -25,15 +26,15 @@ export default function ClassReport({params}:{params:{classId:string}}){
   }catch(e){setError(e instanceof Error?e.message:'Kesalahan laporan');}
   finally{setBusy(false)}
  }
- async function exportCsv(){
+ async function exportFile(format:'csv'|'xlsx'|'pdf'){
   setBusy(true);setError('');
   try{
-   const res=await fetch('/api/class/'+classId+'/export?format=csv',
+   const res=await fetch('/api/class/'+classId+'/export?format='+format,
     {headers:{Authorization:'Bearer '+token},cache:'no-store'});
    if(!res.ok)throw Error('Ekspor ditolak: '+res.status);
    const blob=await res.blob(),link=document.createElement('a');
    const objectUrl=URL.createObjectURL(blob);
-   link.href=objectUrl;link.download='trainlive_'+classId+'_participants.csv';
+   link.href=objectUrl;link.download='trainlive_'+classId+'_participants.'+format;
    document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(objectUrl),2000);
   }catch(e){setError(e instanceof Error?e.message:'Ekspor gagal');}
   finally{setBusy(false);}
@@ -61,7 +62,11 @@ export default function ClassReport({params}:{params:{classId:string}}){
     <button className="rounded-xl bg-teal px-5 font-bold text-white" disabled={busy||!token}
      onClick={()=>void load()}>Muat laporan</button>
     <button className="rounded-xl border border-teal bg-white px-5 font-bold text-teal"
-     disabled={busy||!data} onClick={()=>void exportCsv()}>Ekspor CSV</button>
+     disabled={busy||!data} onClick={()=>void exportFile('csv')}>CSV</button>
+    <button className="rounded-xl border border-teal bg-white px-5 font-bold text-teal"
+     disabled={busy||!data} onClick={()=>void exportFile('xlsx')}>Excel</button>
+    <button className="rounded-xl border border-teal bg-white px-5 font-bold text-teal"
+     disabled={busy||!data} onClick={()=>void exportFile('pdf')}>PDF</button>
    </div>
    {error&&<div className="mt-5 rounded-xl bg-red-50 p-4 text-red-800" role="alert">{error}</div>}
    {data&&<div className="mt-7 space-y-7">

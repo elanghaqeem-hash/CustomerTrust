@@ -1,21 +1,26 @@
 'use client';
+import {useParams} from 'next/navigation';
 import { useEffect,useState } from 'react';
 type Item={id:string;item_key:string;state:string;type:string;module_no:number;slide_ref:number|null;payload:{title?:string;prompt?:string}};
 type Score={participant_id:string;display_name:string;unit:string;points:number;rank_no:number};
-export default function HostPage({params}:{params:{classId:string}}){
- const id=params.classId;
+type ChatMessage={id:string;body:string;display_name:string;hidden:boolean;read_aloud:boolean;created_at:string};
+export default function HostPage(){
+ const id=useParams<{classId:string}>().classId;
  const [token,setToken]=useState(''),[items,setItems]=useState<Item[]>([]),[score,setScore]=useState<Score[]>([]);
+ const [messages,setMessages]=useState<ChatMessage[]>([]);
  const [active,setActive]=useState<string|null>(null),[results,setResults]=useState<{answered:number;joined:number;counts:{choice:string;count:number}[]}|null>(null);
  const [error,setError]=useState(''),[busy,setBusy]=useState(false);
  async function refresh(){
   if(!token)return;
   try{
    const headers={Authorization:'Bearer '+token};
-   const [a,b]=await Promise.all([fetch('/api/class/'+id+'/items',{headers,cache:'no-store'}),
-    fetch('/api/class/'+id+'/leaderboard',{headers,cache:'no-store'})]);
+   const [a,b,chat]=await Promise.all([fetch('/api/class/'+id+'/items',{headers,cache:'no-store'}),
+    fetch('/api/class/'+id+'/leaderboard',{headers,cache:'no-store'}),
+    fetch('/api/class/'+id+'/chat',{headers,cache:'no-store'})]);
    if(!a.ok)throw Error('Token staf ditolak atau tidak ditugaskan pada kelas ini.');
    const ia=await a.json(),lb=b.ok?await b.json():{top:[]};
    setItems(ia.items);setScore(lb.top||[]);setError('');
+   if(chat.ok)setMessages((await chat.json()).messages||[]);
    const opened=(ia.items as Item[]).find(x=>x.state==='open');
    if(opened){
     setActive(opened.id);
@@ -40,6 +45,17 @@ export default function HostPage({params}:{params:{classId:string}}){
    const j=await res.json();if(!res.ok)throw Error(j.error||'Gagal mengubah status');
    await refresh();
   }catch(e){setError(e instanceof Error?e.message:'Gagal menyimpan');}
+  finally{setBusy(false)}
+ }
+ async function moderate(messageId:string,action:'read_aloud'|'hide'|'unhide'){
+  if(!token)return;setBusy(true);setError('');
+  try{
+   const r=await fetch('/api/class/'+id+'/chat',{method:'POST',
+    headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+    body:JSON.stringify({messageId,action})});
+   const j=await r.json();if(!r.ok)throw Error(j.error||'Moderasi gagal');
+   await refresh();
+  }catch(e){setError(e instanceof Error?e.message:'Moderasi gagal')}
   finally{setBusy(false)}
  }
  return <main className="min-h-screen bg-paper">
@@ -84,6 +100,25 @@ export default function HostPage({params}:{params:{classId:string}}){
       <p className="mt-3 text-3xl font-extrabold text-teal">{results?.answered??0} <span className="text-base text-slate-500">/ {results?.joined??0} peserta terdaftar</span></p>
       <div className="mt-4 space-y-2">{results?.counts.map(c=><div key={c.choice} className="flex justify-between border-b border-slate-100 py-2">
        <span>{c.choice}</span><strong>{c.count}</strong></div>)}</div>
+     </section>
+     <section className="shadow-card rounded-xl bg-white p-5">
+      <h2 className="mb-3 text-xl font-bold">Chat & moderasi</h2>
+      <p className="mb-4 text-sm text-slate-500">Bacakan pesan yang relevan (+5 poin), atau sembunyikan pesan sensitif. Aksi tercatat pada audit.</p>
+      <div className="max-h-96 space-y-3 overflow-y-auto">
+       {messages.map(m=><article key={m.id} className={'rounded-lg border p-3 '+(m.hidden?'border-red-200 bg-red-50':'border-slate-200')}>
+        <div className="flex items-center justify-between gap-2 text-xs font-bold">
+         <span>{m.display_name}</span><span>{m.read_aloud?'Sudah dibacakan':m.hidden?'Tersembunyi':'Baru'}</span>
+        </div>
+        <p className="mt-2 break-words text-sm">{m.body}</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+         <button type="button" disabled={busy||m.hidden||m.read_aloud} onClick={()=>void moderate(m.id,'read_aloud')}
+          className="rounded border border-teal px-2 py-1 text-xs font-bold text-teal">Bacakan (+5)</button>
+         <button type="button" disabled={busy} onClick={()=>void moderate(m.id,m.hidden?'unhide':'hide')}
+          className="rounded border border-slate-300 px-2 py-1 text-xs font-bold">{m.hidden?'Tampilkan':'Sembunyikan'}</button>
+        </div>
+       </article>)}
+       {!messages.length&&<p className="text-sm text-slate-500">Belum ada pesan peserta.</p>}
+      </div>
      </section>
      <section className="shadow-card rounded-xl bg-white p-5"><h2 className="mb-4 text-xl font-bold">Top 10 kelas</h2>
       <ol className="space-y-2">{score.map(p=><li key={p.participant_id} className="flex justify-between gap-4 border-b border-slate-100 py-2">

@@ -1,4 +1,5 @@
 'use client';
+import {useParams} from 'next/navigation';
 import {useEffect,useRef,useState} from 'react';
 
 type Field={id:string;label:string;type:string;required?:boolean;options?:string[];hint?:string;validate?:string};
@@ -20,8 +21,8 @@ const initData=(w:Worksheet):Record<string,unknown>=>{
  return {};
 };
 
-export default function Worksheets({params}:{params:{classId:string}}){
- const id=params.classId;
+export default function Worksheets(){
+ const id=useParams<{classId:string}>().classId;
  const [list,setList]=useState<Worksheet[]>([]);
  const [drafts,setDrafts]=useState<Record<string,Record<string,unknown>>>({});
  const [dirty,setDirty]=useState<Record<string,boolean>>({});

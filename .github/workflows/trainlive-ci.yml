@@ -50,11 +50,14 @@ jobs:
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/003_runtime.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/004_worksheets.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/005_observer_audit.sql
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/006_join_throttle.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -c "CREATE ROLE trainlive_web LOGIN PASSWORD 'trainlive_ci_web_only'; GRANT trainlive_app TO trainlive_web"
       - name: Real-PostgreSQL RLS isolation tests
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/01_rls_isolation.sql
       - name: Auto-LK2 and worksheet points isolation
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/02_worksheet.sql
+      - name: Distributed join throttle test
+        run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/03_join_throttle.sql
       - name: Install database tooling
         run: npm install --prefix tools/trainlive --no-audit --no-fund
       - name: Seed v1 twice (idempotency and immutability)
@@ -87,6 +90,11 @@ jobs:
           b_id="$(jq -r '.class_id' /tmp/trainlive-class-b.json)"
           staff_token="$(node tools/trainlive/provision-facilitator.mjs "$a_id" staff@example.invalid | tail -n 1)"
           test -n "$staff_token"
+          curl -fsS -H "Authorization: Bearer $staff_token" \
+            "http://localhost:3335/api/class/$a_id/chat" | jq -e '.classId=="'"$a_id"'"'
+          code_unauthorized="$(curl -s -o /dev/null -w '%{http_code}' \
+            "http://localhost:3335/api/class/$a_id/chat")"
+          test "$code_unauthorized" = "403"
           node tools/trainlive/test-report-fixture.mjs "$a_id"
           curl -fsS -H "Authorization: Bearer $staff_token" \
             "http://localhost:3335/api/class/$a_id/report" > /tmp/trainlive-report.json
@@ -103,7 +111,18 @@ jobs:
             "http://localhost:3335/api/class/$a_id/export?format=csv" > /tmp/trainlive-report.csv
           grep -q "$a_id" /tmp/trainlive-report.csv
           if grep -q "$b_id" /tmp/trainlive-report.csv; then echo "Cross-class CSV leak"; exit 1; fi
-          echo "PASS: class A staff report/export, class B denied"
+          curl -fsS -H "Authorization: Bearer $staff_token" \
+            "http://localhost:3335/api/class/$a_id/export?format=xlsx" > /tmp/trainlive-report.xlsx
+          test "$(head -c 2 /tmp/trainlive-report.xlsx)" = "PK"
+          curl -fsS -H "Authorization: Bearer $staff_token" \
+            "http://localhost:3335/api/class/$a_id/export?format=pdf" > /tmp/trainlive-report.pdf
+          test "$(head -c 4 /tmp/trainlive-report.pdf)" = "%PDF"
+          for fmt in csv xlsx pdf; do
+            denied="$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $staff_token" \
+              "http://localhost:3335/api/class/$b_id/export?format=$fmt")"
+            test "$denied" = "403"
+          done
+          echo "PASS: class A CSV/XLSX/PDF exports, class B denied"
       - name: REST cross-class token smoke test
         shell: bash
         run: |
@@ -129,3 +148,19 @@ jobs:
             http://localhost:3333/api/class/"$a_id"/items)"
           test "$code_ok" = "200"
           echo "PASS: REST token A gets 403 for class B, 200 for class A"
+
+      - name: Concurrent 25-seat class acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run start --prefix apps/trainlive -- -p 3337 > /tmp/trainlive-capacity.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3337/api/health >/dev/null; then break; fi
+            sleep 1
+          done
+          d="$(TZ=Asia/Makassar date +%F)"
+          node tools/trainlive/create-class.mjs "$d" CAPACITY > /tmp/trainlive-capacity-class.json
+          code="$(jq -r '.join_code' /tmp/trainlive-capacity-class.json)"
+          node tools/trainlive/test-capacity.mjs http://localhost:3337 "$code"
