@@ -49,6 +49,7 @@ jobs:
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/002_rls.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/003_runtime.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/004_worksheets.sql
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/005_observer_audit.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -c "CREATE ROLE trainlive_web LOGIN PASSWORD 'trainlive_ci_web_only'; GRANT trainlive_app TO trainlive_web"
       - name: Real-PostgreSQL RLS isolation tests
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/01_rls_isolation.sql
@@ -71,6 +72,32 @@ jobs:
           npm install --prefix apps/trainlive --no-audit --no-fund
           npm run typecheck --prefix apps/trainlive
           npm run build --prefix apps/trainlive
+      - name: Staff report and CSV export are class-bound
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run start --prefix apps/trainlive -- -p 3335 > /tmp/trainlive-staff.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3335/api/health >/dev/null; then break; fi
+            sleep 1
+          done
+          a_id="$(jq -r '.class_id' /tmp/trainlive-class-a.json)"
+          b_id="$(jq -r '.class_id' /tmp/trainlive-class-b.json)"
+          staff_token="$(node tools/trainlive/provision-facilitator.mjs "$a_id" staff@example.invalid | tail -n 1)"
+          test -n "$staff_token"
+          curl -fsS -H "Authorization: Bearer $staff_token" \
+            "http://localhost:3335/api/class/$a_id/report" > /tmp/trainlive-report.json
+          test "$(jq -r '.classId' /tmp/trainlive-report.json)" = "$a_id"
+          denied="$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $staff_token" \
+            "http://localhost:3335/api/class/$b_id/report")"
+          test "$denied" = "403"
+          curl -fsS -H "Authorization: Bearer $staff_token" \
+            "http://localhost:3335/api/class/$a_id/export?format=csv" > /tmp/trainlive-report.csv
+          grep -q "$a_id" /tmp/trainlive-report.csv
+          if grep -q "$b_id" /tmp/trainlive-report.csv; then echo "Cross-class CSV leak"; exit 1; fi
+          echo "PASS: class A staff report/export, class B denied"
       - name: REST cross-class token smoke test
         shell: bash
         run: |
