@@ -90,6 +90,11 @@ jobs:
           b_id="$(jq -r '.class_id' /tmp/trainlive-class-b.json)"
           staff_token="$(node tools/trainlive/provision-facilitator.mjs "$a_id" staff@example.invalid | tail -n 1)"
           test -n "$staff_token"
+          curl -fsS -H "Authorization: Bearer $staff_token" \
+            "http://localhost:3335/api/class/$a_id/chat" | jq -e '.classId=="'"$a_id"'"'
+          code_unauthorized="$(curl -s -o /dev/null -w '%{http_code}' \
+            "http://localhost:3335/api/class/$a_id/chat")"
+          test "$code_unauthorized" = "403"
           node tools/trainlive/test-report-fixture.mjs "$a_id"
           curl -fsS -H "Authorization: Bearer $staff_token" \
             "http://localhost:3335/api/class/$a_id/report" > /tmp/trainlive-report.json
