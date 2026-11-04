@@ -30,7 +30,7 @@ BEGIN
  IF ws_id IS NULL THEN RETURN false; END IF;
  SELECT count(r.id) INTO answer_count
  FROM trainlive.class_item i JOIN trainlive.response r ON r.class_id=i.class_id AND r.class_item_id=i.id
- WHERE i.class_id=cid AND i.item_key IN ('RF1','RF2','RF3','RF4') AND r.participant_id=pid;
+ WHERE i.class_id=cid AND i.item_key IN ('RF1','RF2','RF3','RF4') AND i.state='revealed' AND r.participant_id=pid;
  IF answer_count<>4 THEN RETURN false; END IF;
  SELECT jsonb_build_object('red_flags',jsonb_agg(jsonb_build_object(
    'key',i.item_key,'scenario',i.payload->>'scenario',
@@ -41,7 +41,7 @@ BEGIN
    'legal_basis',i.payload->>'legal_basis'
  ) ORDER BY i.order_no)) INTO data
  FROM trainlive.class_item i JOIN trainlive.response r ON r.class_id=i.class_id AND r.class_item_id=i.id
- WHERE i.class_id=cid AND i.item_key IN ('RF1','RF2','RF3','RF4') AND r.participant_id=pid;
+ WHERE i.class_id=cid AND i.item_key IN ('RF1','RF2','RF3','RF4') AND i.state='revealed' AND r.participant_id=pid;
  INSERT INTO trainlive.worksheet_submission(class_id,class_worksheet_id,participant_id,data_json,status,submitted_at)
  VALUES(cid,ws_id,pid,data,'submitted',now())
  ON CONFLICT(class_id,class_worksheet_id,participant_id) DO UPDATE
