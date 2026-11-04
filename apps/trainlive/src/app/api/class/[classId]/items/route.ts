@@ -4,7 +4,8 @@ import { guardClass,privateError } from '@/lib/api';
 export const runtime='nodejs';
 type Row={id:string;item_key:string;type:string;module_no:number;slide_ref:number|null;order_no:number;
  payload:Record<string,unknown>;hidden:boolean;state:string;timer_sec:number;opened_at:string|null;closed_at:string|null};
-function safePayload(row:Row){
+function safePayload(row:Row,forStaff:boolean){
+ if(!forStaff && row.state==='idle') return {title:row.payload.title||'Aktivitas berikutnya',tag:row.payload.tag};
  const p={...row.payload};
  if(row.state!=='revealed'){
   delete p.correct;delete p.explanation;delete p.legal_basis;
@@ -26,7 +27,7 @@ export async function GET(_req:Request,{params}:{params:{classId:string}}) {
     'SELECT id,item_key,type,module_no,slide_ref,order_no,payload,hidden,state,timer_sec,opened_at,closed_at FROM trainlive.class_item WHERE class_id=$1 ORDER BY order_no',
     [params.classId])).rows
   );
-  return NextResponse.json({classId:params.classId,items:rows.filter(r=>!r.hidden||session.kind==='staff').map(r=>({...r,payload:safePayload(r)}))},
+  return NextResponse.json({classId:params.classId,items:rows.filter(r=>!r.hidden||session.kind==='staff').map(r=>({...r,payload:safePayload(r,session.kind==='staff')}))},
    {headers:{'Cache-Control':'no-store'}});
  }catch(err){return privateError(err)}
 }
