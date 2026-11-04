@@ -1,0 +1,13 @@
+{
+  "name": "trainlive-db-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed": "node seed.mjs",
+    "create-class": "node create-class.mjs",
+    "test:seed": "node validate-seed.mjs"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  }
+}
