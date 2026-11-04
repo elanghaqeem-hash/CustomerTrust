@@ -5,7 +5,14 @@ export default function JoinPage(){
  const [code,setCode]=useState(''),[name,setName]=useState(''),[unit,setUnit]=useState(''),
  [email,setEmail]=useState(''),[consent,setConsent]=useState(false),[busy,setBusy]=useState(false),
  [error,setError]=useState('');
+ const [readiness,setReadiness]=useState<'checking'|'ready'|'offline'>('checking');
  useEffect(()=>{const q=new URLSearchParams(window.location.search).get('code');if(q)setCode(q.toUpperCase().slice(0,6));},[]);
+ useEffect(()=>{
+  let mounted=true;
+  fetch('/api/health',{cache:'no-store'}).then(r=>{if(mounted)setReadiness(r.ok?'ready':'offline')})
+   .catch(()=>{if(mounted)setReadiness('offline')});
+  return()=>{mounted=false};
+ },[]);
  async function submit(e:FormEvent){
   e.preventDefault();setError('');setBusy(true);
   try{
@@ -36,6 +43,9 @@ export default function JoinPage(){
    <section aria-labelledby="join-title" className="shadow-card rounded-2xl border border-slate-200 bg-white p-6 md:p-8">
     <h2 id="join-title" className="text-2xl font-extrabold">Masuk ke kelas</h2>
     <p className="mt-2 text-slate-600">Gunakan kode enam karakter dari fasilitator.</p>
+    {readiness!=='ready'&&<p role="status" className="mt-5 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+     {readiness==='checking'?'Memeriksa kesiapan sistem…':'Sistem sedang dalam persiapan. Pendaftaran peserta belum dibuka.'}
+    </p>}
     <form className="mt-6 space-y-4" onSubmit={submit}>
      <div><label htmlFor="join-code" className="field-label">Kode kelas *</label>
       <input id="join-code" className="field-input font-mono text-xl font-bold tracking-[.25em]" maxLength={6} required
@@ -55,7 +65,7 @@ export default function JoinPage(){
       <span>Saya menyetujui pemrosesan nama panggilan, unit, jawaban, skor, dan kehadiran untuk pelaksanaan serta evaluasi training sesuai kebijakan pelindungan data.</span>
      </label>
      {error&&<p role="alert" className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-800">{error}</p>}
-     <button disabled={busy||!consent||code.length!==6} type="submit"
+     <button disabled={busy||readiness!=='ready'||!consent||code.length!==6} type="submit"
       className="w-full rounded-xl bg-teal px-5 py-3 font-bold text-white hover:bg-[#095755]">
       {busy?'Memproses…':'Gabung Kelas'}</button>
      <p className="text-xs leading-relaxed text-slate-500">Jangan masukkan nama nasabah, nomor rekening, NIK, atau data rahasia bank di kolom jawaban.</p>

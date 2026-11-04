@@ -26,15 +26,15 @@ export default function ClassReport(){
   }catch(e){setError(e instanceof Error?e.message:'Kesalahan laporan');}
   finally{setBusy(false)}
  }
- async function exportCsv(){
+ async function exportFile(format:'csv'|'xlsx'|'pdf'){
   setBusy(true);setError('');
   try{
-   const res=await fetch('/api/class/'+classId+'/export?format=csv',
+   const res=await fetch('/api/class/'+classId+'/export?format='+format,
     {headers:{Authorization:'Bearer '+token},cache:'no-store'});
    if(!res.ok)throw Error('Ekspor ditolak: '+res.status);
    const blob=await res.blob(),link=document.createElement('a');
    const objectUrl=URL.createObjectURL(blob);
-   link.href=objectUrl;link.download='trainlive_'+classId+'_participants.csv';
+   link.href=objectUrl;link.download='trainlive_'+classId+'_participants.'+format;
    document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(objectUrl),2000);
   }catch(e){setError(e instanceof Error?e.message:'Ekspor gagal');}
   finally{setBusy(false);}
@@ -62,7 +62,11 @@ export default function ClassReport(){
     <button className="rounded-xl bg-teal px-5 font-bold text-white" disabled={busy||!token}
      onClick={()=>void load()}>Muat laporan</button>
     <button className="rounded-xl border border-teal bg-white px-5 font-bold text-teal"
-     disabled={busy||!data} onClick={()=>void exportCsv()}>Ekspor CSV</button>
+     disabled={busy||!data} onClick={()=>void exportFile('csv')}>CSV</button>
+    <button className="rounded-xl border border-teal bg-white px-5 font-bold text-teal"
+     disabled={busy||!data} onClick={()=>void exportFile('xlsx')}>Excel</button>
+    <button className="rounded-xl border border-teal bg-white px-5 font-bold text-teal"
+     disabled={busy||!data} onClick={()=>void exportFile('pdf')}>PDF</button>
    </div>
    {error&&<div className="mt-5 rounded-xl bg-red-50 p-4 text-red-800" role="alert">{error}</div>}
    {data&&<div className="mt-7 space-y-7">
