@@ -28,8 +28,9 @@ The existing `TrainLive integration` CI additionally exercises a **same-source-I
 synthetic burst of 600 joins over 24 × 25 disposable classes using its
 PostgreSQL 16 service. This catches a real scenario where a branch office NAT
 is shared by many training attendees. The migration introduces separate
-10-minute anti-abuse quotas: 1,000 total attempts per hashed IP and 40
-per hashed IP + class-code pair, without storing raw IPs or codes.
+10-minute anti-abuse quotas: 16 randomly selected, secret-keyed hashed-IP
+shards at 64 attempts each (maximum 1,024 attempts/IP) plus a stable 40
+attempts per hashed IP + class-code pair, without storing raw IPs or codes.
 A single class remains capped at 25 by the database join function.
 
 Run `node tools/trainlive/test-capacity-600.mjs http://localhost:3338 /tmp/trainlive-perf-codes.json`

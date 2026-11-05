@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createHmac } from 'node:crypto';
+import { createHmac,randomInt } from 'node:crypto';
 import { transaction } from '@/lib/db';
 import { signParticipant,sessionCookie } from '@/lib/auth';
 import { privateError,requireSameOrigin } from '@/lib/api';
@@ -27,7 +27,12 @@ export async function POST(req:NextRequest) {
     req.headers.get('x-forwarded-for');
   const clientIp=(forwarded?.split(',')[0]||req.headers.get('x-real-ip')||'unidentified').trim();
   const secret=process.env.TRAINLIVE_JWT_SECRET||'';
-  const ipKey=createHmac('sha256',secret).update('join-ip:'+clientIp).digest('hex');
+  // Sixteen server-selected, secret-keyed shards avoid a single hot counter
+  // across 600 attendees sharing one institutional NAT. Each shard allows 64
+  // attempts per 10 min; a stable code/IP limit separately caps brute forcing.
+  const shard=randomInt(16);
+  const ipKey=createHmac('sha256',secret)
+    .update('join-ip:'+clientIp+':shard:'+shard).digest('hex');
   const ipCodeKey=createHmac('sha256',secret)
     .update('join-ip-code:'+clientIp+':'+data.code.toUpperCase()).digest('hex');
   const allowed=await transaction(null,async db=>
