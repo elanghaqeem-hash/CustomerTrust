@@ -81,6 +81,15 @@ jobs:
         run: |
           node tools/trainlive/seed.mjs
           node tools/trainlive/seed.mjs
+      - name: Prove that the backup restores to a disposable isolated PostgreSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          dump="$(mktemp --suffix=.dump)"
+          trap 'rm -f "$dump"' EXIT
+          pg_dump "$DATABASE_URL_ADMIN" --format=custom --file="$dump"
+          bash deploy/hostinger/restore-drill.sh "$dump"
       - name: Create two independent classes with the same master
         run: |
           d="$(TZ=Asia/Makassar date +%F)"
@@ -100,9 +109,23 @@ jobs:
         run: |
           bash -n deploy/hostinger/bootstrap.sh
           bash -n deploy/hostinger/backup.sh
+          bash -n deploy/hostinger/preflight.sh
+          bash -n deploy/hostinger/restore-drill.sh
+          bash -n deploy/hostinger/smoke.sh
           node --check tools/trainlive/assign-staff.mjs
           docker compose --env-file deploy/hostinger/hostinger.env.example \
             -f deploy/hostinger/compose.yaml config --quiet
+          # Validate two-network architecture without printing secrets.
+          docker compose --env-file deploy/hostinger/hostinger.env.example \
+            -f deploy/hostinger/compose.yaml config --format json | jq -e '
+              .networks.private_db.internal == true and
+              (.services.db.networks | has("private_db")) and
+              (.services.db.networks | has("edge") | not) and
+              (.services.db.ports == null) and
+              (.services.app.networks | has("edge") and has("private_db")) and
+              (.services.proxy.networks | has("edge")) and
+              (.services.proxy.networks | has("private_db") | not)
+            ' >/dev/null
           docker build -f deploy/hostinger/Dockerfile -t trainlive-hostinger-app-ci .
           docker build -f deploy/hostinger/Dockerfile.tools -t trainlive-hostinger-tools-ci .
       - name: Hostinger production denies manual staff JWT even without VERCEL_ENV
