@@ -21,3 +21,22 @@ The test runs 600 concurrent virtual users, one iteration each. Every virtual us
 - Record environment, DB tier, commit SHA, timestamp, k6 JSON summary, and incident notes before signoff.
 
 **Status: test prepared but not executed**. Production database and app deployment prerequisites remain open.
+
+## GitHub Actions disposable 600-user regression (added in migration 009)
+
+The existing `TrainLive integration` CI additionally exercises a **same-source-IP**
+synthetic burst of 600 joins over 24 × 25 disposable classes using its
+PostgreSQL 16 service. This catches a real scenario where a branch office NAT
+is shared by many training attendees. The migration introduces separate
+10-minute anti-abuse quotas: 1,000 total attempts per hashed IP and 40
+per hashed IP + class-code pair, without storing raw IPs or codes.
+A single class remains capped at 25 by the database join function.
+
+Run `node tools/trainlive/test-capacity-600.mjs http://localhost:3338 /tmp/trainlive-perf-codes.json`
+after generating the disposable classes in CI. The test enforces 600 successful
+joins, 24 unique class IDs, cross-class cookie isolation and capacity overflow
+rejection, and records p95 in the GitHub Actions step summary. It **does not**
+claim to measure production or remotely hosted staging networking, realtime
+WebSocket delivery, or 600 sustained concurrent users. For final P2 approval,
+also execute the k6 plan above against isolated managed staging and record
+real p95, error rates and DB resource metrics.

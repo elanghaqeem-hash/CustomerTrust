@@ -53,6 +53,7 @@ jobs:
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/006_join_throttle.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/007_staff_oidc.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/008_production_preflight.sql
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/009_join_throttle_multiclass.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -c "CREATE ROLE trainlive_web LOGIN PASSWORD 'trainlive_ci_web_only'; GRANT trainlive_app TO trainlive_web"
       - name: Real-PostgreSQL RLS isolation tests
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/01_rls_isolation.sql
@@ -60,6 +61,8 @@ jobs:
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/02_worksheet.sql
       - name: Distributed join throttle test
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/03_join_throttle.sql
+      - name: Shared office IP and per-class join limiter
+        run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/06_join_throttle_multiclass.sql
       - name: Install database tooling
         run: npm install --prefix tools/trainlive --no-audit --no-fund
       - name: Seed v1 twice (idempotency and immutability)
@@ -192,3 +195,24 @@ jobs:
           node tools/trainlive/create-class.mjs "$d" CAPACITY > /tmp/trainlive-capacity-class.json
           code="$(jq -r '.join_code' /tmp/trainlive-capacity-class.json)"
           node tools/trainlive/test-capacity.mjs http://localhost:3337 "$code"
+
+      - name: 600 concurrent synthetic joins across 24 isolated classes on one office IP
+        shell: bash
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          npm run start --prefix apps/trainlive -- -p 3338 > /tmp/trainlive-600.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3338/api/health >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://localhost:3338/api/health | jq -e '.ready==true'
+          d="$(TZ=Asia/Makassar date +%F)"
+          for n in $(seq -w 1 24); do
+            node tools/trainlive/create-class.mjs "$d" "PERF-${n}" > "/tmp/trainlive-perf-${n}.json"
+          done
+          jq -s '[.[].join_code]' /tmp/trainlive-perf-*.json > /tmp/trainlive-perf-codes.json
+          node tools/trainlive/test-capacity-600.mjs \
+            http://localhost:3338 /tmp/trainlive-perf-codes.json

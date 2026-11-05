@@ -26,10 +26,14 @@ export async function POST(req:NextRequest) {
   const forwarded=req.headers.get('x-vercel-forwarded-for')||
     req.headers.get('x-forwarded-for');
   const clientIp=(forwarded?.split(',')[0]||req.headers.get('x-real-ip')||'unidentified').trim();
-  const key=createHmac('sha256',process.env.TRAINLIVE_JWT_SECRET||'')
-    .update('join-ip:'+clientIp).digest('hex');
+  const secret=process.env.TRAINLIVE_JWT_SECRET||'';
+  const ipKey=createHmac('sha256',secret).update('join-ip:'+clientIp).digest('hex');
+  const ipCodeKey=createHmac('sha256',secret)
+    .update('join-ip-code:'+clientIp+':'+data.code.toUpperCase()).digest('hex');
   const allowed=await transaction(null,async db=>
-    (await db.query<{allowed:boolean}>('SELECT trainlive.allow_join_attempt($1) AS allowed',[key])).rows[0]?.allowed);
+    (await db.query<{allowed:boolean}>(
+      'SELECT trainlive.allow_join_attempt($1,$2) AS allowed',[ipKey,ipCodeKey]
+    )).rows[0]?.allowed);
   if(!allowed)return NextResponse.json({error:'Terlalu banyak percobaan bergabung. Coba lagi beberapa menit kemudian.'},
     {status:429,headers:{'Retry-After':'600','Cache-Control':'no-store'}});
   const row=await transaction(null,async db=>(await db.query<{class_id:string;participant_id:string}>(
