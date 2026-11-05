@@ -13,6 +13,11 @@ function key():Uint8Array {
 export function sessionCookie(classId:string):string {
  return 'tl_'+classId.replace(/-/g,'').toLowerCase();
 }
+export async function signStaff(classId:string,staffId:string) {
+ return new SignJWT({kind:'staff',classId,staffId})
+  .setProtectedHeader({alg:'HS256'}).setIssuer('trainlive')
+  .setAudience('trainlive-web').setIssuedAt().setExpirationTime('8h').sign(key());
+}
 export async function signParticipant(classId:string,participantId:string) {
  return new SignJWT({kind:'participant',classId,participantId})
   .setProtectedHeader({alg:'HS256'}).setIssuer('trainlive')
@@ -20,7 +25,8 @@ export async function signParticipant(classId:string,participantId:string) {
 }
 export async function readSession(requestedClassId:string):Promise<Session|null> {
  const bearer=(await headers()).get('authorization');
- const token=(bearer?.startsWith('Bearer ')?bearer.slice(7):null)
+ const bearerToken=bearer?.startsWith('Bearer ')?bearer.slice(7):null;
+ const token=bearerToken
   ??(await cookies()).get(sessionCookie(requestedClassId))?.value;
  if(!token) return null;
  try {
@@ -28,8 +34,11 @@ export async function readSession(requestedClassId:string):Promise<Session|null>
   if(payload.classId!==requestedClassId) return null;
   if(payload.kind==='participant' && typeof payload.participantId==='string')
    return {kind:'participant',classId:requestedClassId,participantId:payload.participantId};
-  if(payload.kind==='staff' && typeof payload.staffId==='string')
+  if(payload.kind==='staff' && typeof payload.staffId==='string') {
+   // Production staff must use verified MFA-backed SSO cookies, never pasted bearer tokens.
+   if(bearerToken && process.env.VERCEL_ENV==='production')return null;
    return {kind:'staff',classId:requestedClassId,staffId:payload.staffId};
+  }
  }catch {}
  return null;
 }
