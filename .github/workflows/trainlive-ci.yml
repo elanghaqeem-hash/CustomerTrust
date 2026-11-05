@@ -293,3 +293,35 @@ jobs:
           jq -s '[.[].join_code]' /tmp/trainlive-perf-*.json > /tmp/trainlive-perf-codes.json
           node tools/trainlive/test-capacity-600.mjs \
             http://localhost:3338 /tmp/trainlive-perf-codes.json
+
+      - name: 25 real-browser synthetic participants and facilitator acceptance
+        shell: bash
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          ./tools/trainlive/node_modules/.bin/playwright install --with-deps chromium
+          npm run start --prefix apps/trainlive -- -p 3340 > /tmp/trainlive-browser-server.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true; rm -f /tmp/trainlive-browser-staff-token' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3340/api/health >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:3340/api/health | jq -e '.ready==true'
+          curl -fsSI http://127.0.0.1:3340/ | grep -qi '^Content-Security-Policy:'
+          d="$(TZ=Asia/Makassar date +%F)"
+          node tools/trainlive/create-class.mjs "$d" BROWSER-UAT > /tmp/trainlive-browser-class.json
+          class_id="$(jq -r '.class_id' /tmp/trainlive-browser-class.json)"
+          join_code="$(jq -r '.join_code' /tmp/trainlive-browser-class.json)"
+          other_id="$(jq -r '.class_id' /tmp/trainlive-class-b.json)"
+          # Extend only the synthetic class timer so browser startup is not
+          # mistaken for participant latency. Regular training defaults remain unchanged.
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -c \
+            "UPDATE trainlive.class_item SET timer_sec=180 WHERE class_id='$class_id' AND item_key='SC1'"
+          node tools/trainlive/provision-facilitator.mjs "$class_id" browser-uat@example.invalid \
+            > /tmp/trainlive-browser-staff-output
+          tail -n 1 /tmp/trainlive-browser-staff-output > /tmp/trainlive-browser-staff-token
+          chmod 600 /tmp/trainlive-browser-staff-token
+          rm -f /tmp/trainlive-browser-staff-output
+          node tools/trainlive/test-browser-uat.mjs http://localhost:3340 \
+            "$class_id" "$join_code" /tmp/trainlive-browser-staff-token "$other_id"
