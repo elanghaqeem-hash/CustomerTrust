@@ -2,6 +2,8 @@
 # First-time, trusted-operator provisioning on an EMPTY Hostinger VPS database.
 # Does not wipe an existing database, print passwords or issue staff tokens.
 set -euo pipefail
+set +x
+umask 077
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd -- "$script_dir/../.." && pwd)"
 env_file="${TRAINLIVE_HOSTINGER_ENV:-$script_dir/hostinger.env}"
@@ -13,6 +15,8 @@ if [[ ! -f "$env_file" ]]; then
   exit 1
 fi
 chmod 600 "$env_file"
+# Operator environment/Compose validation must PASS before writing any data.
+bash "$script_dir/preflight.sh"
 read_var() { sed -n "s/^$1=//p" "$env_file" | tail -n 1; }
 db_owner_pass="$(read_var POSTGRES_PASSWORD)"
 db_app_pass="$(read_var TRAINLIVE_APP_DB_PASSWORD)"
