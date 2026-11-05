@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { transaction } from '@/lib/db';
+import { staffOIDCConfig } from '@/lib/staff-oidc';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 function readyConfiguration():boolean {
-  return Boolean(process.env.DATABASE_URL_APP && (process.env.TRAINLIVE_JWT_SECRET?.length ?? 0) >= 32);
+  return Boolean(process.env.DATABASE_URL_APP && (process.env.TRAINLIVE_JWT_SECRET?.length ?? 0) >= 32 &&
+    (process.env.VERCEL_ENV!=='production' || staffOIDCConfig()));
 }
 
 // This endpoint is a readiness probe, not merely a check for env var presence.
@@ -24,6 +26,7 @@ export async function GET() {
           AND to_regclass('trainlive.participant') IS NOT NULL
           AND to_regprocedure('trainlive.claim_class()') IS NOT NULL
           AND to_regprocedure('trainlive.allow_join_attempt(text)') IS NOT NULL
+          AND to_regprocedure('trainlive.resolve_staff_oidc(uuid,text,text,text)') IS NOT NULL
         ) AS ready`
       );
       return result.rows[0]?.ready === true;

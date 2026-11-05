@@ -51,6 +51,7 @@ jobs:
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/004_worksheets.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/005_observer_audit.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/006_join_throttle.sql
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/007_staff_oidc.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -c "CREATE ROLE trainlive_web LOGIN PASSWORD 'trainlive_ci_web_only'; GRANT trainlive_app TO trainlive_web"
       - name: Real-PostgreSQL RLS isolation tests
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/01_rls_isolation.sql
@@ -70,6 +71,8 @@ jobs:
           node tools/trainlive/create-class.mjs "$d" A > /tmp/trainlive-class-a.json
           node tools/trainlive/create-class.mjs "$d" B > /tmp/trainlive-class-b.json
           test "$(jq -r '.class_id' /tmp/trainlive-class-a.json)" != "$(jq -r '.class_id' /tmp/trainlive-class-b.json)"
+      - name: Staff OIDC binding, MFA-authorized class mapping and cross-class rejection
+        run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/04_staff_oidc.sql
       - name: Typecheck and build Next.js application
         run: |
           npm install --prefix apps/trainlive --no-audit --no-fund

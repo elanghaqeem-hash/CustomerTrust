@@ -1,6 +1,6 @@
 'use client';
 import {useParams} from 'next/navigation';
-import {useState} from 'react';
+import {useEffect,useState} from 'react';
 type Summary={
  participants:number;pre_submitted:number;post_submitted:number;post_pass_75:number;
  post_pass_pct_of_enrolled:number;pre_mean:number|null;post_mean:number|null;paired_mean_gain:number|null;
@@ -16,11 +16,29 @@ export default function ClassReport(){
  const classId=useParams<{classId:string}>().classId;
  const [token,setToken]=useState(''),[data,setData]=useState<Report|null>(null);
  const [busy,setBusy]=useState(false),[error,setError]=useState('');
+ const [loginMode,setLoginMode]=useState<'checking'|'sso_login'|'sso_ready'|'manual'|'blocked'>('checking');
+ const access=loginMode==='sso_ready'||(loginMode==='manual'&&Boolean(token));
+ const authHeaders=():Record<string,string>=>loginMode==='manual'&&token
+  ?{Authorization:'Bearer '+token}:{};
+ useEffect(()=>{
+  let mounted=true;
+  fetch('/api/auth/staff/status?classId='+encodeURIComponent(classId),{cache:'no-store'})
+   .then(async r=>{if(!r.ok)throw Error('status unavailable');return r.json()})
+   .then(s=>{if(mounted)setLoginMode(s.authenticated?'sso_ready':
+    s.configured?'sso_login':s.manualAllowed?'manual':'blocked')})
+   .catch(()=>{if(mounted)setLoginMode('blocked')});
+  return()=>{mounted=false};
+ },[classId]);
+ async function logout(){
+  await fetch('/api/auth/staff/logout',{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({classId})}).catch(()=>{});
+  window.location.assign('/host/'+classId);
+ }
  async function load(){
   setBusy(true);setError('');
   try{
    const res=await fetch('/api/class/'+classId+'/report',
-    {headers:{Authorization:'Bearer '+token},cache:'no-store'});
+    {headers:authHeaders(),cache:'no-store'});
    if(!res.ok)throw Error(res.status===403?'Token staf tidak memiliki izin untuk kelas ini.':'Laporan tidak dapat dimuat.');
    setData(await res.json());
   }catch(e){setError(e instanceof Error?e.message:'Kesalahan laporan');}
@@ -30,7 +48,7 @@ export default function ClassReport(){
   setBusy(true);setError('');
   try{
    const res=await fetch('/api/class/'+classId+'/export?format='+format,
-    {headers:{Authorization:'Bearer '+token},cache:'no-store'});
+    {headers:authHeaders(),cache:'no-store'});
    if(!res.ok)throw Error('Ekspor ditolak: '+res.status);
    const blob=await res.blob(),link=document.createElement('a');
    const objectUrl=URL.createObjectURL(blob);
@@ -57,9 +75,16 @@ export default function ClassReport(){
    <h1 className="text-3xl font-extrabold">Evaluasi pembelajaran</h1>
    <p className="mt-2 text-slate-600">Rekap eksklusif kelas <span className="font-mono text-xs">{classId}</span>.</p>
    <div className="mt-6 flex flex-wrap gap-2">
-    <input type="password" aria-label="Token staf khusus kelas" placeholder="Tempel token staf kelas"
-     autoComplete="off" className="field-input max-w-xl flex-1" value={token} onChange={e=>setToken(e.target.value)}/>
-    <button className="rounded-xl bg-teal px-5 font-bold text-white" disabled={busy||!token}
+    {loginMode==='manual'&&<input type="password" aria-label="Token staf khusus kelas (non-produksi)"
+     placeholder="Token staf staging" autoComplete="off" className="field-input max-w-xl flex-1"
+     value={token} onChange={e=>setToken(e.target.value)}/>}
+    {loginMode==='sso_login'&&<a className="rounded-xl bg-teal px-5 py-3 font-bold text-white"
+     href={'/api/auth/staff/start?classId='+encodeURIComponent(classId)}>Masuk SSO + MFA</a>}
+    {loginMode==='sso_ready'&&<button onClick={()=>void logout()}
+     className="rounded-xl border border-teal bg-white px-4 font-bold text-teal">Keluar</button>}
+    {loginMode==='blocked'&&<p role="alert" className="text-sm text-amber-900">
+     SSO/MFA belum tersedia. Ekspor laporan dinonaktifkan.</p>}
+    <button className="rounded-xl bg-teal px-5 font-bold text-white" disabled={busy||!access}
      onClick={()=>void load()}>Muat laporan</button>
     <button className="rounded-xl border border-teal bg-white px-5 font-bold text-teal"
      disabled={busy||!data} onClick={()=>void exportFile('csv')}>CSV</button>

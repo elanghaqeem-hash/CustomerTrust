@@ -10,10 +10,28 @@ export default function HostPage(){
  const [messages,setMessages]=useState<ChatMessage[]>([]);
  const [active,setActive]=useState<string|null>(null),[results,setResults]=useState<{answered:number;joined:number;counts:{choice:string;count:number}[]}|null>(null);
  const [error,setError]=useState(''),[busy,setBusy]=useState(false);
+ const [loginMode,setLoginMode]=useState<'checking'|'sso_login'|'sso_ready'|'manual'|'blocked'>('checking');
+ const access=loginMode==='sso_ready'||(loginMode==='manual'&&Boolean(token));
+ const authHeaders=():Record<string,string>=>loginMode==='manual'&&token
+  ?{Authorization:'Bearer '+token}:{};
+ useEffect(()=>{
+  let mounted=true;
+  fetch('/api/auth/staff/status?classId='+encodeURIComponent(id),{cache:'no-store'})
+   .then(async r=>{if(!r.ok)throw Error('status unavailable');return r.json()})
+   .then(s=>{if(mounted)setLoginMode(s.authenticated?'sso_ready':
+    s.configured?'sso_login':s.manualAllowed?'manual':'blocked')})
+   .catch(()=>{if(mounted)setLoginMode('blocked')});
+  return()=>{mounted=false};
+ },[id]);
+ async function logout(){
+  await fetch('/api/auth/staff/logout',{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({classId:id})}).catch(()=>{});
+  window.location.assign('/host/'+id);
+ }
  async function refresh(){
-  if(!token)return;
+  if(!access)return;
   try{
-   const headers={Authorization:'Bearer '+token};
+   const headers=authHeaders();
    const [a,b,chat]=await Promise.all([fetch('/api/class/'+id+'/items',{headers,cache:'no-store'}),
     fetch('/api/class/'+id+'/leaderboard',{headers,cache:'no-store'}),
     fetch('/api/class/'+id+'/chat',{headers,cache:'no-store'})]);
@@ -30,17 +48,17 @@ export default function HostPage(){
   }catch(e){setError(e instanceof Error?e.message:'Gagal mengambil data');}
  }
  useEffect(()=>{
-  if(!token)return;
+  if(!access)return;
   void refresh();
   const interval=setInterval(()=>void refresh(),3000);
   return()=>clearInterval(interval);
  // eslint-disable-next-line react-hooks/exhaustive-deps
- },[token,id]);
+ },[token,id,access]);
  async function act(itemId:string,action:'open'|'close'|'reveal'){
-  if(!token)return;setBusy(true);
+  if(!access)return;setBusy(true);
   try{
    const res=await fetch('/api/class/'+id+'/action',{method:'POST',
-    headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+    headers:{...authHeaders(),'Content-Type':'application/json'},
     body:JSON.stringify({itemId,action})});
    const j=await res.json();if(!res.ok)throw Error(j.error||'Gagal mengubah status');
    await refresh();
@@ -48,10 +66,10 @@ export default function HostPage(){
   finally{setBusy(false)}
  }
  async function moderate(messageId:string,action:'read_aloud'|'hide'|'unhide'){
-  if(!token)return;setBusy(true);setError('');
+  if(!access)return;setBusy(true);setError('');
   try{
    const r=await fetch('/api/class/'+id+'/chat',{method:'POST',
-    headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+    headers:{...authHeaders(),'Content-Type':'application/json'},
     body:JSON.stringify({messageId,action})});
    const j=await r.json();if(!r.ok)throw Error(j.error||'Moderasi gagal');
    await refresh();
@@ -63,15 +81,26 @@ export default function HostPage(){
    <span className="text-xl font-extrabold">TrainLive / Fasilitator</span><span className="text-sm text-slate-300">Kelas {id.slice(0,8)}</span>
   </div></header>
   <div className="mx-auto max-w-6xl px-5 py-8">
-   <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-    Konsol staging: masukkan token staf yang diterbitkan secara aman untuk kelas ini. Autentikasi SSO/MFA dan kanal WebSocket belum tersedia.
-   </div>
-   <label className="field-label" htmlFor="staff-token">Token staf kelas (sementara)</label>
-   <div className="mb-6 flex flex-wrap gap-2">
-    <input id="staff-token" type="password" autoComplete="off" className="field-input max-w-2xl"
-     value={token} onChange={e=>setToken(e.target.value)} placeholder="Token JWT khusus kelas"/>
-    <button className="rounded-xl bg-teal px-5 font-bold text-white" onClick={()=>void refresh()}>Hubungkan</button>
-   </div>
+   {loginMode==='checking'&&<p role="status" className="mb-6 rounded-xl bg-white p-4">Memeriksa akses fasilitator…</p>}
+   {loginMode==='blocked'&&<p role="alert" className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+    Login SSO/MFA fasilitator belum dikonfigurasi. Akses operasional kelas belum dibuka.
+   </p>}
+   {loginMode==='sso_login'&&<a href={'/api/auth/staff/start?classId='+encodeURIComponent(id)}
+    className="mb-6 inline-flex rounded-xl bg-teal px-5 py-3 font-bold text-white">
+    Masuk sebagai fasilitator (SSO + MFA)</a>}
+   {loginMode==='sso_ready'&&<div className="mb-6 flex items-center justify-between rounded-xl border border-teal bg-white p-4">
+    <span className="font-bold text-teal">Sesi SSO/MFA staf aktif</span>
+    <button className="underline" onClick={()=>void logout()}>Keluar</button>
+   </div>}
+   {loginMode==='manual'&&<div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+    <p className="mb-3 text-sm font-semibold text-amber-900">Token sementara hanya untuk pengujian non-produksi.</p>
+    <label className="field-label" htmlFor="staff-token">Token staf kelas (staging)</label>
+    <div className="flex flex-wrap gap-2">
+     <input id="staff-token" type="password" autoComplete="off" className="field-input max-w-2xl"
+      value={token} onChange={e=>setToken(e.target.value)} placeholder="Token JWT khusus kelas"/>
+     <button className="rounded-xl bg-teal px-5 font-bold text-white" onClick={()=>void refresh()}>Hubungkan</button>
+    </div>
+   </div>}
    {error&&<p role="alert" className="mb-6 rounded-xl bg-red-50 p-4 text-red-800">{error}</p>}
    <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
     <section><h1 className="mb-4 text-2xl font-extrabold">Rundown interaktif</h1>
