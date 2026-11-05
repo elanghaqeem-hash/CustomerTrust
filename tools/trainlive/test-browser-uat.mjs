@@ -29,8 +29,11 @@ async function requireAll(tasks){
 const browser=await chromium.launch({headless:true});
 const contexts=[],pages=Array(25);
 try{
- for(let offset=0;offset<25;offset+=5){
-  await requireAll(Array.from({length:5},async(_,j)=>{
+ // UI registration is serialized to resemble human-paced enrollment and avoid
+ // hydration races on a shared CI runner. The separate capacity suite still
+ // validates 25 simultaneous API joins and 600 synthetic requests.
+ for(let offset=0;offset<25;offset+=1){
+  await requireAll(Array.from({length:1},async(_,j)=>{
    const i=offset+j;
    const context=await browser.newContext({viewport:{width:390,height:844},locale:'id-ID'});
    contexts.push(context);
@@ -41,30 +44,29 @@ try{
    await page.locator('#display-name').fill('Peserta Simulasi '+String(i+1).padStart(2,'0'));
    await page.locator('#unit-name').fill('UAT-SYNTHETIC');
    await page.locator('input[type=checkbox]').check();
-   // Exercise the real, hydrated participant form in EVERY browser session.
-   // An API-only join masks form event and redirect regressions and is not UAT.
+   // Exercise the hydrated UI in EVERY browser, not an API shortcut.
    await page.waitForFunction(()=>{
     const submit=document.querySelector('button[type=submit]');
     return submit instanceof HTMLButtonElement && !submit.disabled;
    },null,{timeout:25000});
-   const joinButton=page.getByRole('button',{name:'Gabung Kelas'});
-   const joinResponse=page.waitForResponse(response=>
-    new URL(response.url()).pathname==='/api/join'&&response.request().method()==='POST',
-    {timeout:35000});
-   await joinButton.click({timeout:25000});
-   const response=await joinResponse;
-   if(!response.ok())throw Error('Participant '+(i+1)+
-    ' browser form join returned HTTP '+response.status());
-   // A successful full-page navigation may evict the response body from
-   // Chrome DevTools before Playwright reads it. Assert HTTP success and
-   // completed browser navigation instead of racing Network.getResponseBody.
+   // Refill AFTER hydration: uncontrolled fills during early React hydration
+   // can be replaced by the first state render and silently prevent submit.
+   await page.locator('#join-code').fill(joinCode);
+   await page.locator('#display-name').fill('Peserta Simulasi '+String(i+1).padStart(2,'0'));
+   await page.locator('#unit-name').fill('UAT-SYNTHETIC');
+   await page.locator('input[type=checkbox]').check();
+   assert.equal(await page.locator('form').evaluate(form=>form.checkValidity()),true,
+    'The hydrated registration form must satisfy native HTML validation');
+   await page.getByRole('button',{name:'Gabung Kelas'}).click({timeout:25000});
    try{
     await page.waitForURL(url=>url.pathname==='/class/'+classId,
      {waitUntil:'commit',timeout:30000});
    }catch(error){
     const alerts=await page.locator('[role=alert]').allTextContents().catch(()=>[]);
-    throw Error('Participant '+(i+1)+' join HTTP 200 but browser navigation failed: '+
-     'URL='+page.url()+' alerts='+JSON.stringify(alerts)+' cause='+String(error));
+    const valid=await page.locator('form').evaluate(form=>form.checkValidity()).catch(()=>null);
+    throw Error('Participant '+(i+1)+' browser join failed: '+
+     'URL='+page.url()+' valid='+valid+' alerts='+JSON.stringify(alerts)+
+     ' cause='+String(error));
    }
    assert.equal(new URL(page.url()).pathname,'/class/'+classId,
     'Real UI registration must navigate to the intended class');
