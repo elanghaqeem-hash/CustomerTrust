@@ -6,7 +6,7 @@ Updated: 2026-11-05. This is a **verification plan**, not a production go-live c
 
 The `TrainLive integration` GitHub workflow runs real PostgreSQL 16, migration/RLS and REST checks, a synthetic 600-join API test, then launches **25 separate Chromium browser contexts** on a disposable CI database. It verifies:
 
-1. 25 independently consented participants enter the same synthetic class using the real join form.
+1. 25 distinct Chromium browser contexts verify participant form fields, readiness and consent; each obtains a real, independently scoped participant cookie via the same authenticated join API. The full UI form-submit/redirect under browser concurrency is **not yet accepted**.
 2. The Rundown tab renders without revealing answer keys.
 3. An assigned facilitator opens a scenario using the protected class API; participants receive the open item.
 4. 25 participants choose an answer in the actual mobile UI and send responses. All 25 persisted responses are checked.
@@ -17,7 +17,7 @@ The `TrainLive integration` GitHub workflow runs real PostgreSQL 16, migration/R
 
 The test intentionally increases **only the synthetic class's SC1 timer** to 180 seconds to accommodate browser setup on shared CI compute. The regular training content and answer timer remain unchanged.
 
-This is stronger than REST-only tests, but it is **not** a live-bank 25-person signoff, real-browser cross-device accessibility certification, staging k6 benchmark, or MFA/SSO test. If CI turns red, inspect logs before merging.
+This is stronger than REST-only tests because 25 independent Chromium browser contexts execute the activity UI, but it is **not** an accepted full browser registration-flow UAT, live-bank 25-person signoff, cross-device accessibility certification, staging k6 benchmark, or MFA/SSO test. Record the intermittent UI form-submit/redirect under 25-context automated loading as an open P0 observation rather than claiming it passed. If CI turns red, inspect logs before merging.
 
 ## Runtime smoke verification
 
