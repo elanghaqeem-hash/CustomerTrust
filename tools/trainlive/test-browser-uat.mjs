@@ -6,11 +6,11 @@ import {readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
 
 const [baseUrl,classId,joinCode,staffTokenPath,otherClassId]=process.argv.slice(2);
-if(!baseUrl?.startsWith('http://127.0.0.1:')||
+if(!/^http:\/\/(?:localhost|127\.0\.0\.1):\d+$/.test(baseUrl||'')||
    !/^[0-9a-f-]{36}$/i.test(classId||'')||
    !/^[A-Z2-9]{6}$/.test(joinCode||'')||
    !staffTokenPath||!/^[0-9a-f-]{36}$/i.test(otherClassId||''))
- throw new Error('Usage: test-browser-uat.mjs http://127.0.0.1:PORT CLASS_ID JOIN_CODE TOKEN_FILE OTHER_CLASS_ID');
+ throw new Error('Usage: test-browser-uat.mjs http://localhost:PORT CLASS_ID JOIN_CODE TOKEN_FILE OTHER_CLASS_ID');
 const staffToken=(await readFile(staffTokenPath,'utf8')).trim();
 assert.ok(staffToken.length>40,'Synthetic staff JWT missing');
 const staffApi=async(path,options={})=>{
@@ -21,11 +21,16 @@ const staffApi=async(path,options={})=>{
  if(!response.ok)throw Error('Staff API HTTP '+response.status+' at '+path+': '+(body.error||'request failed'));
  return body;
 };
+async function requireAll(tasks){
+ const settled=await Promise.allSettled(tasks);
+ const errors=settled.filter(x=>x.status==='rejected').map(x=>x.reason);
+ if(errors.length)throw Error(errors.slice(0,3).map(e=>e instanceof Error?e.message:String(e)).join('; '));
+}
 const browser=await chromium.launch({headless:true});
 const contexts=[],pages=Array(25);
 try{
  for(let offset=0;offset<25;offset+=5){
-  await Promise.all(Array.from({length:5},async(_,j)=>{
+  await requireAll(Array.from({length:5},async(_,j)=>{
    const i=offset+j;
    const context=await browser.newContext({viewport:{width:390,height:844},locale:'id-ID'});
    contexts.push(context);
@@ -72,7 +77,7 @@ try{
   method:'POST',headers:{'Content-Type':'application/json'},
   body:JSON.stringify({itemId:question.id,action:'open'})
  });
- await Promise.all(pages.map(async(page)=>{
+ await requireAll(pages.map(async(page)=>{
   await page.getByRole('heading',{name:'Script Clinic 1 / 2'}).waitFor({timeout:35000});
   assert.equal(await page.getByText(/Kunci:/).count(),0,'Answer leaked while question open');
   await page.locator('button.select-btn').nth(1).click();
