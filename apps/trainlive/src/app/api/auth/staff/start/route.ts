@@ -23,6 +23,9 @@ export async function GET(req:NextRequest){
   authorization.searchParams.set('nonce',nonce);
   authorization.searchParams.set('code_challenge',sha256URLSafe(verifier));
   authorization.searchParams.set('code_challenge_method','S256');
+  if(config.requestAmrClaim)authorization.searchParams.set('claims',
+   JSON.stringify({id_token:{amr:{essential:true}}}));
+  if(config.requestAcrValues)authorization.searchParams.set('acr_values',config.requestAcrValues);
   const res=NextResponse.redirect(authorization);
   res.cookies.set(FLOW_COOKIE,await signLoginFlow({
    state,nonce,verifier,classId,created:Date.now()

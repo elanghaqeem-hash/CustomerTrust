@@ -4,6 +4,13 @@ import { createRemoteJWKSet, jwtVerify, SignJWT, type JWTPayload } from 'jose';
 export type StaffOIDCConfig = {
  issuer: string; clientId: string; clientSecret: string; origin: string;
  allowedDomains: string[]; acceptedAcr: string[];
+ // acr_values sent on the authorization request to ask the IdP for MFA step-up.
+ requestAcrValues: string;
+ // Ask for the amr claim explicitly via the OIDC `claims` request parameter
+ // (required by Google, which omits amr unless requested).
+ requestAmrClaim: boolean;
+ // How the confidential client authenticates at the token endpoint.
+ tokenAuth: 'client_secret_post'|'client_secret_basic';
 };
 type Metadata = {
  issuer:string; authorization_endpoint:string; token_endpoint:string; jwks_uri:string;
@@ -48,7 +55,10 @@ export function staffOIDCConfig():StaffOIDCConfig|null {
  return {
   issuer,clientId,origin,allowedDomains,
   clientSecret:process.env.TRAINLIVE_OIDC_CLIENT_SECRET||'',
-  acceptedAcr:(process.env.TRAINLIVE_OIDC_MFA_ACR||'').split(',').map(x=>x.trim()).filter(Boolean)
+  acceptedAcr:(process.env.TRAINLIVE_OIDC_MFA_ACR||'').split(',').map(x=>x.trim()).filter(Boolean),
+  requestAcrValues:(process.env.TRAINLIVE_OIDC_ACR_VALUES||'').split(/[\s,]+/).filter(Boolean).join(' '),
+  requestAmrClaim:process.env.TRAINLIVE_OIDC_REQUEST_AMR==='true',
+  tokenAuth:process.env.TRAINLIVE_OIDC_TOKEN_AUTH==='client_secret_basic'?'client_secret_basic':'client_secret_post'
  };
 }
 // Behind a private Caddy proxy, Next.js may see an internal request URL.
@@ -65,6 +75,23 @@ export function matchesPublicOrigin(req:Request,expected:string):boolean {
   }catch{return false;}
 }
 export const callbackUrl=(config:StaffOIDCConfig)=>config.origin+'/api/auth/staff/callback';
+// Token-endpoint request for the authorization-code + PKCE exchange.
+export function tokenRequest(config:StaffOIDCConfig,code:string,verifier:string):
+ {headers:Record<string,string>;body:string}{
+ const form=new URLSearchParams({
+  grant_type:'authorization_code',code,redirect_uri:callbackUrl(config),code_verifier:verifier
+ });
+ const headers:Record<string,string>={'Content-Type':'application/x-www-form-urlencoded',Accept:'application/json'};
+ if(config.clientSecret&&config.tokenAuth==='client_secret_basic'){
+  // RFC 6749 §2.3.1: form-urlencode id and secret before Base64.
+  const enc=(v:string)=>encodeURIComponent(v).replace(/%20/g,'+');
+  headers.Authorization='Basic '+Buffer.from(enc(config.clientId)+':'+enc(config.clientSecret)).toString('base64');
+ }else{
+  form.set('client_id',config.clientId);
+  if(config.clientSecret)form.set('client_secret',config.clientSecret);
+ }
+ return {headers,body:form.toString()};
+}
 export function randomURLSafe(bytes=32):string{return randomBytes(bytes).toString('base64url')}
 export function sha256URLSafe(value:string):string{
  return createHash('sha256').update(value).digest('base64url');

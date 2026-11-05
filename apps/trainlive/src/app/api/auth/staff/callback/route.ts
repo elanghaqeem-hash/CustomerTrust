@@ -3,7 +3,7 @@ import {z} from 'zod';
 import {transaction} from '@/lib/db';
 import {signStaff,sessionCookie} from '@/lib/auth';
 import {
- callbackUrl,discover,FLOW_COOKIE,matchesPublicOrigin,safeEqual,staffOIDCConfig,verifiedIdentity,verifyLoginFlow,type LoginFlow
+ discover,FLOW_COOKIE,matchesPublicOrigin,safeEqual,staffOIDCConfig,tokenRequest,verifiedIdentity,verifyLoginFlow,type LoginFlow
 } from '@/lib/staff-oidc';
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
@@ -29,14 +29,10 @@ export async function GET(req:NextRequest){
  }catch{return NextResponse.json({error:'Sesi login kadaluarsa atau tidak sesuai'},{status:400})}
  try{
   const provider=await discover(config);
-  const form=new URLSearchParams({
-   grant_type:'authorization_code',code,redirect_uri:callbackUrl(config),
-   client_id:config.clientId,code_verifier:flow.verifier
-  });
-  if(config.clientSecret)form.set('client_secret',config.clientSecret);
+  const request=tokenRequest(config,code,flow.verifier);
   const tokens=await fetch(provider.token_endpoint,{
-   method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
-   body:form.toString(),redirect:'error',cache:'no-store',signal:AbortSignal.timeout(10000)
+   method:'POST',headers:request.headers,
+   body:request.body,redirect:'error',cache:'no-store',signal:AbortSignal.timeout(10000)
   });
   if(!tokens.ok)throw Error('OIDC code exchange rejected');
   const payload=await tokens.json() as {id_token?:unknown};

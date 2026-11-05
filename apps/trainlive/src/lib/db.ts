@@ -1,13 +1,15 @@
 import { Pool, type PoolClient } from 'pg';
+import { runtimePoolConfig } from './db-config';
 
 type Claims = { classId:string; participantId?:string; staffId?:string };
 const globalForPg = globalThis as unknown as { trainlivePg?:Pool };
 function getPool() {
- if (!process.env.DATABASE_URL_APP) throw new Error('DATABASE_URL_APP is not configured');
- return globalForPg.trainlivePg ??= new Pool({
-  connectionString:process.env.DATABASE_URL_APP, max:10,
-  idleTimeoutMillis:30000, statement_timeout:8000
- });
+ if (globalForPg.trainlivePg) return globalForPg.trainlivePg;
+ const pool = new Pool(runtimePoolConfig());
+ // An idle client dropped by the server/pooler must not crash the process.
+ // Never log the error object: it can include connection details.
+ pool.on('error', () => { console.error('trainlive: idle PostgreSQL client error'); });
+ return globalForPg.trainlivePg = pool;
 }
 export async function transaction<T>(claims:Claims|null, fn:(c:PoolClient)=>Promise<T>):Promise<T> {
  const client=await getPool().connect();

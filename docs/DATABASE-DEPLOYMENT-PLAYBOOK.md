@@ -31,6 +31,36 @@ A suitable managed provider is one that demonstrably supports the roles and
 permissions above (e.g. a correctly configured PostgreSQL service on Railway,
 Neon or Supabase, with provider-specific constraints reviewed first).
 
+## Connection settings (app and tools)
+
+- `DATABASE_URL_APP` (runtime, Vercel): use the provider's **pooled** endpoint
+  (PgBouncer transaction mode is safe: `SET LOCAL ROLE` and `set_config(...,true)`
+  are transaction-scoped). Pool size defaults to 3 per Vercel instance
+  (`TRAINLIVE_DB_POOL_MAX` overrides).
+- `DATABASE_URL_ADMIN` (migrations/seed): use the **direct** endpoint.
+- TLS is set by `TRAINLIVE_DB_SSL`, not by `sslmode` in the URL (stripped):
+  `verify-full` is the default for any non-loopback host; supply
+  `TRAINLIVE_DB_CA_CERT` (PEM) or `TRAINLIVE_DB_CA_CERT_FILE` if the provider CA
+  is not publicly trusted. `disable` only on a private network (Hostinger compose).
+- Region: choose Singapore (closest to Vercel `sin1`) unless data-residency review
+  requires an Indonesian location.
+
+### One-command setup runner (no psql needed)
+
+```bash
+npm install --prefix tools/trainlive
+node tools/trainlive/db-setup.mjs status            # pending/applied per file
+node tools/trainlive/db-setup.mjs migrate           # 001..012 in order, tracked
+TRAINLIVE_APP_DB_PASSWORD="$(openssl rand -hex 32)" \
+  node tools/trainlive/db-setup.mjs runtime-role    # trainlive_web + GRANT trainlive_app
+node tools/trainlive/seed.mjs                       # published CTC v1
+node tools/trainlive/db-setup.mjs verify            # DATABASE_URL_APP preflight == ready
+```
+
+Applied files are recorded in `trainlive_meta.schema_migration` with SHA-256;
+an edited applied file stops the run. For a database migrated earlier with
+`psql`, run `migrate --baseline-through=NNN` once with the last applied number.
+
 ## Execute once a compatible provider is available
 
 1. **Private operator action:** create two isolated databases, approve location

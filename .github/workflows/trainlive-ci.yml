@@ -81,6 +81,15 @@ jobs:
         run: |
           node tools/trainlive/seed.mjs
           node tools/trainlive/seed.mjs
+      - name: db-setup runner baseline, status and runtime preflight
+        run: |
+          last="$(basename "$(ls db/migrations/0*.sql | tail -n 1)" | cut -c1-3)"
+          node tools/trainlive/db-setup.mjs migrate --baseline-through="$last"
+          node tools/trainlive/db-setup.mjs status
+          node tools/trainlive/db-setup.mjs verify
+          # The migration owner must never pass the runtime preflight.
+          if DATABASE_URL_APP="$DATABASE_URL_ADMIN" node tools/trainlive/db-setup.mjs verify; then
+            echo "owner login unexpectedly accepted as runtime"; exit 1; fi
       - name: Prove that the backup restores to a disposable isolated PostgreSQL
         shell: bash
         run: |

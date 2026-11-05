@@ -41,6 +41,8 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL_APP: "postgresql://trainlive_web:${TRAINLIVE_APP_DB_PASSWORD:?Set TRAINLIVE_APP_DB_PASSWORD}@db:5432/trainlive"
+      # PostgreSQL is only reachable on the internal private_db network.
+      TRAINLIVE_DB_SSL: disable
       TRAINLIVE_JWT_SECRET: ${TRAINLIVE_JWT_SECRET:?Set TRAINLIVE_JWT_SECRET}
       TRAINLIVE_APP_ORIGIN: "https://${TRAINLIVE_DOMAIN:?Set TRAINLIVE_DOMAIN}"
       TRAINLIVE_TRUST_PROXY: caddy
