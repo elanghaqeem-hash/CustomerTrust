@@ -3,6 +3,11 @@ services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     environment:
       POSTGRES_DB: trainlive
       POSTGRES_USER: trainlive_owner
@@ -17,13 +22,19 @@ services:
     security_opt:
       - no-new-privileges:true
     networks:
-      - internal
+      - private_db
 
   app:
+    init: true
     build:
       context: ../..
       dockerfile: deploy/hostinger/Dockerfile
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     depends_on:
       db:
         condition: service_healthy
@@ -47,11 +58,17 @@ services:
     security_opt:
       - no-new-privileges:true
     networks:
-      - internal
+      - private_db
+      - edge
 
   proxy:
     image: caddy:2-alpine
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     depends_on:
       - app
     ports:
@@ -67,7 +84,7 @@ services:
     security_opt:
       - no-new-privileges:true
     networks:
-      - internal
+      - edge
 
   tools:
     profiles: ["maintenance"]
@@ -80,12 +97,15 @@ services:
     environment:
       DATABASE_URL_ADMIN: "postgresql://trainlive_owner:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/trainlive"
     networks:
-      - internal
+      - private_db
     security_opt:
       - no-new-privileges:true
 
 networks:
-  internal:
+  private_db:
+    driver: bridge
+    internal: true
+  edge:
     driver: bridge
 
 volumes:

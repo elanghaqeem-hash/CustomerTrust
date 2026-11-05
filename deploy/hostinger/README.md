@@ -1,6 +1,6 @@
 # TrainLive on Hostinger VPS — trainlive.seraya.id
 
-Status: **repository deployment support only**, NOT an active installation. No Hostinger
+Status: **deployment package ready for an authorized Hostinger VPS operator**, NOT an active installation. No Hostinger
 server, hPanel account, DNS zone, or production secrets have been accessed by this change.
 
 ## Supported hosting options
@@ -39,6 +39,25 @@ or a class-scoped WebSocket service once implemented and tested.
    Never point this Compose stack to an existing data-bearing database or run fixture
    scripts on production.
 
+## Architecture and minimum operator baseline
+
+Use a **Hostinger KVM VPS with Docker and the Compose plugin** (Ubuntu 24.04
+recommended). Do **not** use the Hostinger Docker/OS template to reinstall an
+existing server without confirming the backup and destruction implications.
+[Hostinger Docker VPS guidance](https://www.hostinger.com/support/8306612-how-to-use-the-docker-vps-template-at-hostinger/).
+
+The Compose graph has a **private internal-only database network** between
+PostgreSQL, Next.js and the maintenance tool, plus a separate ingress/egress
+network for Next.js and Caddy. Only Caddy publishes 80/443; PostgreSQL 5432
+and Next.js 3000 must never be public. Logs rotate (10 MiB × 3 per
+long-running container). At least 4 GiB RAM is advisable before running a
+600-participant capacity exercise; real sizing depends on observed demand.
+
+If the VPS already hosts `seraya.id` or another app on ports 80/443,
+integrate the routing into the **existing** reverse proxy instead of
+starting a second Caddy on the same ports. Keep the main website and its
+DNS A record unchanged; add a dedicated `trainlive` record.
+
 ## 1. Clone and provision secrets
 
 ```bash
@@ -64,8 +83,9 @@ file through chat, GitHub, screenshots, CI logs, or public support tickets.
 Run this only against a **new empty** persistent database volume:
 
 ```bash
-docker compose --env-file deploy/hostinger/hostinger.env \
-  -f deploy/hostinger/compose.yaml config --quiet
+bash deploy/hostinger/preflight.sh
+# After setting the DNS record, verify it resolves to your approved VPS:
+# bash deploy/hostinger/preflight.sh --check-dns
 bash deploy/hostinger/bootstrap.sh
 ```
 
@@ -92,6 +112,7 @@ never published on host ports. A container build succeeding is **not** go-live.
 docker compose --env-file deploy/hostinger/hostinger.env \
   -f deploy/hostinger/compose.yaml ps
 curl -i https://trainlive.seraya.id/api/health
+bash deploy/hostinger/smoke.sh
 ```
 
 Go-live requires HTTP **200** and `{"service":"trainlive","status":"ready","ready":true}`.
@@ -148,9 +169,17 @@ privileged audited operation, NOT part of automatic bootstrap.
 
 ```bash
 bash deploy/hostinger/backup.sh
+# Replace with the path printed by backup.sh; never put real dumps in Git.
+bash deploy/hostinger/restore-drill.sh /secure/path/trainlive-YYYYmmddTHHMMSSZ.dump
 docker compose --env-file deploy/hostinger/hostinger.env \
   -f deploy/hostinger/compose.yaml logs --tail=100 app
 ```
+
+The restore drill starts a **temporary isolated PostgreSQL 16 container with
+no published port or network access**, verifies restored schema and training
+content, and removes the container. It does not touch or overwrite production.
+It does not replace a documented RPO/RTO, point-in-time recovery exercise,
+or **encrypted offsite** backups.
 
 Keep backup copies encrypted **outside the same VPS** and test point-in-time
 recovery/restore. Preserve the last known-good application image and verified
@@ -161,6 +190,29 @@ run initial `bootstrap.sh` against an existing production database or delete
 
 For additional requirements, see `docs/PRODUCTION-READINESS.md`,
 `docs/RUNBOOK.md`, and the existing integration workflow.
+
+## Hostinger release checklist (printable)
+
+- [ ] VPS operator can run `docker compose version` and Docker daemon.
+- [ ] Private `hostinger.env` mode 600, independent strong secrets, verified
+  OIDC HTTPS issuer/client/domains (no placeholder credentials).
+- [ ] DNS `trainlive.seraya.id` matches the VPS public IPv4. No conflicting
+  public reverse proxy on TCP 80/443.
+- [ ] `preflight.sh --check-dns` and first-time `bootstrap.sh` succeed on an
+  **empty** production volume; no database migration is replayed blindly.
+- [ ] `smoke.sh` passes HTTPS, security headers and health `ready:true`.
+- [ ] One valid MFA staff login and one unauthorized staff login are manually
+  verified; no copied production bearer JWTs.
+- [ ] A controlled classroom with 25 participants passes end-to-end exercises,
+  worksheet submissions, scoring and PDF/XLSX/CSV exports.
+- [ ] A private backup is created, restored in a disposable environment, then
+  encrypted/offloaded to an approved offsite location. Restore objective tested.
+- [ ] UAT, data-processing approval, monitoring, incident response, recovery
+  owner and explicit go-live sign-off are recorded.
+
+Passing CI, building images or getting HTTP 200 from a landing page is not a
+substitute for these operating checks. Real-time WebSocket delivery and
+automated H+1/H+7/H+30/H+60 follow-up are separate P1/P2 deliverables.
 
 ## Hosting-provider boundaries
 
