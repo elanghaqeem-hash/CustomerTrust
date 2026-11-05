@@ -2,8 +2,8 @@
 # Public, read-only acceptance probe. Requires valid DNS + TLS; no login needed.
 set -euo pipefail
 set +x
-script_dir="$(cd -- "$(dirname -- "\${BASH_SOURCE[0]}")" && pwd)"
-env_file="\${TRAINLIVE_HOSTINGER_ENV:-$script_dir/hostinger.env}"
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+env_file="${TRAINLIVE_HOSTINGER_ENV:-$script_dir/hostinger.env}"
 [[ -f "$env_file" ]] || { echo "NO-GO: private hostinger.env not found" >&2; exit 1; }
 command -v curl >/dev/null || { echo "NO-GO: curl missing" >&2; exit 1; }
 domain="$(sed -n 's/^TRAINLIVE_DOMAIN=//p' "$env_file" | tail -n 1)"
