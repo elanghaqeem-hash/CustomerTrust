@@ -1,13 +1,13 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {z} from 'zod';
-import {callbackUrl,discover,FLOW_COOKIE,randomURLSafe,sha256URLSafe,signLoginFlow,staffOIDCConfig} from '@/lib/staff-oidc';
+import {callbackUrl,discover,FLOW_COOKIE,matchesPublicOrigin,randomURLSafe,sha256URLSafe,signLoginFlow,staffOIDCConfig} from '@/lib/staff-oidc';
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
 
 export async function GET(req:NextRequest){
  const config=staffOIDCConfig();
  if(!config)return NextResponse.json({error:'SSO staf belum dikonfigurasi'}, {status:503});
- if(req.nextUrl.origin!==config.origin)return NextResponse.json({error:'Host SSO tidak sesuai'}, {status:400});
+ if(!matchesPublicOrigin(req,config.origin))return NextResponse.json({error:'Host SSO tidak sesuai'}, {status:400});
  const classId=req.nextUrl.searchParams.get('classId')||'';
  if(!z.string().uuid().safeParse(classId).success)
   return NextResponse.json({error:'classId tidak valid'},{status:400});

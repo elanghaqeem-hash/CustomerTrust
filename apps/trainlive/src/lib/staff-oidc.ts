@@ -51,6 +51,19 @@ export function staffOIDCConfig():StaffOIDCConfig|null {
   acceptedAcr:(process.env.TRAINLIVE_OIDC_MFA_ACR||'').split(',').map(x=>x.trim()).filter(Boolean)
  };
 }
+// Behind a private Caddy proxy, Next.js may see an internal request URL.
+// Trust forwarding only in explicitly configured Caddy mode when all public
+// origin headers agree (the app port is not published to the host).
+export function matchesPublicOrigin(req:Request,expected:string):boolean {
+  if(new URL(req.url).origin===expected)return true;
+  if(process.env.TRAINLIVE_TRUST_PROXY!=='caddy')return false;
+  try {
+    const host=new URL(expected).host;
+    return req.headers.get('host')===host &&
+      req.headers.get('x-forwarded-host')===host &&
+      req.headers.get('x-forwarded-proto')==='https';
+  }catch{return false;}
+}
 export const callbackUrl=(config:StaffOIDCConfig)=>config.origin+'/api/auth/staff/callback';
 export function randomURLSafe(bytes=32):string{return randomBytes(bytes).toString('base64url')}
 export function sha256URLSafe(value:string):string{

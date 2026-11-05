@@ -3,14 +3,14 @@ import {z} from 'zod';
 import {transaction} from '@/lib/db';
 import {signStaff,sessionCookie} from '@/lib/auth';
 import {
- callbackUrl,discover,FLOW_COOKIE,safeEqual,staffOIDCConfig,verifiedIdentity,verifyLoginFlow,type LoginFlow
+ callbackUrl,discover,FLOW_COOKIE,matchesPublicOrigin,safeEqual,staffOIDCConfig,verifiedIdentity,verifyLoginFlow,type LoginFlow
 } from '@/lib/staff-oidc';
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
 
 export async function GET(req:NextRequest){
  const config=staffOIDCConfig();
- if(!config||req.nextUrl.origin!==config.origin)return NextResponse.json(
+ if(!config||!matchesPublicOrigin(req,config.origin))return NextResponse.json(
   {error:'SSO staf belum siap'}, {status:503});
  const cookie=req.cookies.get(FLOW_COOKIE)?.value||'';
  const code=req.nextUrl.searchParams.get('code')||'';

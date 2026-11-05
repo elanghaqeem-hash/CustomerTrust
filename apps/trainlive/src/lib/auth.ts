@@ -4,6 +4,15 @@ import { cookies, headers } from 'next/headers';
 export type Session =
  | { kind:'participant'; classId:string; participantId:string }
  | { kind:'staff'; classId:string; staffId:string };
+// The only production-build bearer-token exception is the synthetic GitHub CI
+// environment on a reserved, non-routable example.invalid origin. Hostinger
+// and Vercel real production domains always require cookie-based SSO/MFA.
+export function allowSyntheticStaffFixture():boolean {
+ return process.env.CI==='true' &&
+  process.env.TRAINLIVE_APP_ORIGIN==='https://trainlive.example.invalid' &&
+  process.env.VERCEL_ENV!=='production' &&
+  process.env.TRAINLIVE_TRUST_PROXY!=='caddy';
+}
 function key():Uint8Array {
  const secret=process.env.TRAINLIVE_JWT_SECRET;
  if (!secret || new TextEncoder().encode(secret).length<32)
@@ -36,7 +45,7 @@ export async function readSession(requestedClassId:string):Promise<Session|null>
    return {kind:'participant',classId:requestedClassId,participantId:payload.participantId};
   if(payload.kind==='staff' && typeof payload.staffId==='string') {
    // Production staff must use verified MFA-backed SSO cookies, never pasted bearer tokens.
-   if(bearerToken && process.env.VERCEL_ENV==='production')return null;
+   if(bearerToken && process.env.NODE_ENV==='production' && !allowSyntheticStaffFixture())return null;
    return {kind:'staff',classId:requestedClassId,staffId:payload.staffId};
   }
  }catch {}

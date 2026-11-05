@@ -1,0 +1,6 @@
+# Automatic public HTTPS requires DNS A record and inbound TCP 80/443.
+# Caddy sanitizes untrusted X-Forwarded-For headers by default.
+{$TRAINLIVE_DOMAIN} {
+  encode zstd gzip
+  reverse_proxy app:3000
+}

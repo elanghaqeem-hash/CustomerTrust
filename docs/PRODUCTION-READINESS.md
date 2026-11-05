@@ -1,5 +1,15 @@
 # TrainLive release gates — 2026-11-05
 
+## Hosting target portability
+
+Vercel remains the previously configured environment. Hostinger VPS is supported
+as a separate, **not-yet-deployed** target via
+`deploy/hostinger/README.md`. The same database, least-privilege, staff MFA,
+security, privacy, backup and acceptance gates apply. For Hostinger, additionally
+verify external DNS, Caddy-managed HTTPS, container isolation and safe client-IP
+forwarding. `/api/health` must not skip staff SSO configuration merely because
+the host is not Vercel.
+
 ## Non-negotiable controls
 
 **Never switch Vercel's production Root Directory to `apps/trainlive` until the operating database has been provisioned, migrations and seed applied, and an authenticated facilitator flow works on the intended production environment.** Build READY alone does not establish readiness.

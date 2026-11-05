@@ -1,0 +1,14 @@
+# Only source files are needed for the Hostinger container builds.
+.git
+.github
+**/node_modules
+**/.next
+**/coverage
+**/playwright-report
+**/test-results
+.env
+.env.*
+**/.env
+**/.env.*
+deploy/hostinger/hostinger.env
+*.log

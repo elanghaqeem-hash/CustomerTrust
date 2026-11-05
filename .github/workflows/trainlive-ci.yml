@@ -6,6 +6,8 @@ on:
       - "seed/**"
       - "tools/trainlive/**"
       - "apps/trainlive/**"
+      - "deploy/hostinger/**"
+      - ".dockerignore"
       - ".github/workflows/trainlive-ci.yml"
   pull_request:
     paths:
@@ -13,6 +15,8 @@ on:
       - "seed/**"
       - "tools/trainlive/**"
       - "apps/trainlive/**"
+      - "deploy/hostinger/**"
+      - ".dockerignore"
       - ".github/workflows/trainlive-ci.yml"
 
 permissions:
@@ -37,6 +41,11 @@ jobs:
       DATABASE_URL_ADMIN: postgresql://trainlive_owner:trainlive_ci_only@localhost:5432/trainlive
       DATABASE_URL_APP: postgresql://trainlive_web:trainlive_ci_web_only@localhost:5432/trainlive
       TRAINLIVE_JWT_SECRET: trainlive_ci_test_key_not_used_in_production_2026
+      # Non-routable CI-only OIDC fixture. It is never a production identity provider.
+      TRAINLIVE_APP_ORIGIN: https://trainlive.example.invalid
+      TRAINLIVE_OIDC_ISSUER: https://login.example.invalid
+      TRAINLIVE_OIDC_CLIENT_ID: trainlive-ci-fixture
+      TRAINLIVE_OIDC_ALLOWED_EMAIL_DOMAINS: example.invalid
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -57,7 +66,7 @@ jobs:
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/010_admin_class_create.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/011_class_lifecycle.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/012_class_close_guard.sql
-          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -c "CREATE ROLE trainlive_web LOGIN PASSWORD 'trainlive_ci_web_only'; GRANT trainlive_app TO trainlive_web"
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -v app_password=trainlive_ci_web_only -f deploy/hostinger/create-runtime-role.sql
       - name: Real-PostgreSQL RLS isolation tests
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/01_rls_isolation.sql
       - name: Auto-LK2 and worksheet points isolation
@@ -87,6 +96,44 @@ jobs:
           npm install --prefix apps/trainlive --no-audit --no-fund
           npm run typecheck --prefix apps/trainlive
           npm run build --prefix apps/trainlive
+      - name: Hostinger VPS Compose contract and container builds
+        run: |
+          bash -n deploy/hostinger/bootstrap.sh
+          bash -n deploy/hostinger/backup.sh
+          node --check tools/trainlive/assign-staff.mjs
+          docker compose --env-file deploy/hostinger/hostinger.env.example \
+            -f deploy/hostinger/compose.yaml config --quiet
+          docker build -f deploy/hostinger/Dockerfile -t trainlive-hostinger-app-ci .
+          docker build -f deploy/hostinger/Dockerfile.tools -t trainlive-hostinger-tools-ci .
+      - name: Hostinger production denies manual staff JWT even without VERCEL_ENV
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Mimic non-Vercel production without using a real identity provider or bank data.
+          env -u CI -u VERCEL_ENV NODE_ENV=production \
+            TRAINLIVE_APP_ORIGIN=https://trainlive.seraya.id \
+            npm run start --prefix apps/trainlive -- -p 3341 > /tmp/trainlive-prod-guard.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          class_id="$(jq -r '.class_id' /tmp/trainlive-class-a.json)"
+          # This is an authentication-only regression: do not require the
+          # simulated deployment to have a fully operating public IdP.
+          for i in $(seq 1 60); do
+            if curl -fsS "http://localhost:3341/api/auth/staff/status?classId=$class_id" >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          curl -fsS "http://localhost:3341/api/auth/staff/status?classId=$class_id" | \
+            jq -e '.configured==true and .manualAllowed==false and .authenticated==false'
+          echo "Security probe: staff status endpoint available; validating bearer rejection"
+          token="$(node tools/trainlive/provision-facilitator.mjs "$class_id" hostinger-guard@example.invalid | tail -n 1)"
+          test -n "$token"
+          status="$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer $token" \
+            "http://localhost:3341/api/class/$class_id/items")"
+          test "$status" = "403"
+          curl -fsS "http://localhost:3341/api/auth/staff/status?classId=$class_id" | \
+            jq -e '.configured==true and .manualAllowed==false and .authenticated==false'
+          echo "PASS: real-domain Hostinger production rejects staff JWT bearer and requires SSO/MFA"
       - name: Block critical production dependency vulnerabilities
         run: |
           # npm install above generates a resolved lockfile for this exact CI run.
