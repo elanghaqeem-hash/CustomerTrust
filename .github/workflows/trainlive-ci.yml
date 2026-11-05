@@ -165,7 +165,7 @@ jobs:
             -H 'content-type: application/json' -d '{}' \
             http://localhost:3333/api/join)"
           test "$cross_site" = "403"
-          curl -fsS -c /tmp/trainlive-cookies.txt -H 'content-type: application/json' \
+          curl -fsS -c /tmp/trainlive-cookies.txt -H 'Origin: http://localhost:3333' -H 'Sec-Fetch-Site: same-origin' -H 'content-type: application/json' \
             --data "{\"code\":\"$a_code\",\"displayName\":\"Fixture A\",\"unit\":\"HQ\",\"email\":\"\",\"consent\":true}" \
             http://localhost:3333/api/join > /tmp/trainlive-join.json
           test "$(jq -r '.classId' /tmp/trainlive-join.json)" = "$a_id"
