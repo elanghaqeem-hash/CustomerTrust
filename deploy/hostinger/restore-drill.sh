@@ -22,7 +22,10 @@ docker run --detach --name "$container" --network none \
  --volume "$backup:/backup.dump:ro" postgres:16-alpine >/dev/null
 ready=false
 for i in $(seq 1 40); do
- if docker exec "$container" pg_isready -U postgres -d trainlive_restore >/dev/null 2>&1; then
+ # pg_isready can return success during entrypoint bootstrap before the
+ # requested database exists. Require an actual SQL query against that DB.
+ if docker exec "$container" psql -X -At -U postgres -d trainlive_restore \
+     -c 'SELECT 1' 2>/dev/null | grep -qx '1'; then
   ready=true; break
  fi
  sleep 1
