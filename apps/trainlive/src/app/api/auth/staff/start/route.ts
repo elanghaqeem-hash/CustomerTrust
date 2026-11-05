@@ -1,6 +1,6 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {z} from 'zod';
-import {callbackUrl,discover,FLOW_COOKIE,randomURLSafe,sha256URLSafe,staffOIDCConfig} from '@/lib/staff-oidc';
+import {callbackUrl,discover,FLOW_COOKIE,randomURLSafe,sha256URLSafe,signLoginFlow,staffOIDCConfig} from '@/lib/staff-oidc';
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
 
@@ -24,9 +24,9 @@ export async function GET(req:NextRequest){
   authorization.searchParams.set('code_challenge',sha256URLSafe(verifier));
   authorization.searchParams.set('code_challenge_method','S256');
   const res=NextResponse.redirect(authorization);
-  res.cookies.set(FLOW_COOKIE,Buffer.from(JSON.stringify({
+  res.cookies.set(FLOW_COOKIE,await signLoginFlow({
    state,nonce,verifier,classId,created:Date.now()
-  })).toString('base64url'),{httpOnly:true,secure:true,sameSite:'lax',path:'/',maxAge:600});
+  }),{httpOnly:true,secure:true,sameSite:'lax',path:'/',maxAge:600});
   res.headers.set('Cache-Control','no-store');
   return res;
  }catch{

@@ -1,5 +1,5 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
+import { createRemoteJWKSet, jwtVerify, SignJWT, type JWTPayload } from 'jose';
 
 export type StaffOIDCConfig = {
  issuer: string; clientId: string; clientSecret: string; origin: string;
@@ -9,6 +9,29 @@ type Metadata = {
  issuer:string; authorization_endpoint:string; token_endpoint:string; jwks_uri:string;
 };
 export const FLOW_COOKIE='__Host-trainlive-staff-flow';
+export type LoginFlow = {
+ state:string;nonce:string;verifier:string;classId:string;created:number
+};
+const FLOW_ISSUER='trainlive';
+const FLOW_AUDIENCE='trainlive-staff-oidc-flow';
+function flowSecret():Uint8Array{
+ const key=process.env.TRAINLIVE_JWT_SECRET||'';
+ if(new TextEncoder().encode(key).length<32)throw Error('OIDC flow signing secret missing');
+ return new TextEncoder().encode(key);
+}
+export async function signLoginFlow(flow:LoginFlow):Promise<string>{
+ return new SignJWT({...flow})
+  .setProtectedHeader({alg:'HS256'}).setIssuer(FLOW_ISSUER)
+  .setAudience(FLOW_AUDIENCE).setIssuedAt().setExpirationTime('10m')
+  .sign(flowSecret());
+}
+export async function verifyLoginFlow(cookie:string):Promise<LoginFlow>{
+ const {payload}=await jwtVerify(cookie,flowSecret(),{
+  issuer:FLOW_ISSUER,audience:FLOW_AUDIENCE,algorithms:['HS256']
+ });
+ return payload as unknown as LoginFlow;
+}
+
 
 export function staffOIDCConfig():StaffOIDCConfig|null {
  const issuer=process.env.TRAINLIVE_OIDC_ISSUER?.replace(/\/$/,'')||'';
