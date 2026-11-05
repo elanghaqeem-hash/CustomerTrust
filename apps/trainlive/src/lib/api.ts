@@ -16,7 +16,11 @@ export function privateError(e:unknown) {
  if (err?.code==='23505') return NextResponse.json({error:'already submitted'},{status:409});
  if (err?.code==='23503'||err?.code==='42501') return NextResponse.json({error:'forbidden'},{status:403});
  if (err?.code==='22023') return NextResponse.json({error:'request rejected by class rules'},{status:422});
- console.error('trainlive request failed:',e instanceof Error?e.message:String(e));
+ // SQL driver messages can contain query parameters or participant details.
+ // Log only a bounded SQLSTATE code; never emit raw database error text.
+ const safeCode=typeof err?.code==='string'&&/^[A-Z0-9]{5}$/.test(err.code)
+  ?err.code:'UNCLASSIFIED';
+ console.error('trainlive request failed; code='+safeCode);
  return NextResponse.json({error:'request could not be completed'},{status:500});
 }
 
