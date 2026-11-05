@@ -1,0 +1,93 @@
+name: trainlive
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: trainlive
+      POSTGRES_USER: trainlive_owner
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a strong hex POSTGRES_PASSWORD in hostinger.env}
+    volumes:
+      - trainlive_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trainlive_owner -d trainlive"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - internal
+
+  app:
+    build:
+      context: ../..
+      dockerfile: deploy/hostinger/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL_APP: "postgresql://trainlive_web:${TRAINLIVE_APP_DB_PASSWORD:?Set TRAINLIVE_APP_DB_PASSWORD}@db:5432/trainlive"
+      TRAINLIVE_JWT_SECRET: ${TRAINLIVE_JWT_SECRET:?Set TRAINLIVE_JWT_SECRET}
+      TRAINLIVE_APP_ORIGIN: "https://${TRAINLIVE_DOMAIN:?Set TRAINLIVE_DOMAIN}"
+      TRAINLIVE_OIDC_ISSUER: ${TRAINLIVE_OIDC_ISSUER:?Set TRAINLIVE_OIDC_ISSUER}
+      TRAINLIVE_OIDC_CLIENT_ID: ${TRAINLIVE_OIDC_CLIENT_ID:?Set TRAINLIVE_OIDC_CLIENT_ID}
+      TRAINLIVE_OIDC_CLIENT_SECRET: ${TRAINLIVE_OIDC_CLIENT_SECRET:-}
+      TRAINLIVE_OIDC_ALLOWED_EMAIL_DOMAINS: ${TRAINLIVE_OIDC_ALLOWED_EMAIL_DOMAINS:?Set approved staff domains}
+      TRAINLIVE_OIDC_MFA_ACR: ${TRAINLIVE_OIDC_MFA_ACR:-}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 8s
+      retries: 3
+      start_period: 45s
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - internal
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      TRAINLIVE_DOMAIN: ${TRAINLIVE_DOMAIN:?Set TRAINLIVE_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - internal
+
+  tools:
+    profiles: ["maintenance"]
+    build:
+      context: ../..
+      dockerfile: deploy/hostinger/Dockerfile.tools
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL_ADMIN: "postgresql://trainlive_owner:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/trainlive"
+    networks:
+      - internal
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  trainlive_data:
+  caddy_data:
+  caddy_config:
