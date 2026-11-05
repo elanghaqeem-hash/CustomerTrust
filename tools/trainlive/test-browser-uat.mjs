@@ -41,21 +41,16 @@ try{
    await page.locator('#display-name').fill('Peserta Simulasi '+String(i+1).padStart(2,'0'));
    await page.locator('#unit-name').fill('UAT-SYNTHETIC');
    await page.locator('input[type=checkbox]').check();
-   const joinResponse=page.waitForResponse(
-    r=>r.url().endsWith('/api/join')&&r.request().method()==='POST',
-    {timeout:30000});
+   // The real browser form owns the fetch and redirects with window.location.
+   // Verify the resulting URL and class cookie; Playwright response events can
+   // race document navigation, so do not use them as the acceptance gate.
    await page.getByRole('button',{name:'Gabung Kelas'}).click({noWaitAfter:true});
-   const joined=await joinResponse;
-   if(!joined.ok()){
-    const errorBody=await joined.json().catch(()=>({}));
-    throw Error('Participant '+(i+1)+' join HTTP '+joined.status()+': '+(errorBody.error||'rejected'));
-   }
-   // After window.location.assign(), browser navigation may invalidate the
-   // previous fetch's response body. The actual destination is authoritative.
    await page.waitForURL(url=>url.pathname==='/class/'+classId,
-    {waitUntil:'domcontentloaded',timeout:25000}).catch(e=>{
-     throw Error('Participant '+(i+1)+' navigation to class failed (path '+
-      new URL(page.url()).pathname+'): '+(e instanceof Error?e.message:String(e)));
+    {waitUntil:'domcontentloaded',timeout:35000}).catch(async e=>{
+     const alerts=await page.locator('[role=alert]').allTextContents().catch(()=>[]);
+     throw Error('Participant '+(i+1)+' cannot reach class (path '+
+      new URL(page.url()).pathname+', alerts '+JSON.stringify(alerts.slice(0,2))+'): '+
+      (e instanceof Error?e.message:String(e)));
     });
    await page.getByRole('tab',{name:'Rundown'}).click();
    await page.getByRole('heading',{name:'Rundown aktivitas'}).waitFor();
