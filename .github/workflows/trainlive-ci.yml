@@ -87,6 +87,13 @@ jobs:
           npm install --prefix apps/trainlive --no-audit --no-fund
           npm run typecheck --prefix apps/trainlive
           npm run build --prefix apps/trainlive
+      - name: Block critical production dependency vulnerabilities
+        run: |
+          # npm install above generates a resolved lockfile for this exact CI run.
+          # Scan production dependencies only; never suppress critical findings.
+          npm audit --prefix apps/trainlive --omit=dev --audit-level=critical
+      - name: Block critical training-tool dependency vulnerabilities
+        run: npm audit --prefix tools/trainlive --omit=dev --audit-level=critical
       - name: Staff report and CSV export are class-bound
         shell: bash
         run: |
