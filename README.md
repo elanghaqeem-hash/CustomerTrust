@@ -3,7 +3,7 @@
 Repository utama: https://github.com/elanghaqeem-hash/CustomerTrust (branch main).
 Vercel production: https://ct-kohl.vercel.app/ (project ct, team collman).
 
-> **Release status (2026-11-05):** The existing production root index.html remains an initialization landing page. Next.js TrainLive is deployed to **protected staging** (https://ct-trainlive-staging.vercel.app), where the application loads but /api/health correctly reports setup_required until its Postgres database and JWT signing secret are configured. On the code branch, mobile participation, worksheets, class-specific CSV/XLSX/PDF exports, facilitator console, chat moderation, browser alerts, and report are implemented with passing CI. Production database, staff SSO/MFA, class-scoped realtime broadcast, data handling approval, and end-to-end UAT remain **NO-GO** gates.
+> **Release status (2026-11-05, verified):** Production project `ct` now builds and serves the **actual Next.js TrainLive UI** from `apps/trainlive` at https://ct-kohl.vercel.app/. The production application is **NOT ready for participant use**: `/api/health` returns HTTP 503 (`setup_required`) because `DATABASE_URL_APP` is not configured, and the production database and staff SSO/MFA have not been provisioned. Deployment `dpl_554EifomQajpybv3ZkJMVde5JVEJ` built successfully from commit `c5b95a44f1a7ffb46a62fedb872831a8a891072a`; a second deployment is being validated for Node.js 22.x and Singapore (`sin1`) runtime. Staging remains protected. GitHub CI passes database tests on its ephemeral PostgreSQL service but does **not** prove production database readiness. Existing P0/P1/P2 tickets #2–#8 remain open.
 
 ## Source layout
 
@@ -55,7 +55,7 @@ Run against a disposable development database after all migrations:
     psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/01_rls_isolation.sql
     psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/02_worksheet.sql
 
-It creates two simultaneous classes A/B using the same immutable version, checks no-claim RLS, class-specific item state, cross-class inserts, identical email with separate participant records, and class-specific response/point queries. Everything runs in a transaction and rolls back. The CI workflow also runs these tests, REST 403 cross-class smoke tests and facilitator report/export smoke checks. **WebSocket class isolation, export and production load tests are not implemented yet.** Do not mark the full acceptance criteria 1–15 as PASS until their actual checks succeed.
+It creates two simultaneous classes A/B using the same immutable version, checks no-claim RLS, class-specific item state, cross-class inserts, identical email with separate participant records, and class-specific response/point queries. Everything runs in a transaction and rolls back. The CI workflow also runs these tests, REST 403 cross-class smoke tests and facilitator report/export smoke checks. **WebSocket class-isolation and actual production/staging 600-user load tests remain unverified; CI verifies class-scoped CSV/XLSX/PDF exports.** Do not mark the full acceptance criteria 1–15 as PASS until their actual checks succeed.
 
 ## Facilitator day-H playbook (target workflow)
 
@@ -74,14 +74,14 @@ It creates two simultaneous classes A/B using the same immutable version, checks
 - Raw answer keys are hidden before reveal. Participant free text warns against sharing bank secrets; a numeric-pattern confirmation is not a substitute for a data-loss-prevention control.
 - The current app uses **3-second polling as a temporary UI refresh**, not the required subsecond class-specific WebSocket broadcast. Participants send a 60-second heartbeat when their tab is visible.
 - Anonymous polls persist a keyed deduplication digest instead of a participant_id; an operational privacy review is still required.
-- The production deploy currently serves the static root (Next.js is deployed separately to protected staging). To activate TrainLive, explicitly switch the Vercel project root to apps/trainlive after Postgres, credentials, tests, staff SSO, and readiness gates are met. CSV report export exists; XLSX/PDF export and action-plan followups are not yet delivered.
+- The production deploy serves the Next.js app from `apps/trainlive`; its health endpoint remains HTTP 503 `setup_required` until production PostgreSQL is provisioned, schema migrations `001`–`006` are applied, a dedicated non-owner runtime DB role is configured, and `DATABASE_URL_APP` is supplied via encrypted Vercel environment variables. CSV/XLSX/PDF exports are implemented and pass CI; follow-up notifications are not automated.
 - Data residency/hosting location must be approved against the bank's policies and Indonesian data protection obligations.
 
 See AGENTS.md for how ChatGPT-driven changes are committed to GitHub and verified.
 
 ## Production readiness gates (2026-11-05)
 
-The deploy is **not yet production-ready**: the Vercel project currently serves the static landing page, the project has no TrainLive runtime environment variables, and staff identity/realtime gates are open. See [docs/PRODUCTION-READINESS.md](docs/PRODUCTION-READINESS.md). The Next.js `/api/health` handler now performs a database and migration probe, and returns HTTP 503 until configuration and schema readiness are satisfied. Never switch production traffic solely because CI builds successfully.
+The deploy is **not yet production-ready** despite a valid Next.js application build and HTTP 200 on `/`: only the TrainLive JWT signing secret is configured in the production Vercel environment, and no `DATABASE_URL_APP` is present. `/api/health` returns HTTP 503 (`setup_required`). Production PostgreSQL provisioning, migration/seed, non-owner runtime DB role, staff SSO/MFA, realtime authorization, data processing approvals, backup/restore and browser UAT remain release gates. See [docs/PRODUCTION-READINESS.md](docs/PRODUCTION-READINESS.md). Do not grant real participant access merely because deployment state is READY.
 
 ## Staging, security and load-test evidence
 
