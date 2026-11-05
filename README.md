@@ -5,6 +5,17 @@ Vercel production: https://ct-kohl.vercel.app/ (project ct, team collman).
 
 > **Release status (2026-11-05, verified):** Production project `ct` now builds and serves the **actual Next.js TrainLive UI** from `apps/trainlive` at https://ct-kohl.vercel.app/. The production application is **NOT ready for participant use**: `/api/health` returns HTTP 503 (`setup_required`) because `DATABASE_URL_APP` is not configured, and the production database and staff SSO/MFA have not been provisioned. Deployment `dpl_554EifomQajpybv3ZkJMVde5JVEJ` built successfully from commit `c5b95a44f1a7ffb46a62fedb872831a8a891072a`; a second deployment is being validated for Node.js 22.x and Singapore (`sin1`) runtime. Staging remains protected. GitHub CI passes database tests on its ephemeral PostgreSQL service but does **not** prove production database readiness. Existing P0/P1/P2 tickets #2–#8 remain open.
 
+## Hostinger VPS deployment (new, not yet live)
+
+A Hostinger VPS deployment bundle is available in
+[deploy/hostinger/README.md](deploy/hostinger/README.md): Next.js 15 on Node.js 22,
+PostgreSQL 16 (private network), Caddy automatic HTTPS, a restricted runtime DB
+role, class SSO/MFA provisioning and guarded initialization/backups. Target domain:
+`https://trainlive.seraya.id` (**not configured**). This is an alternative
+deployment option; it does not grant Hostinger access or change the existing
+Vercel production environment. Do not open registration until production
+readiness checks and UAT pass.
+
 ## Source layout
 
 - db/migrations/001_core.sql — normalized multi-class schema; immutable published content and class snapshots
