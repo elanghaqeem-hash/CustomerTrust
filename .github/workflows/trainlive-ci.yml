@@ -100,6 +100,31 @@ jobs:
             -f deploy/hostinger/compose.yaml config --quiet
           docker build -f deploy/hostinger/Dockerfile -t trainlive-hostinger-app-ci .
           docker build -f deploy/hostinger/Dockerfile.tools -t trainlive-hostinger-tools-ci .
+      - name: Hostinger production denies manual staff JWT even without VERCEL_ENV
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Mimic non-Vercel production without using a real identity provider or bank data.
+          env -u CI -u VERCEL_ENV NODE_ENV=production \
+            TRAINLIVE_APP_ORIGIN=https://trainlive.seraya.id \
+            npm run start --prefix apps/trainlive -- -p 3341 > /tmp/trainlive-prod-guard.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3341/api/health >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://localhost:3341/api/health | jq -e '.ready==true'
+          class_id="$(jq -r '.class_id' /tmp/trainlive-class-a.json)"
+          token="$(node tools/trainlive/provision-facilitator.mjs "$class_id" hostinger-guard@example.invalid | tail -n 1)"
+          test -n "$token"
+          status="$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer $token" \
+            "http://localhost:3341/api/class/$class_id/items")"
+          test "$status" = "403"
+          curl -fsS "http://localhost:3341/api/auth/staff/status?classId=$class_id" | \
+            jq -e '.configured==true and .manualAllowed==false and .authenticated==false'
+          echo "PASS: real-domain Hostinger production rejects staff JWT bearer and requires SSO/MFA"
       - name: Block critical production dependency vulnerabilities
         run: |
           # npm install above generates a resolved lockfile for this exact CI run.
