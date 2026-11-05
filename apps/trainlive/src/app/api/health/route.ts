@@ -20,9 +20,18 @@ export async function GET() {
   try {
     const checks = await transaction(null, async db => {
       const result = await db.query<{
-        result:{ready:boolean;runtime_role_ok:boolean;rls_ok:boolean;seed_ok:boolean;schema_ok:boolean}
-      }>('SELECT trainlive.production_preflight() AS result');
-      return result.rows[0]?.result;
+        result:{ready:boolean;runtime_role_ok:boolean;rls_ok:boolean;seed_ok:boolean;schema_ok:boolean};
+        multiclass_limiter_ready:boolean
+      }>(`SELECT trainlive.production_preflight() AS result,
+                to_regprocedure('trainlive.allow_join_attempt(text,text)') IS NOT NULL
+                  AS multiclass_limiter_ready`);
+      const row=result.rows[0];
+      if(!row)return undefined;
+      return {
+        ...row.result,
+        ready:row.result.ready&&row.multiclass_limiter_ready,
+        schema_ok:row.result.schema_ok&&row.multiclass_limiter_ready
+      };
     });
     // Do not expose role names, SQL errors, database URLs or participant data.
     const status=checks?.ready?'ready':
