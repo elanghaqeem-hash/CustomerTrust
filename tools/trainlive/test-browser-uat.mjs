@@ -1,5 +1,5 @@
 // Disposable CI browser acceptance test: 25 separate browser sessions,
-// class-scoped staff actions, revealed answers and negative class isolation.
+// real UI registration, class-scoped staff actions, revealed answers and negative class isolation.
 // Never run against live customer classes.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -29,8 +29,11 @@ async function requireAll(tasks){
 const browser=await chromium.launch({headless:true});
 const contexts=[],pages=Array(25);
 try{
- for(let offset=0;offset<25;offset+=5){
-  await requireAll(Array.from({length:5},async(_,j)=>{
+ // UI registration is serialized to resemble human-paced enrollment and avoid
+ // hydration races on a shared CI runner. The separate capacity suite still
+ // validates 25 simultaneous API joins and 600 synthetic requests.
+ for(let offset=0;offset<25;offset+=1){
+  await requireAll(Array.from({length:1},async(_,j)=>{
    const i=offset+j;
    const context=await browser.newContext({viewport:{width:390,height:844},locale:'id-ID'});
    contexts.push(context);
@@ -41,31 +44,39 @@ try{
    await page.locator('#display-name').fill('Peserta Simulasi '+String(i+1).padStart(2,'0'));
    await page.locator('#unit-name').fill('UAT-SYNTHETIC');
    await page.locator('input[type=checkbox]').check();
-   // Form layout, readiness and consent are exercised in Chromium. The
-   // API registration below deliberately avoids calling UI submit under 25-
-   // context machine-speed pressure; form-submit navigation still needs an
-   // independent human-paced UAT before bank go-live.
+   // Exercise the hydrated UI in EVERY browser, not an API shortcut.
    await page.waitForFunction(()=>{
     const submit=document.querySelector('button[type=submit]');
     return submit instanceof HTMLButtonElement && !submit.disabled;
-   },{timeout:25000});
-   const registered=await context.request.post(baseUrl+'/api/join',{
-    headers:{Origin:baseUrl,'Sec-Fetch-Site':'same-origin'},
-    data:{code:joinCode,displayName:'Peserta Simulasi '+String(i+1).padStart(2,'0'),
-     unit:'UAT-SYNTHETIC',email:'',consent:true}
-   });
-   if(!registered.ok())throw Error('Participant '+(i+1)+' API join HTTP '+registered.status());
-   const joined=await registered.json();
-   assert.equal(joined.classId,classId,'Participant must be bound to expected class');
-   // BrowserContext.request shares cookies with the real browser session.
-   await page.goto(baseUrl+'/class/'+classId,{waitUntil:'domcontentloaded'});
+   },null,{timeout:25000});
+   // Refill AFTER hydration: uncontrolled fills during early React hydration
+   // can be replaced by the first state render and silently prevent submit.
+   await page.locator('#join-code').fill(joinCode);
+   await page.locator('#display-name').fill('Peserta Simulasi '+String(i+1).padStart(2,'0'));
+   await page.locator('#unit-name').fill('UAT-SYNTHETIC');
+   await page.locator('input[type=checkbox]').check();
+   assert.equal(await page.locator('form').evaluate(form=>form.checkValidity()),true,
+    'The hydrated registration form must satisfy native HTML validation');
+   await page.getByRole('button',{name:'Gabung Kelas'}).click({timeout:25000});
+   try{
+    await page.waitForURL(url=>url.pathname==='/class/'+classId,
+     {waitUntil:'commit',timeout:30000});
+   }catch(error){
+    const alerts=await page.locator('[role=alert]').allTextContents().catch(()=>[]);
+    const valid=await page.locator('form').evaluate(form=>form.checkValidity()).catch(()=>null);
+    throw Error('Participant '+(i+1)+' browser join failed: '+
+     'URL='+page.url()+' valid='+valid+' alerts='+JSON.stringify(alerts)+
+     ' cause='+String(error));
+   }
+   assert.equal(new URL(page.url()).pathname,'/class/'+classId,
+    'Real UI registration must navigate to the intended class');
    await page.getByRole('tab',{name:'Rundown'}).click();
    await page.getByRole('heading',{name:'Rundown aktivitas'}).waitFor();
    assert.equal(await page.getByText(/Kunci:/).count(),0,'Answer exposed before reveal');
    await page.getByRole('tab',{name:'Aktivitas'}).click();
   }));
  }
- console.log('Browser acceptance: 25 independent browser sessions via API registration; form layout and rundown PASS');
+ console.log('Browser acceptance: 25 independent Chromium form submissions and redirects PASS');
  const hostContext=await browser.newContext({viewport:{width:1280,height:900}});
  contexts.push(hostContext);
  const hostPage=await hostContext.newPage();

@@ -38,8 +38,11 @@ const errorCounts=results.filter(x=>x.status!==200).reduce((a,x)=>{
 },{});
 const sorted=results.map(x=>x.ms).sort((a,b)=>a-b);
 const p95=sorted[Math.max(0,Math.ceil(sorted.length*.95)-1)]||0;
+// A 600/600 pass alone is insufficient when every request stalls. Keep the
+// conservative runner threshold distinct from the hosted staging SLO.
+const maxP95JoinMs=10000;
 const ids=codes.map((code,j)=>[...new Set(results.filter(x=>x.classIndex===j&&x.classId).map(x=>x.classId))]);
-let verified=successes.length===600 && ids.every(x=>x.length===1)
+let verified=successes.length===600 && p95<=maxP95JoinMs && ids.every(x=>x.length===1)
  && new Set(ids.map(x=>x[0])).size===24;
 const sample=successes[0];
 if(sample){
@@ -56,7 +59,7 @@ if(ids[0]?.length===1){
 const summary={
  scenario:'600 same-IP joins across 24 classes',pass:verified,
  accepted:successes.length,attempted:participants.length,classes:ids.filter(x=>x.length===1).length,
- p95_join_ms:Math.round(p95),elapsed_ms:Math.round(performance.now()-startAll),
+ p95_join_ms:Math.round(p95),max_allowed_p95_ms:maxP95JoinMs,elapsed_ms:Math.round(performance.now()-startAll),
  errors:errorCounts,
  note:'Disposable GitHub Actions Postgres/Next.js on one runner, not hosted staging k6 acceptance.'
 };
