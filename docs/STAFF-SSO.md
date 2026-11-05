@@ -30,6 +30,52 @@ policy as well; the claim check is the application's second gate.
 | Microsoft Entra ID | `https://login.microsoftonline.com/<tenant-id>/v2.0` | Web platform redirect URI, client secret | Require MFA via Conditional Access; **check a real ID token** — if `amr` is absent, add an approved `acr` mapping, otherwise login is correctly rejected |
 | Google Workspace | `https://accounts.google.com` | Web client | Enforce 2SV in Workspace; enable authentication-strength claims in Google Auth Platform (published/verified app) and set `TRAINLIVE_OIDC_REQUEST_AMR=true`. Google may still omit `amr`, in which case login is rejected |
 
+## Selected IdP: Google Workspace — setup
+
+Code behaviour when `TRAINLIVE_OIDC_ISSUER=https://accounts.google.com`:
+accepts `iss` as `https://accounts.google.com` or `accounts.google.com`; requires
+the `hd` (hosted domain) claim to equal the staff email domain, so unmanaged consumer
+Google accounts using the bank's address are rejected; sends `hd=<domain>` as an
+account-chooser hint when exactly one domain is allowed.
+
+1. **Workspace Admin console** (bank/company admin): enforce 2-Step Verification for
+   the staff organizational unit; prefer security keys/passkeys.
+2. **Google Cloud console → Google Auth Platform** (project owned by the organization):
+   - Branding + Audience: user type **Internal** (only that Workspace's accounts).
+   - Clients → Create client → **Web application**.
+     Authorized redirect URI: `https://ct-kohl.vercel.app/api/auth/staff/callback`
+     (staging: a separate client with the staging origin).
+   - Settings → Advanced settings → enable **Authentication strength claims**.
+     Google documents this as requiring the app to be *In production* and *Verified*;
+     confirm what the console shows for an Internal app.
+3. **Vercel `ct` → Production env (Sensitive):**
+
+   | Name | Value |
+   |---|---|
+   | `TRAINLIVE_APP_ORIGIN` | `https://ct-kohl.vercel.app` |
+   | `TRAINLIVE_OIDC_ISSUER` | `https://accounts.google.com` |
+   | `TRAINLIVE_OIDC_CLIENT_ID` | the `…apps.googleusercontent.com` client ID |
+   | `TRAINLIVE_OIDC_CLIENT_SECRET` | the client secret |
+   | `TRAINLIVE_OIDC_ALLOWED_EMAIL_DOMAINS` | the Workspace domain, e.g. `banksulteng.co.id` |
+   | `TRAINLIVE_OIDC_REQUEST_AMR` | `true` |
+
+   Leave `TRAINLIVE_OIDC_ACR_VALUES`, `TRAINLIVE_OIDC_MFA_ACR` and
+   `TRAINLIVE_OIDC_TOKEN_AUTH` empty (Google supports `client_secret_post`).
+4. **Staff records** (migration owner): insert each facilitator's Workspace email into
+   `trainlive.staff_user` and assign the class in `trainlive.class_staff`
+   via `node tools/trainlive/assign-staff.mjs CLASS_UUID email@domain facilitator "Nama"`.
+   The first login binds Google `sub`.
+5. Redeploy and test `/host/<CLASS_UUID>` → *Login SSO* with: an assigned MFA account
+   (must pass), an unassigned account, a consumer/unmanaged account and an account
+   without 2SV (all must be rejected).
+
+**Known risk:** Google returns `amr` only when it has authentication-method
+information, even when requested. If a correctly configured, 2SV-enforced staff
+login is rejected with "MFA claim missing", the code is working as designed. Options
+then: (a) put an MFA-asserting broker such as Keycloak in front of Google, or
+(b) accept Workspace-enforced 2SV + `hd` as MFA evidence — a security-policy decision
+that needs written bank sign-off and a code change; it is **not** enabled.
+
 For every provider: redirect URI exactly `https://ct-kohl.vercel.app/api/auth/staff/callback`
 (staging: its own origin), scopes `openid email profile`, and staff emails must be
 verified (`email_verified=true`) in an approved domain.

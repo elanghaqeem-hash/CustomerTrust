@@ -15,6 +15,10 @@ export type StaffOIDCConfig = {
 type Metadata = {
  issuer:string; authorization_endpoint:string; token_endpoint:string; jwks_uri:string;
 };
+// Google signs ID tokens with iss "https://accounts.google.com" or the bare
+// "accounts.google.com"; both identify the same issuer.
+export const GOOGLE_ISSUER='https://accounts.google.com';
+export const isGoogle=(config:StaffOIDCConfig)=>config.issuer===GOOGLE_ISSUER;
 export const FLOW_COOKIE='__Host-trainlive-staff-flow';
 export type LoginFlow = {
  state:string;nonce:string;verifier:string;classId:string;created:number
@@ -120,7 +124,8 @@ export async function verifiedIdentity(idToken:string,config:StaffOIDCConfig,non
  metadata:Metadata):Promise<{email:string;issuer:string;subject:string}> {
  const jwks=createRemoteJWKSet(new URL(metadata.jwks_uri));
  const {payload}=await jwtVerify(idToken,jwks,{
-  issuer:config.issuer,audience:config.clientId,algorithms:['RS256','PS256','ES256']
+  issuer:isGoogle(config)?[GOOGLE_ISSUER,'accounts.google.com']:config.issuer,
+  audience:config.clientId,algorithms:['RS256','PS256','ES256']
  });
  if(typeof payload.nonce!=='string'||!safeEqual(payload.nonce,nonce))
   throw Error('OIDC nonce mismatch');
@@ -129,6 +134,12 @@ export async function verifiedIdentity(idToken:string,config:StaffOIDCConfig,non
     !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw Error('Verified staff email required');
  const domain=email.split('@')[1];
  if(!config.allowedDomains.includes(domain))throw Error('Staff email domain not approved');
+ // Google: an address in the bank's domain can also exist as an unmanaged
+ // consumer account. Only Workspace-managed accounts carry `hd`.
+ if(isGoogle(config)){
+  const hd=typeof payload.hd==='string'?payload.hd.toLowerCase():'';
+  if(hd!==domain)throw Error('Google Workspace hosted domain required');
+ }
  const details=payload as JWTPayload & {amr?:unknown;acr?:unknown};
  const amr=Array.isArray(details.amr)?details.amr:[];
  const factors=amr.filter((x):x is string=>typeof x==='string').map(x=>x.toLowerCase());

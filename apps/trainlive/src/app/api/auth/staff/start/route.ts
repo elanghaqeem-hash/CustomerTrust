@@ -1,6 +1,6 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {z} from 'zod';
-import {callbackUrl,discover,FLOW_COOKIE,matchesPublicOrigin,randomURLSafe,sha256URLSafe,signLoginFlow,staffOIDCConfig} from '@/lib/staff-oidc';
+import {callbackUrl,discover,FLOW_COOKIE,isGoogle,matchesPublicOrigin,randomURLSafe,sha256URLSafe,signLoginFlow,staffOIDCConfig} from '@/lib/staff-oidc';
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
 
@@ -18,6 +18,9 @@ export async function GET(req:NextRequest){
   authorization.searchParams.set('client_id',config.clientId);
   authorization.searchParams.set('response_type','code');
   authorization.searchParams.set('scope','openid email profile');
+  // UX hint only (account chooser); the callback enforces the hd claim.
+  if(isGoogle(config)&&config.allowedDomains.length===1)
+   authorization.searchParams.set('hd',config.allowedDomains[0]);
   authorization.searchParams.set('redirect_uri',callbackUrl(config));
   authorization.searchParams.set('state',state);
   authorization.searchParams.set('nonce',nonce);
