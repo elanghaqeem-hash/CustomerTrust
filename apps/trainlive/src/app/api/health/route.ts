@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 function readyConfiguration():boolean {
   return Boolean(process.env.DATABASE_URL_APP && (process.env.TRAINLIVE_JWT_SECRET?.length ?? 0) >= 32 &&
-    (process.env.VERCEL_ENV!=='production' || staffOIDCConfig()));
+    (process.env.NODE_ENV!=='production' || staffOIDCConfig()));
 }
 
 // This endpoint is a readiness probe, not merely a check for env var presence.
