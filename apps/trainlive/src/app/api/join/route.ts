@@ -51,7 +51,7 @@ export async function POST(req:NextRequest) {
   const token=await signParticipant(row.class_id,row.participant_id);
   const res=NextResponse.json({classId:row.class_id,participantId:row.participant_id});
   res.cookies.set(sessionCookie(row.class_id),token,{
-   httpOnly:true,secure:req.nextUrl.protocol==='https:',sameSite:'lax',path:'/',maxAge:72*3600
+   httpOnly:true,secure:process.env.NODE_ENV==='production'||req.nextUrl.protocol==='https:',sameSite:'lax',path:'/',maxAge:72*3600
   });
   return res;
  }catch(err){ return privateError(err); }
