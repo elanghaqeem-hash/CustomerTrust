@@ -41,10 +41,6 @@ jobs:
       DATABASE_URL_ADMIN: postgresql://trainlive_owner:trainlive_ci_only@localhost:5432/trainlive
       DATABASE_URL_APP: postgresql://trainlive_web:trainlive_ci_web_only@localhost:5432/trainlive
       TRAINLIVE_JWT_SECRET: trainlive_ci_test_key_not_used_in_production_2026
-      TRAINLIVE_APP_ORIGIN: https://trainlive.example.invalid
-      TRAINLIVE_OIDC_ISSUER: https://login.example.invalid
-      TRAINLIVE_OIDC_CLIENT_ID: trainlive-ci
-      TRAINLIVE_OIDC_ALLOWED_EMAIL_DOMAINS: example.invalid
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
