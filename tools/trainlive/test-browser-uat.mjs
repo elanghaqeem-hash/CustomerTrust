@@ -53,15 +53,14 @@ try{
     {timeout:35000});
    await joinButton.click({timeout:25000});
    const response=await joinResponse;
-   const joinBody=await response.text();
-   let joinPayload={};try{joinPayload=JSON.parse(joinBody);}catch{}
-   if(!response.ok()||joinPayload.classId!==classId)
-    throw Error('Participant '+(i+1)+' form join returned HTTP '+response.status()+
-     ', type='+response.headers()['content-type']+', body='+joinBody.slice(0,180)+
-     ', origin='+response.url());
+   if(!response.ok())throw Error('Participant '+(i+1)+
+    ' browser form join returned HTTP '+response.status());
+   // A successful full-page navigation may evict the response body from
+   // Chrome DevTools before Playwright reads it. Assert HTTP success and
+   // completed browser navigation instead of racing Network.getResponseBody.
    try{
     await page.waitForURL(url=>url.pathname==='/class/'+classId,
-     {waitUntil:'domcontentloaded',timeout:20000});
+     {waitUntil:'commit',timeout:30000});
    }catch(error){
     const alerts=await page.locator('[role=alert]').allTextContents().catch(()=>[]);
     throw Error('Participant '+(i+1)+' join HTTP 200 but browser navigation failed: '+
