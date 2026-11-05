@@ -52,7 +52,7 @@ export async function GET(req:NextRequest){
   if(!staffId)throw Error('Staff not assigned to class');
   const token=await signStaff(flow.classId,staffId);
   const res=NextResponse.redirect(new URL('/host/'+flow.classId,config.origin));
-  res.cookies.delete(FLOW_COOKIE);
+  res.cookies.set(FLOW_COOKIE,'',{httpOnly:true,secure:true,sameSite:'lax',path:'/',maxAge:0});
   res.cookies.set(sessionCookie(flow.classId),token,{
    httpOnly:true,secure:true,sameSite:'lax',path:'/',maxAge:8*3600
   });
@@ -61,7 +61,7 @@ export async function GET(req:NextRequest){
  }catch{
   const res=NextResponse.json(
    {error:'Login ditolak. Verifikasi akun, MFA, dan penugasan kelas Anda.'},{status:403});
-  res.cookies.delete(FLOW_COOKIE);
+  res.cookies.set(FLOW_COOKIE,'',{httpOnly:true,secure:true,sameSite:'lax',path:'/',maxAge:0});
   res.headers.set('Cache-Control','no-store');
   return res;
  }
