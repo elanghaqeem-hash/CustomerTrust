@@ -68,8 +68,9 @@ export async function verifiedIdentity(idToken:string,config:StaffOIDCConfig,non
  if(!config.allowedDomains.includes(domain))throw Error('Staff email domain not approved');
  const details=payload as JWTPayload & {amr?:unknown;acr?:unknown};
  const amr=Array.isArray(details.amr)?details.amr:[];
- const mfa=amr.some(x=>typeof x==='string'&&
-  ['mfa','otp','webauthn','fido','hwk','swk','pop'].includes(x.toLowerCase()));
+ const factors=amr.filter((x):x is string=>typeof x==='string').map(x=>x.toLowerCase());
+ const mfa=factors.includes('mfa')||
+   (factors.includes('pwd')&&factors.some(x=>['otp','webauthn','fido','hwk'].includes(x)));
  const acr=typeof details.acr==='string'&&config.acceptedAcr.includes(details.acr);
  if(!mfa&&!acr)throw Error('Staff MFA claim missing or unapproved');
  if(!payload.sub||typeof payload.sub!=='string')throw Error('OIDC subject missing');
