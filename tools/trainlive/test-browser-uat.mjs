@@ -36,8 +36,16 @@ try{
    await page.locator('#display-name').fill('Peserta Simulasi '+String(i+1).padStart(2,'0'));
    await page.locator('#unit-name').fill('UAT-SYNTHETIC');
    await page.locator('input[type=checkbox]').check();
-   await page.getByRole('button',{name:'Gabung Kelas'}).click();
-   await page.waitForURL(url=>url.pathname==='/class/'+classId,{timeout:40000});
+   const joinResponse=page.waitForResponse(
+    r=>r.url().endsWith('/api/join')&&r.request().method()==='POST',
+    {timeout:30000});
+   await page.getByRole('button',{name:'Gabung Kelas'}).click({noWaitAfter:true});
+   const joined=await joinResponse;
+   const result=await joined.json().catch(()=>({}));
+   if(!joined.ok()||result.classId!==classId)
+    throw Error('Participant '+(i+1)+' join HTTP '+joined.status()+': '+(result.error||'class mismatch'));
+   await page.waitForURL(url=>url.pathname==='/class/'+classId,
+    {waitUntil:'domcontentloaded',timeout:25000});
    await page.getByRole('tab',{name:'Rundown'}).click();
    await page.getByRole('heading',{name:'Rundown aktivitas'}).waitFor();
    assert.equal(await page.getByText(/Kunci:/).count(),0,'Answer exposed before reveal');
