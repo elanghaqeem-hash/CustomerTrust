@@ -21,9 +21,11 @@ export async function POST(req:NextRequest) {
   // Database-backed throttling works across serverless instances. Allow staff behind
   // the same bank NAT to join a 25-person class without blocking legitimate users.
   // The source IP is hashed; it is never stored as plaintext in the database.
-  // On Vercel, x-vercel-forwarded-for is the platform-provided client IP
-  // and takes precedence over proxy-supplied x-forwarded-for.
-  const forwarded=req.headers.get('x-vercel-forwarded-for')||
+  // Only trust Vercel's platform header in a Vercel runtime. Outside Vercel
+  // (e.g. behind Hostinger Caddy), clients can spoof x-vercel-forwarded-for.
+  // The public proxy must overwrite incoming X-Forwarded-For from clients.
+  const forwarded=(process.env.VERCEL==='1'
+    ? req.headers.get('x-vercel-forwarded-for') : null) ||
     req.headers.get('x-forwarded-for');
   const clientIp=(forwarded?.split(',')[0]||req.headers.get('x-real-ip')||'unidentified').trim();
   const secret=process.env.TRAINLIVE_JWT_SECRET||'';
