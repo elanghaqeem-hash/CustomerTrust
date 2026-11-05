@@ -54,6 +54,8 @@ jobs:
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/007_staff_oidc.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/008_production_preflight.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/009_join_throttle_multiclass.sql
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/010_admin_class_create.sql
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/011_class_lifecycle.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -c "CREATE ROLE trainlive_web LOGIN PASSWORD 'trainlive_ci_web_only'; GRANT trainlive_app TO trainlive_web"
       - name: Real-PostgreSQL RLS isolation tests
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/01_rls_isolation.sql
@@ -132,10 +134,66 @@ jobs:
             test "$denied" = "403"
           done
           echo "PASS: class A CSV/XLSX/PDF exports, class B denied"
+          # Only an explicitly promoted super-admin facilitator may create a class.
+          d="$(TZ=Asia/Makassar date +%F)"
+          denied="$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer $staff_token" -H "Content-Type: application/json" \
+            --data "{\"name\":\"Customer Trust CI\",\"batch\":\"NEW-CI\",\"date\":\"$d\"}" \
+            "http://localhost:3335/api/class/$a_id/admin")"
+          test "$denied" = "403"
+          node tools/trainlive/promote-admin.mjs "$a_id" staff@example.invalid APPROVE-TRAINLIVE-SUPER-ADMIN
+          curl -fsS -H "Authorization: Bearer $staff_token" \
+            "http://localhost:3335/api/class/$a_id/admin" | jq -e '.canCreate==true'
+          curl -fsS -H "Authorization: Bearer $staff_token" -H "Content-Type: application/json" \
+            --data "{\"name\":\"Customer Trust CI\",\"batch\":\"NEW-CI\",\"date\":\"$d\"}" \
+            "http://localhost:3335/api/class/$a_id/admin" > /tmp/trainlive-created-class.json
+          created_id="$(jq -r '.classId' /tmp/trainlive-created-class.json)"
+          test -n "$created_id" && test "$created_id" != "$a_id"
+          jq -e '.joinCode | test("^[A-HJ-NP-Z2-9]{6}$")' /tmp/trainlive-created-class.json
+          test "$(psql "$DATABASE_URL_ADMIN" -At -c "SELECT count(*) FROM trainlive.class_item WHERE class_id='$created_id'")" = "16"
+          test "$(psql "$DATABASE_URL_ADMIN" -At -c "SELECT count(*) FROM trainlive.class_worksheet WHERE class_id='$created_id'")" = "5"
+          test "$(psql "$DATABASE_URL_ADMIN" -At -c "SELECT count(*) FROM trainlive.participant WHERE class_id='$created_id'")" = "0"
+          denied="$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer $staff_token" \
+            "http://localhost:3335/api/class/$created_id/items")"
+          test "$denied" = "403"
+          # Newly created classes start scheduled and require an authorized host transition.
+          created_token="$(node tools/trainlive/provision-facilitator.mjs "$created_id" staff@example.invalid "CI Admin" --leave-scheduled | tail -n 1)"
+          test -n "$created_token"
+          curl -fsS -H "Authorization: Bearer $created_token" \
+            "http://localhost:3335/api/class/$created_id/lifecycle" | jq -e '.status=="scheduled"'
+          curl -fsS -H "Authorization: Bearer $created_token" -H "Content-Type: application/json" \
+            --data '{"action":"start"}' \
+            "http://localhost:3335/api/class/$created_id/lifecycle" | jq -e '.status=="live"'
+          denied="$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer $created_token" -H "Content-Type: application/json" \
+            --data '{"action":"start"}' \
+            "http://localhost:3335/api/class/$created_id/lifecycle")"
+          test "$denied" = "422"
+          curl -fsS -H "Authorization: Bearer $created_token" -H "Content-Type: application/json" \
+            --data '{"action":"close"}' \
+            "http://localhost:3335/api/class/$created_id/lifecycle" | jq -e '.status=="closed"'
+          denied="$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer $created_token" -H "Content-Type: application/json" \
+            --data '{"action":"start"}' \
+            "http://localhost:3335/api/class/$created_id/lifecycle")"
+          test "$denied" = "422"
+          echo "PASS: scheduled -> live -> closed, no re-opening"
+          # Observer cannot act as administrator even when previously promoted.
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -c \
+            "UPDATE trainlive.class_staff SET role='observer' WHERE class_id='$a_id' AND user_id=(SELECT id FROM trainlive.staff_user WHERE email='staff@example.invalid')"
+          curl -fsS -H "Authorization: Bearer $staff_token" \
+            "http://localhost:3335/api/class/$a_id/admin" | jq -e '.canCreate==false'
+          denied="$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer $staff_token" -H "Content-Type: application/json" \
+            --data "{\"name\":\"Denied Observer\",\"batch\":\"DENY-2\",\"date\":\"$d\"}" \
+            "http://localhost:3335/api/class/$a_id/admin")"
+          test "$denied" = "403"
+          echo "PASS: admin provisioning, class snapshot, zero personal records, observer denied"
           # Observer can view class data but may not perform facilitator actions.
           role_before="$(curl -fsS -H "Authorization: Bearer $staff_token" \
             "http://localhost:3335/api/class/$a_id/capabilities" | jq -r '.role')"
-          test "$role_before" = "facilitator"
+          test "$role_before" = "observer"
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -c \
             "UPDATE trainlive.class_staff SET role='observer' WHERE class_id='$a_id' AND user_id=(SELECT id FROM trainlive.staff_user WHERE email='staff@example.invalid')"
           capabilities="$(curl -fsS -H "Authorization: Bearer $staff_token" \

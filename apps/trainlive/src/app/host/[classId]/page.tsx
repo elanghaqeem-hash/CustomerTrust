@@ -8,7 +8,9 @@ export default function HostPage(){
  const id=useParams<{classId:string}>().classId;
  const [token,setToken]=useState(''),[items,setItems]=useState<Item[]>([]),[score,setScore]=useState<Score[]>([]);
  const [messages,setMessages]=useState<ChatMessage[]>([]);
+ const [classStatus,setClassStatus]=useState<'scheduled'|'live'|'closed'|'archived'|null>(null);
  const [role,setRole]=useState<'facilitator'|'cohost'|'observer'|null>(null);
+ const [canCreateClass,setCanCreateClass]=useState(false);
  const canManage=Boolean(role&&role!=='observer');
  const [active,setActive]=useState<string|null>(null),[selectedItem,setSelectedItem]=useState<string|null>(null);
  const [search,setSearch]=useState(''),[filter,setFilter]=useState<'all'|'idle'|'open'|'finished'>('all');
@@ -18,6 +20,16 @@ export default function HostPage(){
  const access=loginMode==='sso_ready'||(loginMode==='manual'&&Boolean(token));
  const authHeaders=():Record<string,string>=>loginMode==='manual'&&token
   ?{Authorization:'Bearer '+token}:{};
+ useEffect(()=>{
+  if(!access){setCanCreateClass(false);return}
+  let mounted=true;
+  fetch('/api/class/'+id+'/admin',{headers:authHeaders(),cache:'no-store'})
+   .then(async r=>r.ok?await r.json():{canCreate:false})
+   .then(s=>{if(mounted)setCanCreateClass(s.canCreate===true)})
+   .catch(()=>{if(mounted)setCanCreateClass(false)});
+  return()=>{mounted=false};
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ },[access,token,id,loginMode]);
  useEffect(()=>{
   let mounted=true;
   fetch('/api/auth/staff/status?classId='+encodeURIComponent(id),{cache:'no-store'})
@@ -36,10 +48,13 @@ export default function HostPage(){
   if(!access)return;
   try{
    const headers=authHeaders();
-   const [a,b,chat,capabilities]=await Promise.all([fetch('/api/class/'+id+'/items',{headers,cache:'no-store'}),
+   const [a,b,chat,capabilities,lifecycle]=await Promise.all([fetch('/api/class/'+id+'/items',{headers,cache:'no-store'}),
     fetch('/api/class/'+id+'/leaderboard',{headers,cache:'no-store'}),
     fetch('/api/class/'+id+'/chat',{headers,cache:'no-store'}),
-    fetch('/api/class/'+id+'/capabilities',{headers,cache:'no-store'})]);
+    fetch('/api/class/'+id+'/capabilities',{headers,cache:'no-store'}),
+    fetch('/api/class/'+id+'/lifecycle',{headers,cache:'no-store'})]);
+   if(lifecycle.ok)setClassStatus((await lifecycle.json()).status);
+   else setClassStatus(null);
    if(capabilities.ok)setRole((await capabilities.json()).role);
    else setRole(null);
    if(!a.ok)throw Error('Token staf ditolak atau tidak ditugaskan pada kelas ini.');
@@ -63,6 +78,20 @@ export default function HostPage(){
   return()=>clearInterval(interval);
  // eslint-disable-next-line react-hooks/exhaustive-deps
  },[token,id,access,selectedItem]);
+ async function changeClass(action:'start'|'close'){
+  if(!access||!canManage)return;
+  if(action==='close'&&!window.confirm('Tutup kelas secara permanen? Setelah ditutup, aktivitas tidak bisa dibuka lagi.'))return;
+  setBusy(true);setError('');
+  try{
+   const response=await fetch('/api/class/'+id+'/lifecycle',{method:'POST',
+    headers:{...authHeaders(),'Content-Type':'application/json'},
+    body:JSON.stringify({action})});
+   const result=await response.json();
+   if(!response.ok)throw Error(result.error||'Gagal mengubah status kelas');
+   await refresh();
+  }catch(e){setError(e instanceof Error?e.message:'Gagal memperbarui kelas')}
+  finally{setBusy(false)}
+ }
  async function act(itemId:string,action:'open'|'close'|'reveal'){
   if(!access||!canManage)return;setBusy(true);
   try{
@@ -114,8 +143,17 @@ export default function HostPage(){
      <button className="rounded-xl bg-teal px-5 font-bold text-white" onClick={()=>void refresh()}>Hubungkan</button>
     </div>
    </div>}
+   {canCreateClass&&<a href={'/host/'+id+'/admin'} className="mb-5 inline-flex rounded-xl bg-teal px-5 py-3 font-bold text-white">Buat Kelas Baru (Admin)</a>}
    {role&&<p role="status" className="mb-4 text-sm font-semibold text-teal">Peran kelas: {role==='observer'?'Observer (hanya melihat dan mengunduh laporan)':role==='cohost'?'Co-host':'Fasilitator'}</p>}
    {error&&<p role="alert" className="mb-6 rounded-xl bg-red-50 p-4 text-red-800">{error}</p>}
+   {classStatus&&<section className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-slate-200 bg-white p-5">
+    <span className="font-bold">Status kelas: <strong className="text-teal">{classStatus.toUpperCase()}</strong></span>
+    {classStatus==='scheduled'&&<button disabled={!canManage||busy} onClick={()=>void changeClass('start')}
+      className="rounded-lg bg-teal px-4 py-2 font-bold text-white disabled:opacity-50">Mulai kelas</button>}
+    {classStatus==='live'&&<button disabled={!canManage||busy} onClick={()=>void changeClass('close')}
+      className="rounded-lg border border-red-300 bg-white px-4 py-2 font-bold text-red-800 disabled:opacity-50">Tutup kelas</button>}
+    {(classStatus==='closed'||classStatus==='archived')&&<span className="text-sm text-slate-600">Kelas sudah selesai. Aktivitas tidak dapat dibuka kembali.</span>}
+   </section>}
    <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
     <section><h1 className="mb-4 text-2xl font-extrabold">Rundown interaktif</h1>
      <div className="mb-4 flex flex-col gap-3 rounded-xl bg-white p-4 sm:flex-row">
@@ -140,11 +178,11 @@ export default function HostPage(){
       <div className="mt-4 flex flex-wrap gap-2">
        <button type="button" onClick={()=>setSelectedItem(i.id)} aria-pressed={active===i.id}
         className="rounded-lg border border-teal px-4 py-2 font-bold text-teal">Lihat hasil</button>
-       <button disabled={busy||!canManage||i.state==='revealed'||i.state==='open'} onClick={()=>void act(i.id,'open')}
+       <button disabled={busy||!canManage||classStatus!=='live'||i.state==='revealed'||i.state==='open'} onClick={()=>void act(i.id,'open')}
         className="rounded-lg bg-teal px-4 py-2 font-bold text-white">Buka</button>
-       <button disabled={busy||!canManage||i.state!=='open'} onClick={()=>void act(i.id,'close')}
+       <button disabled={busy||!canManage||classStatus!=='live'||i.state!=='open'} onClick={()=>void act(i.id,'close')}
         className="rounded-lg bg-navy px-4 py-2 font-bold text-white">Tutup</button>
-       <button disabled={busy||!canManage||!['closed','open'].includes(i.state)} onClick={()=>void act(i.id,'reveal')}
+       <button disabled={busy||!canManage||classStatus!=='live'||!['closed','open'].includes(i.state)} onClick={()=>void act(i.id,'reveal')}
         className="rounded-lg border border-gold bg-white px-4 py-2 font-bold text-navy">Reveal</button>
       </div>
      </div>)}</div>
