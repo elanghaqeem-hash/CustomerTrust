@@ -6,8 +6,13 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 function readyConfiguration():boolean {
+  // A real public deployment (Vercel production or a configured public origin)
+  // must have staff SSO/MFA. Ephemeral CI smoke tests run on localhost without
+  // a public origin and intentionally use staging-only signed staff fixtures.
+  const publicDeployment=process.env.VERCEL_ENV==='production' ||
+    Boolean(process.env.TRAINLIVE_APP_ORIGIN);
   return Boolean(process.env.DATABASE_URL_APP && (process.env.TRAINLIVE_JWT_SECRET?.length ?? 0) >= 32 &&
-    (process.env.NODE_ENV!=='production' || staffOIDCConfig()));
+    (!publicDeployment || staffOIDCConfig()));
 }
 
 // This endpoint is a readiness probe, not merely a check for env var presence.
