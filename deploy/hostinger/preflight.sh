@@ -2,11 +2,11 @@
 # Read-only VPS readiness gate. Never print the resolved Compose environment.
 set -euo pipefail
 set +x
-script_dir="$(cd -- "$(dirname -- "\${BASH_SOURCE[0]}")" && pwd)"
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd -- "$script_dir/../.." && pwd)"
-env_file="\${TRAINLIVE_HOSTINGER_ENV:-$script_dir/hostinger.env}"
+env_file="${TRAINLIVE_HOSTINGER_ENV:-$script_dir/hostinger.env}"
 check_dns=false
-if [[ "\${1:-}" == "--check-dns" ]]; then check_dns=true
+if [[ "${1:-}" == "--check-dns" ]]; then check_dns=true
 elif [[ $# -ne 0 ]]; then echo "Usage: bash deploy/hostinger/preflight.sh [--check-dns]" >&2; exit 2
 fi
 
