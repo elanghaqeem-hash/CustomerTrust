@@ -18,23 +18,19 @@ export async function GET() {
     return NextResponse.json({service:'trainlive', status:'setup_required', ready:false}, {status:503,headers});
   }
   try {
-    const valid = await transaction(null, async db => {
-      const result = await db.query<{ready:boolean}>(`
-        SELECT (
-          to_regclass('trainlive.class_session') IS NOT NULL
-          AND to_regclass('trainlive.class_item') IS NOT NULL
-          AND to_regclass('trainlive.participant') IS NOT NULL
-          AND to_regprocedure('trainlive.claim_class()') IS NOT NULL
-          AND to_regprocedure('trainlive.allow_join_attempt(text)') IS NOT NULL
-          AND to_regprocedure('trainlive.resolve_staff_oidc(uuid,text,text,text)') IS NOT NULL
-        ) AS ready`
-      );
-      return result.rows[0]?.ready === true;
+    const checks = await transaction(null, async db => {
+      const result = await db.query<{
+        result:{ready:boolean;runtime_role_ok:boolean;rls_ok:boolean;seed_ok:boolean;schema_ok:boolean}
+      }>('SELECT trainlive.production_preflight() AS result');
+      return result.rows[0]?.result;
     });
-    return NextResponse.json(
-      {service:'trainlive',status:valid?'ready':'migration_required',ready:valid},
-      {status:valid?200:503,headers}
-    );
+    // Do not expose role names, SQL errors, database URLs or participant data.
+    const status=checks?.ready?'ready':
+      !checks?.runtime_role_ok?'unsafe_runtime_role':
+      !checks?.rls_ok?'rls_required':
+      !checks?.seed_ok?'seed_required':'migration_required';
+    return NextResponse.json({service:'trainlive',status,ready:status==='ready'},
+      {status:status==='ready'?200:503,headers});
   } catch {
     return NextResponse.json({service:'trainlive',status:'unavailable',ready:false}, {status:503,headers});
   }

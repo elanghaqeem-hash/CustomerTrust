@@ -20,7 +20,10 @@ export async function POST(req:NextRequest) {
   // Database-backed throttling works across serverless instances. Allow staff behind
   // the same bank NAT to join a 25-person class without blocking legitimate users.
   // The source IP is hashed; it is never stored as plaintext in the database.
-  const forwarded=req.headers.get('x-forwarded-for');
+  // On Vercel, x-vercel-forwarded-for is the platform-provided client IP
+  // and takes precedence over proxy-supplied x-forwarded-for.
+  const forwarded=req.headers.get('x-vercel-forwarded-for')||
+    req.headers.get('x-forwarded-for');
   const clientIp=(forwarded?.split(',')[0]||req.headers.get('x-real-ip')||'unidentified').trim();
   const key=createHmac('sha256',process.env.TRAINLIVE_JWT_SECRET||'')
     .update('join-ip:'+clientIp).digest('hex');

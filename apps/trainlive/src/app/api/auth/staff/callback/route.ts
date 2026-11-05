@@ -3,11 +3,10 @@ import {z} from 'zod';
 import {transaction} from '@/lib/db';
 import {signStaff,sessionCookie} from '@/lib/auth';
 import {
- callbackUrl,discover,FLOW_COOKIE,safeEqual,staffOIDCConfig,verifiedIdentity
+ callbackUrl,discover,FLOW_COOKIE,safeEqual,staffOIDCConfig,verifiedIdentity,verifyLoginFlow,type LoginFlow
 } from '@/lib/staff-oidc';
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
-type Flow={state:string;nonce:string;verifier:string;classId:string;created:number};
 
 export async function GET(req:NextRequest){
  const config=staffOIDCConfig();
@@ -18,9 +17,9 @@ export async function GET(req:NextRequest){
  const state=req.nextUrl.searchParams.get('state')||'';
  if(!cookie||cookie.length>4096||!code||code.length>4096||!state)
   return NextResponse.json({error:'Sesi login tidak lengkap'},{status:400});
- let flow:Flow;
+ let flow:LoginFlow;
  try{
-  flow=JSON.parse(Buffer.from(cookie,'base64url').toString('utf8')) as Flow;
+  flow=await verifyLoginFlow(cookie);
   if(!z.string().uuid().safeParse(flow.classId).success||
      typeof flow.verifier!=='string'||flow.verifier.length<40||
      typeof flow.nonce!=='string'||flow.nonce.length<20||
