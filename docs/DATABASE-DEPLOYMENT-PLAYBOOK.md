@@ -31,6 +31,8 @@ A suitable managed provider is one that demonstrably supports the roles and
 permissions above (e.g. a correctly configured PostgreSQL service on Railway,
 Neon or Supabase, with provider-specific constraints reviewed first).
 
+Selected provider: **Neon, Singapore** — step-by-step in [NEON-SETUP.md](NEON-SETUP.md).
+
 ## Connection settings (app and tools)
 
 - `DATABASE_URL_APP` (runtime, Vercel): use the provider's **pooled** endpoint
