@@ -3,7 +3,7 @@
 # disposable PostgreSQL container. Never touches the TrainLive production DB.
 set -euo pipefail
 set +x
-backup="\${1:-}"
+backup="${1:-}"
 if [[ $# -ne 1 || ! -f "$backup" || -L "$backup" ]]; then
  echo "Usage: bash deploy/hostinger/restore-drill.sh /secure/path/trainlive-YYYYmmdd.dump" >&2
  exit 2
