@@ -49,6 +49,11 @@ export async function POST(req:Request,{params}:{params:Promise<{classId:string}
  if(!input.success)return NextResponse.json({error:'Invalid response payload'},{status:400});
  try {
   return await transaction({classId:session.classId,participantId:session.participantId},async db=>{
+   // A share lock serializes submissions against the facilitator closing the
+   // class. It remains held until COMMIT; late answers must never be saved.
+   const live=(await db.query<{allowed:boolean}>(
+    'SELECT trainlive.lock_live_class_for_response() AS allowed')).rows[0]?.allowed;
+   if(!live)return NextResponse.json({error:'Kelas belum dimulai atau telah ditutup'},{status:409});
    const item=(await db.query<Item>(
     'SELECT id,type,state,hidden,opened_at,timer_sec,payload FROM trainlive.class_item WHERE class_id=$1 AND id=$2',
     [session.classId,input.data.itemId])).rows[0];

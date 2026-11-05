@@ -27,6 +27,7 @@ export async function GET() {
                 AND to_regprocedure('trainlive.admin_create_class(uuid,text,text,date,text)') IS NOT NULL
                 AND to_regprocedure('trainlive.can_create_class()') IS NOT NULL
                 AND to_regprocedure('trainlive.manage_class(text)') IS NOT NULL
+                AND to_regprocedure('trainlive.lock_live_class_for_response()') IS NOT NULL
                   AS multiclass_limiter_ready`);
       const row=result.rows[0];
       if(!row)return undefined;
