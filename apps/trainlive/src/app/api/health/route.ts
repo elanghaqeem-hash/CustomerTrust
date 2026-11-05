@@ -24,6 +24,8 @@ export async function GET() {
         multiclass_limiter_ready:boolean
       }>(`SELECT trainlive.production_preflight() AS result,
                 to_regprocedure('trainlive.allow_join_attempt(text,text)') IS NOT NULL
+                AND to_regprocedure('trainlive.admin_create_class(uuid,text,text,date,text)') IS NOT NULL
+                AND to_regprocedure('trainlive.can_create_class()') IS NOT NULL
                   AS multiclass_limiter_ready`);
       const row=result.rows[0];
       if(!row)return undefined;

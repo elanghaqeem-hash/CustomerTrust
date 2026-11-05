@@ -6,7 +6,7 @@
 
 ## Reuse existing assets
 
-Use `db/migrations/001_core.sql` through `009_join_throttle_multiclass.sql`,
+Use `db/migrations/001_core.sql` through `010_admin_class_create.sql`,
 `seed/customer-trust-challenge.v1.json`, `tools/trainlive/{seed,create-class,provision-facilitator}.mjs`,
 `.github/workflows/trainlive-ci.yml`, `docs/STAFF-SSO.md`, and the deployed
 Next.js project `ct`. No new app or schema rewrite is required.
@@ -42,7 +42,7 @@ Neon or Supabase, with provider-specific constraints reviewed first).
      psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f "$file"
    done
    ```
-   Use the *ordered filenames* 001 to 009; never run these in a browser.
+   Use the *ordered filenames* 001 to 010; never run these in a browser.
 3. Create a separate runtime login with an independently generated strong
    password via DBA-controlled SQL, then `GRANT trainlive_app TO <runtime-login>`.
    The runtime account must **not own any trainlive tables** and must not
@@ -87,3 +87,10 @@ Neon or Supabase, with provider-specific constraints reviewed first).
 
 **Never** place actual DB connection strings, IdP secrets, access tokens,
 participant data, or join codes in GitHub commits, issues or test logs.
+
+## Administrator self-service class creation (migration 010)
+
+Once staff OIDC/MFA is verified and the operator has approved a named staff
+super-admin role, use `/host/SOURCE_CLASS_UUID/admin` to create batches without
+DB console access. The controlled DB function verifies both class membership
+and the explicit super-admin flag. Consult `docs/ADMIN-CLASS-MANAGEMENT.md`.
