@@ -110,12 +110,16 @@ jobs:
             npm run start --prefix apps/trainlive -- -p 3341 > /tmp/trainlive-prod-guard.log 2>&1 &
           pid=$!
           trap 'kill "$pid" 2>/dev/null || true' EXIT
+          class_id="$(jq -r '.class_id' /tmp/trainlive-class-a.json)"
+          # This is an authentication-only regression: do not require the
+          # simulated deployment to have a fully operating public IdP.
           for i in $(seq 1 60); do
-            if curl -fsS http://localhost:3341/api/health >/dev/null; then break; fi
+            if curl -fsS "http://localhost:3341/api/auth/staff/status?classId=$class_id" >/dev/null 2>&1; then break; fi
             sleep 1
           done
-          curl -fsS http://localhost:3341/api/health | jq -e '.ready==true'
-          class_id="$(jq -r '.class_id' /tmp/trainlive-class-a.json)"
+          curl -fsS "http://localhost:3341/api/auth/staff/status?classId=$class_id" | \
+            jq -e '.configured==true and .manualAllowed==false and .authenticated==false'
+          echo "Security probe: staff status endpoint available; validating bearer rejection"
           token="$(node tools/trainlive/provision-facilitator.mjs "$class_id" hostinger-guard@example.invalid | tail -n 1)"
           test -n "$token"
           status="$(curl -s -o /dev/null -w '%{http_code}' \
