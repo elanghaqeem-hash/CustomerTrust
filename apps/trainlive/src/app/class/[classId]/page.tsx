@@ -15,7 +15,8 @@ export default function ClassPage(){
  const [items,setItems]=useState<Item[]>([]),[leader,setLeader]=useState<Leader[]>([]);
  const [answers,setAnswers]=useState<Record<string,unknown>>({}),[submitted,setSubmitted]=useState<Record<string,boolean>>({});
  const [loading,setLoading]=useState(true),[error,setError]=useState(''),[busy,setBusy]=useState(false);
- const [now,setNow]=useState(Date.now()),[tab,setTab]=useState<'active'|'score'>('active');
+ const [now,setNow]=useState(Date.now()),[tab,setTab]=useState<'active'|'agenda'|'score'>('active');
+ const [reloadKey,setReloadKey]=useState(0);
  const [alerts,setAlerts]=useState(false);
  const audioContext=useRef<AudioContext|null>(null),previousAlertItem=useRef<string|null>(null);
  useEffect(()=>{
@@ -39,7 +40,7 @@ export default function ClassPage(){
   refresh();
   const update=setInterval(refresh,3000),tick=setInterval(()=>setNow(Date.now()),1000);
   return()=>{cancelled=true;clearInterval(update);clearInterval(tick)};
- },[id]);
+ },[id,reloadKey]);
  const opened=items.filter(x=>x.state==='open').sort((a,b)=>b.order_no-a.order_no)[0];
 
  const alertworthy=opened?.payload.tag==='focus'||opened?.payload.tag==='quiz';
@@ -96,7 +97,12 @@ export default function ClassPage(){
    const res=await fetch('/api/class/'+id+'/respond',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({itemId:current.id,answer:selected,confirmNoSensitiveData})});
    const data=await res.json();
-   if(!res.ok)throw Error(data.error||'Jawaban tidak dapat disimpan');
+   if(!res.ok){
+    if(res.status===409&&data.error==='already submitted'){
+     setSubmitted(s=>({...s,[current.id]:true}));return;
+    }
+    throw Error(data.error||'Jawaban tidak dapat disimpan');
+   }
    setSubmitted(s=>({...s,[current.id]:true}));
   }catch(e){setError(e instanceof Error?e.message:'Gagal mengirim');}
   finally{setBusy(false);}
@@ -170,13 +176,17 @@ export default function ClassPage(){
     className="mb-5 flex min-h-14 items-center justify-between rounded-xl border border-[#b5cfc8] bg-[#e8f5f1] px-5 py-3 font-bold text-teal">
     <span>Isi Lembar Kerja LK1–LK5</span><span aria-hidden="true">→</span>
    </a>
-   <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl bg-white p-1 shadow-sm" role="tablist" aria-label="Menu peserta">
+   <div className="mb-6 grid grid-cols-3 gap-2 rounded-xl bg-white p-1 shadow-sm" role="tablist" aria-label="Menu peserta">
     <button type="button" role="tab" aria-selected={tab==='active'} onClick={()=>setTab('active')}
-     className={'rounded-lg px-4 py-3 font-bold '+(tab==='active'?'bg-teal text-white':'text-navy')}>Aktivitas</button>
+     className={'rounded-lg px-2 py-3 text-sm font-bold sm:px-4 sm:text-base '+(tab==='active'?'bg-teal text-white':'text-navy')}>Aktivitas</button>
+    <button type="button" role="tab" aria-selected={tab==='agenda'} onClick={()=>setTab('agenda')}
+     className={'rounded-lg px-2 py-3 text-sm font-bold sm:px-4 sm:text-base '+(tab==='agenda'?'bg-teal text-white':'text-navy')}>Rundown</button>
     <button type="button" role="tab" aria-selected={tab==='score'} onClick={()=>setTab('score')}
-     className={'rounded-lg px-4 py-3 font-bold '+(tab==='score'?'bg-teal text-white':'text-navy')}>Skor kelas</button>
+     className={'rounded-lg px-2 py-3 text-sm font-bold sm:px-4 sm:text-base '+(tab==='score'?'bg-teal text-white':'text-navy')}>Skor</button>
    </div>
-   {error&&<div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-800">{error}</div>}
+   {error&&<div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-800">
+    <p>{error}</p><button type="button" className="mt-3 rounded-lg border border-red-600 px-4 py-2 font-bold"
+    onClick={()=>setReloadKey(n=>n+1)}>Coba muat ulang</button></div>}
    {loading?<p aria-live="polite" className="py-16 text-center text-slate-600">Memuat kelas…</p>:tab==='score'?
     <section className="shadow-card rounded-2xl bg-white p-6">
      <h1 className="mb-2 text-2xl font-extrabold">Papan Skor Kelas</h1>
@@ -187,6 +197,15 @@ export default function ClassPage(){
        <div className="font-bold">{r.display_name}<div className="text-sm font-normal text-slate-500">{r.unit}</div></div></div>
       <strong>{r.points} poin</strong></li>)}</ol>
      {!leader.length&&<p className="py-8 text-center text-slate-500">Belum ada poin dalam kelas.</p>}
+    </section>:tab==='agenda'?<section className="shadow-card rounded-2xl bg-white p-6">
+     <h1 className="text-2xl font-extrabold">Rundown aktivitas</h1>
+     <p className="mt-2 text-sm text-slate-600">Agenda ini diperbarui otomatis oleh fasilitator. Jawaban dan pembahasan hanya muncul saat diizinkan.</p>
+     <ol className="mt-5 space-y-3">{items.map(item=><li key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-4">
+      <div><p className="text-xs font-semibold text-teal">Modul {item.module_no} · Slide {item.slide_ref??'—'}</p>
+       <p className="mt-1 font-semibold">{item.payload.title||item.item_key}</p></div>
+      <span className="shrink-0 text-xs font-semibold text-slate-600">{item.state==='open'?'Dibuka':item.state==='revealed'?'Dibahas':item.state==='closed'?'Ditutup':'Menunggu'}</span>
+     </li>)}</ol>
+     {!items.length&&<p className="mt-6 text-slate-500">Rundown belum tersedia.</p>}
     </section>:
     current?<section className="shadow-card overflow-hidden rounded-2xl border border-slate-200 bg-white">
      <div className="flex flex-wrap items-center justify-between gap-3 bg-navy px-6 py-5 text-white">
