@@ -11,3 +11,4 @@ dist/
 # Hostinger VPS runtime secret file (never commit)
 /deploy/hostinger/hostinger.env
 /deploy/hostinger/*.secret.env
+*.tsbuildinfo
