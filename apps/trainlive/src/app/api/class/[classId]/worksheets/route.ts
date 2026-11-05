@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { transaction } from '@/lib/db';
-import { guardClass,privateError } from '@/lib/api';
+import { guardClass,privateError,requireSameOrigin } from '@/lib/api';
 export const runtime='nodejs';
 const schema=z.object({
  worksheetId:z.string().uuid(),data:z.record(z.unknown()),submit:z.boolean(),
@@ -52,6 +52,7 @@ export async function GET(_req:Request,{params}:{params:Promise<{classId:string}
  } catch(e){return privateError(e)}
 }
 export async function POST(req:Request,{params}:{params:Promise<{classId:string}>}){
+ const denied=requireSameOrigin(req);if(denied)return denied;
  const {classId}=await params;
  const auth=await guardClass(classId,'participant');if(auth.response)return auth.response;
  const s=auth.session!;if(s.kind!=='participant')return NextResponse.json({error:'forbidden'},{status:403});

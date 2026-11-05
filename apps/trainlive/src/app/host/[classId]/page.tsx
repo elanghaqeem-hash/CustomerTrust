@@ -8,6 +8,8 @@ export default function HostPage(){
  const id=useParams<{classId:string}>().classId;
  const [token,setToken]=useState(''),[items,setItems]=useState<Item[]>([]),[score,setScore]=useState<Score[]>([]);
  const [messages,setMessages]=useState<ChatMessage[]>([]);
+ const [role,setRole]=useState<'facilitator'|'cohost'|'observer'|null>(null);
+ const canManage=Boolean(role&&role!=='observer');
  const [active,setActive]=useState<string|null>(null),[results,setResults]=useState<{answered:number;joined:number;counts:{choice:string;count:number}[]}|null>(null);
  const [error,setError]=useState(''),[busy,setBusy]=useState(false);
  const [loginMode,setLoginMode]=useState<'checking'|'sso_login'|'sso_ready'|'manual'|'blocked'>('checking');
@@ -32,9 +34,12 @@ export default function HostPage(){
   if(!access)return;
   try{
    const headers=authHeaders();
-   const [a,b,chat]=await Promise.all([fetch('/api/class/'+id+'/items',{headers,cache:'no-store'}),
+   const [a,b,chat,capabilities]=await Promise.all([fetch('/api/class/'+id+'/items',{headers,cache:'no-store'}),
     fetch('/api/class/'+id+'/leaderboard',{headers,cache:'no-store'}),
-    fetch('/api/class/'+id+'/chat',{headers,cache:'no-store'})]);
+    fetch('/api/class/'+id+'/chat',{headers,cache:'no-store'}),
+    fetch('/api/class/'+id+'/capabilities',{headers,cache:'no-store'})]);
+   if(capabilities.ok)setRole((await capabilities.json()).role);
+   else setRole(null);
    if(!a.ok)throw Error('Token staf ditolak atau tidak ditugaskan pada kelas ini.');
    const ia=await a.json(),lb=b.ok?await b.json():{top:[]};
    setItems(ia.items);setScore(lb.top||[]);setError('');
@@ -55,7 +60,7 @@ export default function HostPage(){
  // eslint-disable-next-line react-hooks/exhaustive-deps
  },[token,id,access]);
  async function act(itemId:string,action:'open'|'close'|'reveal'){
-  if(!access)return;setBusy(true);
+  if(!access||!canManage)return;setBusy(true);
   try{
    const res=await fetch('/api/class/'+id+'/action',{method:'POST',
     headers:{...authHeaders(),'Content-Type':'application/json'},
@@ -66,7 +71,7 @@ export default function HostPage(){
   finally{setBusy(false)}
  }
  async function moderate(messageId:string,action:'read_aloud'|'hide'|'unhide'){
-  if(!access)return;setBusy(true);setError('');
+  if(!access||!canManage)return;setBusy(true);setError('');
   try{
    const r=await fetch('/api/class/'+id+'/chat',{method:'POST',
     headers:{...authHeaders(),'Content-Type':'application/json'},
@@ -101,6 +106,7 @@ export default function HostPage(){
      <button className="rounded-xl bg-teal px-5 font-bold text-white" onClick={()=>void refresh()}>Hubungkan</button>
     </div>
    </div>}
+   {role&&<p role="status" className="mb-4 text-sm font-semibold text-teal">Peran kelas: {role==='observer'?'Observer (hanya melihat dan mengunduh laporan)':role==='cohost'?'Co-host':'Fasilitator'}</p>}
    {error&&<p role="alert" className="mb-6 rounded-xl bg-red-50 p-4 text-red-800">{error}</p>}
    <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
     <section><h1 className="mb-4 text-2xl font-extrabold">Rundown interaktif</h1>
@@ -112,11 +118,11 @@ export default function HostPage(){
       <h2 className="text-lg font-bold">{i.payload.title||i.item_key}</h2>
       <p className="mt-2 line-clamp-2 text-sm text-slate-600">{i.payload.prompt}</p>
       <div className="mt-4 flex flex-wrap gap-2">
-       <button disabled={busy||i.state==='revealed'||i.state==='open'} onClick={()=>void act(i.id,'open')}
+       <button disabled={busy||!canManage||i.state==='revealed'||i.state==='open'} onClick={()=>void act(i.id,'open')}
         className="rounded-lg bg-teal px-4 py-2 font-bold text-white">Buka</button>
        <button disabled={busy||i.state!=='open'} onClick={()=>void act(i.id,'close')}
         className="rounded-lg bg-navy px-4 py-2 font-bold text-white">Tutup</button>
-       <button disabled={busy||!['closed','open','revealed'].includes(i.state)} onClick={()=>void act(i.id,'reveal')}
+       <button disabled={busy||!canManage||!['closed','open','revealed'].includes(i.state)} onClick={()=>void act(i.id,'reveal')}
         className="rounded-lg border border-gold bg-white px-4 py-2 font-bold text-navy">Reveal</button>
       </div>
      </div>)}</div>
@@ -140,9 +146,9 @@ export default function HostPage(){
         </div>
         <p className="mt-2 break-words text-sm">{m.body}</p>
         <div className="mt-3 flex flex-wrap gap-2">
-         <button type="button" disabled={busy||m.hidden||m.read_aloud} onClick={()=>void moderate(m.id,'read_aloud')}
+         <button type="button" disabled={busy||!canManage||m.hidden||m.read_aloud} onClick={()=>void moderate(m.id,'read_aloud')}
           className="rounded border border-teal px-2 py-1 text-xs font-bold text-teal">Bacakan (+5)</button>
-         <button type="button" disabled={busy} onClick={()=>void moderate(m.id,m.hidden?'unhide':'hide')}
+         <button type="button" disabled={busy||!canManage} onClick={()=>void moderate(m.id,m.hidden?'unhide':'hide')}
           className="rounded border border-slate-300 px-2 py-1 text-xs font-bold">{m.hidden?'Tampilkan':'Sembunyikan'}</button>
         </div>
        </article>)}
