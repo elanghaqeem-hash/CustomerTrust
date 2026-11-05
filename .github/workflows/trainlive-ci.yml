@@ -129,6 +129,23 @@ jobs:
             test "$denied" = "403"
           done
           echo "PASS: class A CSV/XLSX/PDF exports, class B denied"
+          # Observer can view class data but may not perform facilitator actions.
+          role_before="$(curl -fsS -H "Authorization: Bearer $staff_token" \
+            "http://localhost:3335/api/class/$a_id/capabilities" | jq -r '.role')"
+          test "$role_before" = "facilitator"
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -c \
+            "UPDATE trainlive.class_staff SET role='observer' WHERE class_id='$a_id' AND user_id=(SELECT id FROM trainlive.staff_user WHERE email='staff@example.invalid')"
+          capabilities="$(curl -fsS -H "Authorization: Bearer $staff_token" \
+            "http://localhost:3335/api/class/$a_id/capabilities")"
+          echo "$capabilities" | jq -e '.role=="observer" and .canManage==false and .canReport==true'
+          item_id="$(curl -fsS -H "Authorization: Bearer $staff_token" \
+            "http://localhost:3335/api/class/$a_id/items" | jq -r '.items[0].id')"
+          denied="$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer $staff_token" -H 'Content-Type: application/json' \
+            --data "{\"itemId\":\"$item_id\",\"action\":\"open\"}" \
+            "http://localhost:3335/api/class/$a_id/action")"
+          test "$denied" = "403"
+          echo "PASS: observer permissions are read-only"
       - name: REST cross-class token smoke test
         shell: bash
         run: |
@@ -143,7 +160,12 @@ jobs:
           a_code="$(jq -r '.join_code' /tmp/trainlive-class-a.json)"
           b_id="$(jq -r '.class_id' /tmp/trainlive-class-b.json)"
           a_id="$(jq -r '.class_id' /tmp/trainlive-class-a.json)"
-          curl -fsS -c /tmp/trainlive-cookies.txt -H 'content-type: application/json' \
+          cross_site="$(curl -s -o /dev/null -w '%{http_code}' \
+            -H 'Origin: https://attacker.invalid' -H 'Sec-Fetch-Site: cross-site' \
+            -H 'content-type: application/json' -d '{}' \
+            http://localhost:3333/api/join)"
+          test "$cross_site" = "403"
+          curl -fsS -c /tmp/trainlive-cookies.txt -H 'Origin: http://localhost:3333' -H 'Sec-Fetch-Site: same-origin' -H 'content-type: application/json' \
             --data "{\"code\":\"$a_code\",\"displayName\":\"Fixture A\",\"unit\":\"HQ\",\"email\":\"\",\"consent\":true}" \
             http://localhost:3333/api/join > /tmp/trainlive-join.json
           test "$(jq -r '.classId' /tmp/trainlive-join.json)" = "$a_id"

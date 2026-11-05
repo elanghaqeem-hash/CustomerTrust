@@ -19,3 +19,23 @@ export function privateError(e:unknown) {
  console.error('trainlive request failed:',e instanceof Error?e.message:String(e));
  return NextResponse.json({error:'request could not be completed'},{status:500});
 }
+
+/** Reject cross-origin browser writes even when SameSite cookies are present.
+ * Non-browser CI/server callers without Origin/Fetch-Metadata are still subject
+ * to signed tokens, class RLS and other endpoint authentication controls.
+ */
+export function requireSameOrigin(req:Request):NextResponse|null {
+ const origin=req.headers.get('origin');
+ const fetchSite=req.headers.get('sec-fetch-site');
+ if(fetchSite && fetchSite!=='same-origin' && fetchSite!=='none')
+  return NextResponse.json({error:'cross-origin request forbidden'},{status:403});
+ if(origin){
+  try{
+   if(new URL(origin).origin!==new URL(req.url).origin)
+    return NextResponse.json({error:'cross-origin request forbidden'},{status:403});
+  }catch{
+   return NextResponse.json({error:'invalid origin'},{status:403});
+  }
+ }
+ return null;
+}

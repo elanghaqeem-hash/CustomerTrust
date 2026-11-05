@@ -1,6 +1,6 @@
 import {NextResponse} from 'next/server';
 import {z} from 'zod';
-import {guardClass,privateError} from '@/lib/api';
+import {guardClass,privateError,requireSameOrigin} from '@/lib/api';
 import {transaction} from '@/lib/db';
 
 export const runtime='nodejs';
@@ -22,7 +22,8 @@ export async function GET(_req:Request,{params}:{params:Promise<{classId:string}
 }
 
 export async function POST(req:Request,{params}:{params:Promise<{classId:string}>}){
-  const {classId}=await params;
+  const denied=requireSameOrigin(req);if(denied)return denied;
+ const {classId}=await params;
   const auth=await guardClass(classId,'staff');
   if(auth.response)return auth.response;
   const s=auth.session!;

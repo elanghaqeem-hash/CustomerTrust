@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { createHmac } from 'node:crypto';
 import { transaction } from '@/lib/db';
 import { signParticipant,sessionCookie } from '@/lib/auth';
-import { privateError } from '@/lib/api';
+import { privateError,requireSameOrigin } from '@/lib/api';
 export const runtime='nodejs';
 const input=z.object({
  code:z.string().trim().min(6).max(6),
@@ -13,6 +13,7 @@ const input=z.object({
  consent:z.literal(true)
 }).strict();
 export async function POST(req:NextRequest) {
+ const denied=requireSameOrigin(req);if(denied)return denied;
  const parsed=input.safeParse(await req.json().catch(()=>null));
  if(!parsed.success) return NextResponse.json({error:'Lengkapi data dan persetujuan peserta.'},{status:400});
  try {

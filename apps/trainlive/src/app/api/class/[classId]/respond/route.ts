@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createHmac } from 'node:crypto';
 import { transaction } from '@/lib/db';
-import { guardClass,privateError } from '@/lib/api';
+import { guardClass,privateError,requireSameOrigin } from '@/lib/api';
 export const runtime='nodejs';
 const reqSchema=z.object({itemId:z.string().uuid(),answer:z.unknown(),confirmNoSensitiveData:z.boolean().optional()}).strict();
 type Item={id:string;type:string;state:string;hidden:boolean;opened_at:string|null;timer_sec:number;payload:{
@@ -39,6 +39,7 @@ function normalize(item:Item,answer:unknown,confirmed:boolean) {
  throw new Error('unsupported_type');
 }
 export async function POST(req:Request,{params}:{params:Promise<{classId:string}>}) {
+ const denied=requireSameOrigin(req);if(denied)return denied;
  const {classId}=await params;
  const auth=await guardClass(classId,'participant');
  if(auth.response) return auth.response;

@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { transaction } from '@/lib/db';
-import { guardClass,privateError } from '@/lib/api';
+import { guardClass,privateError,requireSameOrigin } from '@/lib/api';
 export const runtime='nodejs';
 const schema=z.object({itemId:z.string().uuid(),action:z.enum(['open','close','reveal'])}).strict();
 export async function POST(req:Request,{params}:{params:Promise<{classId:string}>}) {
+ const denied=requireSameOrigin(req);if(denied)return denied;
  const {classId}=await params;
  const auth=await guardClass(classId,'staff');
  if(auth.response)return auth.response;
