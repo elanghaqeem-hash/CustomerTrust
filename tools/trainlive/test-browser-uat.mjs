@@ -48,10 +48,22 @@ try{
     return submit instanceof HTMLButtonElement && !submit.disabled;
    },null,{timeout:25000});
    const joinButton=page.getByRole('button',{name:'Gabung Kelas'});
-   await Promise.all([
-    page.waitForURL(url=>url.pathname==='/class/'+classId,{timeout:45000}),
-    joinButton.click({timeout:25000})
-   ]);
+   const joinResponse=page.waitForResponse(response=>
+    new URL(response.url()).pathname==='/api/join',{timeout:35000});
+   await joinButton.click({timeout:25000});
+   const response=await joinResponse;
+   const joinPayload=await response.json().catch(()=>({}));
+   if(!response.ok())throw Error('Participant '+(i+1)+' browser form join HTTP '+
+    response.status()+': '+(joinPayload.error||'no server error provided'));
+   assert.equal(joinPayload.classId,classId,'Browser join must be bound to requested class');
+   try{
+    await page.waitForURL(url=>url.pathname==='/class/'+classId,
+     {waitUntil:'domcontentloaded',timeout:20000});
+   }catch(error){
+    const alerts=await page.locator('[role=alert]').allTextContents().catch(()=>[]);
+    throw Error('Participant '+(i+1)+' join HTTP 200 but browser navigation failed: '+
+     'URL='+page.url()+' alerts='+JSON.stringify(alerts)+' cause='+String(error));
+   }
    assert.equal(new URL(page.url()).pathname,'/class/'+classId,
     'Real UI registration must navigate to the intended class');
    await page.getByRole('tab',{name:'Rundown'}).click();
