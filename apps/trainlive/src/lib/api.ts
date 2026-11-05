@@ -35,7 +35,10 @@ export function requireSameOrigin(req:Request):NextResponse|null {
   return NextResponse.json({error:'cross-origin request forbidden'},{status:403});
  if(origin){
   try{
-   if(new URL(origin).origin!==new URL(req.url).origin)
+   // A reverse proxy can expose the public HTTPS origin while Next.js sees
+   // an internal http://app:3000 URL. Pin the known public origin when set.
+   const expected=process.env.TRAINLIVE_APP_ORIGIN || new URL(req.url).origin;
+   if(new URL(origin).origin!==expected)
     return NextResponse.json({error:'cross-origin request forbidden'},{status:403});
   }catch{
    return NextResponse.json({error:'invalid origin'},{status:403});
