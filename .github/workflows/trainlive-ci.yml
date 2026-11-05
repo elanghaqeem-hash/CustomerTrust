@@ -65,7 +65,7 @@ jobs:
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/010_admin_class_create.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/011_class_lifecycle.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/012_class_close_guard.sql
-          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -c "CREATE ROLE trainlive_web LOGIN PASSWORD 'trainlive_ci_web_only'; GRANT trainlive_app TO trainlive_web"
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -v app_password=trainlive_ci_web_only -f deploy/hostinger/create-runtime-role.sql
       - name: Real-PostgreSQL RLS isolation tests
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/01_rls_isolation.sql
       - name: Auto-LK2 and worksheet points isolation
@@ -97,6 +97,9 @@ jobs:
           npm run build --prefix apps/trainlive
       - name: Hostinger VPS Compose contract and container builds
         run: |
+          bash -n deploy/hostinger/bootstrap.sh
+          bash -n deploy/hostinger/backup.sh
+          node --check tools/trainlive/assign-staff.mjs
           docker compose --env-file deploy/hostinger/hostinger.env.example \
             -f deploy/hostinger/compose.yaml config --quiet
           docker build -f deploy/hostinger/Dockerfile -t trainlive-hostinger-app-ci .
