@@ -46,11 +46,17 @@ try{
     {timeout:30000});
    await page.getByRole('button',{name:'Gabung Kelas'}).click({noWaitAfter:true});
    const joined=await joinResponse;
-   const result=await joined.json().catch(()=>({}));
-   if(!joined.ok()||result.classId!==classId)
-    throw Error('Participant '+(i+1)+' join HTTP '+joined.status()+': '+(result.error||'class mismatch'));
+   if(!joined.ok()){
+    const errorBody=await joined.json().catch(()=>({}));
+    throw Error('Participant '+(i+1)+' join HTTP '+joined.status()+': '+(errorBody.error||'rejected'));
+   }
+   // After window.location.assign(), browser navigation may invalidate the
+   // previous fetch's response body. The actual destination is authoritative.
    await page.waitForURL(url=>url.pathname==='/class/'+classId,
-    {waitUntil:'domcontentloaded',timeout:25000});
+    {waitUntil:'domcontentloaded',timeout:25000}).catch(e=>{
+     throw Error('Participant '+(i+1)+' navigation to class failed (path '+
+      new URL(page.url()).pathname+'): '+(e instanceof Error?e.message:String(e)));
+    });
    await page.getByRole('tab',{name:'Rundown'}).click();
    await page.getByRole('heading',{name:'Rundown aktivitas'}).waitFor();
    assert.equal(await page.getByText(/Kunci:/).count(),0,'Answer exposed before reveal');
