@@ -323,5 +323,5 @@ jobs:
           tail -n 1 /tmp/trainlive-browser-staff-output > /tmp/trainlive-browser-staff-token
           chmod 600 /tmp/trainlive-browser-staff-token
           rm -f /tmp/trainlive-browser-staff-output
-          node tools/trainlive/test-browser-uat.mjs http://127.0.0.1:3340 \
+          node tools/trainlive/test-browser-uat.mjs http://localhost:3340 \
             "$class_id" "$join_code" /tmp/trainlive-browser-staff-token "$other_id"
