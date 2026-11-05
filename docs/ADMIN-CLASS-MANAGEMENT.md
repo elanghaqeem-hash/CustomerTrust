@@ -41,3 +41,14 @@ source/target class IDs, no answer leakage, and privileged audit events.
 **Live availability is still blocked** until compatible PostgreSQL,
 OIDC+MFA and all mandatory P0 gates (backup, UAT, DPIA/data residency) pass.
 Code and disposable CI tests are not proof of operating production readiness.
+
+## Start and close a scheduled class (migration 011)
+
+The facilitator or co-host opens `/host/CLASS_UUID`. A new class starts
+as `scheduled`; the **Mulai kelas** button transitions it to `live`
+within the approved join window. Only a live class can open quiz items.
+After the session, **Tutup kelas** irreversibly transitions to `closed`.
+Observers cannot manage state, and both actions are recorded in the audit
+log. The staging-only token provisioning script supports
+`--leave-scheduled` for controlled lifecycle testing; it is not an
+alternative to production SSO/MFA.

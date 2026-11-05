@@ -6,7 +6,7 @@
 
 ## Reuse existing assets
 
-Use `db/migrations/001_core.sql` through `010_admin_class_create.sql`,
+Use `db/migrations/001_core.sql` through `011_class_lifecycle.sql`,
 `seed/customer-trust-challenge.v1.json`, `tools/trainlive/{seed,create-class,provision-facilitator}.mjs`,
 `.github/workflows/trainlive-ci.yml`, `docs/STAFF-SSO.md`, and the deployed
 Next.js project `ct`. No new app or schema rewrite is required.
@@ -42,7 +42,7 @@ Neon or Supabase, with provider-specific constraints reviewed first).
      psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f "$file"
    done
    ```
-   Use the *ordered filenames* 001 to 010; never run these in a browser.
+   Use the *ordered filenames* 001 to 011; never run these in a browser.
 3. Create a separate runtime login with an independently generated strong
    password via DBA-controlled SQL, then `GRANT trainlive_app TO <runtime-login>`.
    The runtime account must **not own any trainlive tables** and must not

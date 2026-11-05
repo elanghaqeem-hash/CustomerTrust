@@ -55,6 +55,7 @@ jobs:
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/008_production_preflight.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/009_join_throttle_multiclass.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/010_admin_class_create.sql
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/011_class_lifecycle.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -c "CREATE ROLE trainlive_web LOGIN PASSWORD 'trainlive_ci_web_only'; GRANT trainlive_app TO trainlive_web"
       - name: Real-PostgreSQL RLS isolation tests
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/01_rls_isolation.sql
@@ -156,6 +157,28 @@ jobs:
             -H "Authorization: Bearer $staff_token" \
             "http://localhost:3335/api/class/$created_id/items")"
           test "$denied" = "403"
+          # Newly created classes start scheduled and require an authorized host transition.
+          created_token="$(node tools/trainlive/provision-facilitator.mjs "$created_id" staff@example.invalid "CI Admin" --leave-scheduled | tail -n 1)"
+          test -n "$created_token"
+          curl -fsS -H "Authorization: Bearer $created_token" \
+            "http://localhost:3335/api/class/$created_id/lifecycle" | jq -e '.status=="scheduled"'
+          curl -fsS -H "Authorization: Bearer $created_token" -H "Content-Type: application/json" \
+            --data '{"action":"start"}' \
+            "http://localhost:3335/api/class/$created_id/lifecycle" | jq -e '.status=="live"'
+          denied="$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer $created_token" -H "Content-Type: application/json" \
+            --data '{"action":"start"}' \
+            "http://localhost:3335/api/class/$created_id/lifecycle")"
+          test "$denied" = "422"
+          curl -fsS -H "Authorization: Bearer $created_token" -H "Content-Type: application/json" \
+            --data '{"action":"close"}' \
+            "http://localhost:3335/api/class/$created_id/lifecycle" | jq -e '.status=="closed"'
+          denied="$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer $created_token" -H "Content-Type: application/json" \
+            --data '{"action":"start"}' \
+            "http://localhost:3335/api/class/$created_id/lifecycle")"
+          test "$denied" = "422"
+          echo "PASS: scheduled -> live -> closed, no re-opening"
           # Observer cannot act as administrator even when previously promoted.
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -c \
             "UPDATE trainlive.class_staff SET role='observer' WHERE class_id='$a_id' AND user_id=(SELECT id FROM trainlive.staff_user WHERE email='staff@example.invalid')"
