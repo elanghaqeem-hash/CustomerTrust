@@ -56,6 +56,7 @@ jobs:
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/009_join_throttle_multiclass.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/010_admin_class_create.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/011_class_lifecycle.sql
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/012_class_close_guard.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -c "CREATE ROLE trainlive_web LOGIN PASSWORD 'trainlive_ci_web_only'; GRANT trainlive_app TO trainlive_web"
       - name: Real-PostgreSQL RLS isolation tests
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/01_rls_isolation.sql
@@ -170,15 +171,33 @@ jobs:
             --data '{"action":"start"}' \
             "http://localhost:3335/api/class/$created_id/lifecycle")"
           test "$denied" = "422"
+          # Open an item with an unlimited timer; class closure must still
+          # stop further responses and close the item atomically.
+          item_id="$(curl -fsS -H "Authorization: Bearer $created_token" \
+            "http://localhost:3335/api/class/$created_id/items" | jq -r '.items[0].id')"
+          curl -fsS -H "Authorization: Bearer $created_token" -H "Content-Type: application/json" \
+            --data "{\"itemId\":\"$item_id\",\"action\":\"open\"}" \
+            "http://localhost:3335/api/class/$created_id/action" | jq -e '.action=="open"'
+          new_code="$(jq -r '.joinCode' /tmp/trainlive-created-class.json)"
+          curl -fsS -c /tmp/trainlive-created-participant-cookie \
+            -H 'Content-Type: application/json' \
+            --data "{\"code\":\"$new_code\",\"displayName\":\"Test Participant\",\"unit\":\"SYNTHETIC\",\"email\":\"\",\"consent\":true}" \
+            http://localhost:3335/api/join | jq -e '.classId=="'"$created_id"'"'
           curl -fsS -H "Authorization: Bearer $created_token" -H "Content-Type: application/json" \
             --data '{"action":"close"}' \
-            "http://localhost:3335/api/class/$created_id/lifecycle" | jq -e '.status=="closed"'
+            "http://localhost:3335/api/class/$created_id/lifecycle" | jq -e '.status=="closed" and .automaticallyClosedItems==1'
+          test "$(psql "$DATABASE_URL_ADMIN" -At -c "SELECT count(*) FROM trainlive.class_item WHERE class_id='$created_id' AND state='open'")" = "0"
+          denied="$(curl -s -o /dev/null -w '%{http_code}' \
+            -b /tmp/trainlive-created-participant-cookie -H 'Content-Type: application/json' \
+            --data "{\"itemId\":\"$item_id\",\"answer\":\"A\"}" \
+            "http://localhost:3335/api/class/$created_id/respond")"
+          test "$denied" = "409"
           denied="$(curl -s -o /dev/null -w '%{http_code}' \
             -H "Authorization: Bearer $created_token" -H "Content-Type: application/json" \
             --data '{"action":"start"}' \
             "http://localhost:3335/api/class/$created_id/lifecycle")"
           test "$denied" = "422"
-          echo "PASS: scheduled -> live -> closed, no re-opening"
+          echo "PASS: scheduled -> live -> closed, no re-opening or late response"
           # Observer cannot act as administrator even when previously promoted.
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -c \
             "UPDATE trainlive.class_staff SET role='observer' WHERE class_id='$a_id' AND user_id=(SELECT id FROM trainlive.staff_user WHERE email='staff@example.invalid')"

@@ -52,3 +52,12 @@ Observers cannot manage state, and both actions are recorded in the audit
 log. The staging-only token provisioning script supports
 `--leave-scheduled` for controlled lifecycle testing; it is not an
 alternative to production SSO/MFA.
+
+## Closed-class response protection (migration 012)
+
+Closing a class now atomically closes every open activity and records the
+number of items closed. A participant response must acquire a share lock on
+the class and verify live status before inserting an answer; a close action
+serializes against this lock, so a response can never be accepted *after*
+the close commits. A disposable CI regression covers the case of an active
+item and a participant attempting to answer after closure.
