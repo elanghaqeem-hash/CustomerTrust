@@ -49,13 +49,16 @@ try{
    },null,{timeout:25000});
    const joinButton=page.getByRole('button',{name:'Gabung Kelas'});
    const joinResponse=page.waitForResponse(response=>
-    new URL(response.url()).pathname==='/api/join',{timeout:35000});
+    new URL(response.url()).pathname==='/api/join'&&response.request().method()==='POST',
+    {timeout:35000});
    await joinButton.click({timeout:25000});
    const response=await joinResponse;
-   const joinPayload=await response.json().catch(()=>({}));
-   if(!response.ok())throw Error('Participant '+(i+1)+' browser form join HTTP '+
-    response.status()+': '+(joinPayload.error||'no server error provided'));
-   assert.equal(joinPayload.classId,classId,'Browser join must be bound to requested class');
+   const joinBody=await response.text();
+   let joinPayload={};try{joinPayload=JSON.parse(joinBody);}catch{}
+   if(!response.ok()||joinPayload.classId!==classId)
+    throw Error('Participant '+(i+1)+' form join returned HTTP '+response.status()+
+     ', type='+response.headers()['content-type']+', body='+joinBody.slice(0,180)+
+     ', origin='+response.url());
    try{
     await page.waitForURL(url=>url.pathname==='/class/'+classId,
      {waitUntil:'domcontentloaded',timeout:20000});
