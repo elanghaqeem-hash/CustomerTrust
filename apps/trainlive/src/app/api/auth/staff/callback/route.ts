@@ -20,7 +20,7 @@ export async function GET(req:NextRequest){
  let flow:LoginFlow;
  try{
   flow=await verifyLoginFlow(cookie);
-  if(!z.string().uuid().safeParse(flow.classId).success||
+  if((flow.classId!=='admin'&&!z.string().uuid().safeParse(flow.classId).success)||
      typeof flow.verifier!=='string'||flow.verifier.length<40||
      typeof flow.nonce!=='string'||flow.nonce.length<20||
      typeof flow.state!=='string'||flow.state.length<20||
@@ -38,17 +38,27 @@ export async function GET(req:NextRequest){
   const payload=await tokens.json() as {id_token?:unknown};
   if(typeof payload.id_token!=='string')throw Error('OIDC ID token missing');
   const identity=await verifiedIdentity(payload.id_token,config,flow.nonce,provider);
-  const staffId=await transaction(null,async db=>{
+  // A standalone Super Admin login uses the same OIDC MFA verification but
+  // resolves the approved facilitator's class without accepting a class ID
+  // from a public query parameter or granting any new permissions.
+  const resolved=await transaction(null,async db=>{
+   if(flow.classId==='admin'){
+    const r=await db.query<{staff_id:string;class_id:string}>(
+     'SELECT * FROM trainlive.resolve_super_admin_oidc($1,$2,$3)',
+     [identity.email,identity.issuer,identity.subject]);
+    return r.rows[0]?{staffId:r.rows[0].staff_id,classId:r.rows[0].class_id}:null;
+   }
    const r=await db.query<{staff_id:string|null}>(
     'SELECT trainlive.resolve_staff_oidc($1,$2,$3,$4) AS staff_id',
     [flow.classId,identity.email,identity.issuer,identity.subject]);
-   return r.rows[0]?.staff_id||null;
+   return r.rows[0]?.staff_id?{staffId:r.rows[0].staff_id,classId:flow.classId}:null;
   });
-  if(!staffId)throw Error('Staff not assigned to class');
-  const token=await signStaff(flow.classId,staffId);
-  const res=NextResponse.redirect(new URL('/host/'+flow.classId,config.origin));
+  if(!resolved)throw Error('Staff not assigned or not approved as Super Admin');
+  const token=await signStaff(resolved.classId,resolved.staffId);
+  const res=NextResponse.redirect(new URL('/host/'+resolved.classId+
+    (flow.classId==='admin'?'/admin':''),config.origin));
   res.cookies.set(FLOW_COOKIE,'',{httpOnly:true,secure:true,sameSite:'lax',path:'/',maxAge:0});
-  res.cookies.set(sessionCookie(flow.classId),token,{
+  res.cookies.set(sessionCookie(resolved.classId),token,{
    httpOnly:true,secure:true,sameSite:'lax',path:'/',maxAge:8*3600
   });
   res.headers.set('Cache-Control','no-store');
