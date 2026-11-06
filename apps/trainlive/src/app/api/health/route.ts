@@ -31,6 +31,7 @@ export async function GET() {
                 to_regprocedure('trainlive.allow_join_attempt(text,text)') IS NOT NULL
                 AND to_regprocedure('trainlive.admin_create_class(uuid,text,text,date,text)') IS NOT NULL
                 AND to_regprocedure('trainlive.can_create_class()') IS NOT NULL
+                AND to_regprocedure('trainlive.resolve_super_admin_oidc(text,text,text)') IS NOT NULL
                 AND to_regprocedure('trainlive.manage_class(text)') IS NOT NULL
                 AND to_regprocedure('trainlive.lock_live_class_for_response()') IS NOT NULL
                   AS multiclass_limiter_ready`);
