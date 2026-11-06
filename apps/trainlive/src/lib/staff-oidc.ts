@@ -47,6 +47,7 @@ export async function verifyLoginFlow(cookie:string):Promise<LoginFlow>{
 export function staffOIDCConfig():StaffOIDCConfig|null {
  const issuer=process.env.TRAINLIVE_OIDC_ISSUER?.replace(/\/$/,'')||'';
  const clientId=process.env.TRAINLIVE_OIDC_CLIENT_ID||'';
+ const clientSecret=process.env.TRAINLIVE_OIDC_CLIENT_SECRET||'';
  const origin=process.env.TRAINLIVE_APP_ORIGIN?.replace(/\/$/,'')||'';
  const allowedDomains=(process.env.TRAINLIVE_OIDC_ALLOWED_EMAIL_DOMAINS||'')
   .split(',').map(x=>x.trim().toLowerCase()).filter(x=>/^[a-z0-9.-]+\.[a-z]{2,}$/.test(x));
@@ -55,10 +56,14 @@ export function staffOIDCConfig():StaffOIDCConfig|null {
   const i=new URL(issuer),o=new URL(origin);
   if(i.protocol!=='https:'||o.protocol!=='https:'||o.pathname!=='/'||o.search||o.hash||
      i.username||i.password||o.username||o.password)return null;
+  // Auth0 Regular Web Applications are confidential OAuth clients. Do not show
+  // a working SSO entry when its token-exchange secret has not been installed.
+  // Public PKCE clients at other issuers retain their existing behavior.
+  if(i.hostname.endsWith('.auth0.com')&&!clientSecret)return null;
  }catch{return null}
  return {
   issuer,clientId,origin,allowedDomains,
-  clientSecret:process.env.TRAINLIVE_OIDC_CLIENT_SECRET||'',
+  clientSecret,
   acceptedAcr:(process.env.TRAINLIVE_OIDC_MFA_ACR||'').split(',').map(x=>x.trim()).filter(Boolean),
   requestAcrValues:(process.env.TRAINLIVE_OIDC_ACR_VALUES||'').split(/[\s,]+/).filter(Boolean).join(' '),
   requestAmrClaim:process.env.TRAINLIVE_OIDC_REQUEST_AMR==='true',

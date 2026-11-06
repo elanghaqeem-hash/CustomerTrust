@@ -1,0 +1,68 @@
+name: TrainLive production readiness smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Public deployment to verify (read-only)'
+        required: true
+        default: vercel
+        type: choice
+        options:
+          - vercel
+          - hostinger
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trainlive-readiness-${{ inputs.target }}
+  cancel-in-progress: false
+
+jobs:
+  public-readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate production health and administrator login entry
+        shell: bash
+        env:
+          TARGET: ${{ inputs.target }}
+        run: |
+          set -euo pipefail
+          case "$TARGET" in
+            vercel) origin='https://ct-kohl.vercel.app' ;;
+            hostinger) origin='https://trainlive.seraya.id' ;;
+            *) echo 'Invalid target' >&2; exit 2 ;;
+          esac
+
+          health_body="$(mktemp)"
+          login_body="$(mktemp)"
+          trap 'rm -f "$health_body" "$login_body"' EXIT
+          echo "Checking ${origin} (no authenticated requests or secrets)"
+          health_status="$(curl --fail-with-body --silent --show-error --location --max-redirs 2 --connect-timeout 10 --max-time 30 \
+            --output "$health_body" --write-out '%{http_code}' "$origin/api/health")" || {
+              echo "FAIL: health endpoint unreachable or not successful; HTTP ${health_status:-000}" >&2
+              exit 1
+            }
+          if [[ "$health_status" != '200' ]] || ! jq -e '.service=="trainlive" and .status=="ready" and .ready==true' "$health_body" >/dev/null; then
+            echo "FAIL: health endpoint must return 200 and ready=true; HTTP ${health_status}" >&2
+            exit 1
+          fi
+          echo 'PASS: readiness endpoint returned HTTP 200 / ready=true'
+
+          login_status="$(curl --fail-with-body --silent --show-error --location --max-redirs 2 --connect-timeout 10 --max-time 30 \
+            --output "$login_body" --write-out '%{http_code}' "$origin/admin/login")" || {
+              echo "FAIL: Admin login page unreachable or not successful; HTTP ${login_status:-000}" >&2
+              exit 1
+            }
+          if [[ "$login_status" != '200' ]] || ! grep -q 'Login Administrator' "$login_body"; then
+            echo "FAIL: dedicated admin login page missing; HTTP ${login_status}" >&2
+            exit 1
+          fi
+          if ! grep -q '/api/auth/staff/start?role=admin' "$login_body"; then
+            echo 'FAIL: SSO admin login action is absent; do not release' >&2
+            exit 1
+          fi
+          echo 'PASS: Admin login page exposes SSO route'
+          echo 'NOTE: This read-only smoke does NOT prove actual MFA sign-in, user authorization, Hostinger SSH, or 25-user UAT.'
