@@ -57,7 +57,7 @@ export default function AdminClassPage(){
   <div className="mx-auto max-w-5xl px-5 py-7 sm:py-10">
    <section className="tl-create-hero" aria-labelledby="create-title">
     <div className="tl-create-hero-copy"><p className="tl-create-kicker">✦ CLASS MANAGEMENT / NEW BATCH</p>
-     <h1 id="create-title">Siapkan kelas <span>berikutnya.</span></h1>
+     <h1 id="create-title">Buat kelas <span>training baru</span></h1>
      <p>Buat sesi baru dari materi training yang telah terpublikasi. Siap dibagikan ke peserta dalam beberapa langkah.</p>
      <span className="tl-create-hero-note">✓ Kelas baru &nbsp; ✓ Kode akses unik &nbsp; ✓ Data peserta tetap terpisah</span>
     </div>
