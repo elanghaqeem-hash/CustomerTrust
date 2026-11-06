@@ -45,7 +45,7 @@ try {
   email:'serayamg@gmail.com',email_verified:true,nonce,amr:['pwd','mfa'],
   sub:'auth0|example-user'
  });
- const identity=await verifiedIdentity(good,config,nonce,discovered);
+ const identity=await verifiedIdentity(good,config,nonce,discovered,publicKey);
  assert.equal(identity.email,'serayamg@gmail.com');
  assert.equal(identity.issuer,metadata.issuer);
  assert.equal(identity.subject,'auth0|example-user');
@@ -54,11 +54,11 @@ try {
  }).setProtectedHeader({alg:'RS256',kid:'ci-test-key'})
   .setSubject('auth0|other').setIssuer(config.issuer)
   .setAudience(config.clientId).setIssuedAt().setExpirationTime('5m').sign(privateKey);
- await assert.rejects(verifiedIdentity(wrongIssuer,config,nonce,discovered));
+ await assert.rejects(verifiedIdentity(wrongIssuer,config,nonce,discovered,publicKey));
  const noMfa=await sign({email:'serayamg@gmail.com',email_verified:true,nonce,amr:['pwd'],sub:'auth0|no-mfa'});
- await assert.rejects(verifiedIdentity(noMfa,config,nonce,discovered),/MFA/);
+ await assert.rejects(verifiedIdentity(noMfa,config,nonce,discovered,publicKey),/MFA/);
  const unverified=await sign({email:'serayamg@gmail.com',email_verified:false,nonce,amr:['pwd','mfa'],sub:'auth0|unverified'});
- await assert.rejects(verifiedIdentity(unverified,config,nonce,discovered),/Verified/);
+ await assert.rejects(verifiedIdentity(unverified,config,nonce,discovered,publicKey),/Verified/);
  globalThis.fetch=async()=>Response.json({...metadata,issuer:'https://attacker.invalid/'});
  await assert.rejects(discover(config),/metadata invalid/);
  console.log('PASS: Auth0 issuer trailing slash, exact signature issuer, approved Gmail, MFA, email verification, and discovery mismatch');
