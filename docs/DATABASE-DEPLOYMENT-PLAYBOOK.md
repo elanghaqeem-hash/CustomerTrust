@@ -6,7 +6,7 @@
 
 ## Reuse existing assets
 
-Use `db/migrations/001_core.sql` through `012_class_close_guard.sql`,
+Use `db/migrations/001_core.sql` through `013_super_admin_sso_entry.sql`,
 `seed/customer-trust-challenge.v1.json`, `tools/trainlive/{seed,create-class,provision-facilitator}.mjs`,
 `.github/workflows/trainlive-ci.yml`, `docs/STAFF-SSO.md`, and the deployed
 Next.js project `ct`. No new app or schema rewrite is required.
@@ -32,6 +32,7 @@ permissions above (e.g. a correctly configured PostgreSQL service on Railway,
 Neon or Supabase, with provider-specific constraints reviewed first).
 
 Selected provider: **Neon, Singapore** — step-by-step in [NEON-SETUP.md](NEON-SETUP.md).
+For a complete Neon + Auth0 + Administrator path, see [VERCEL-NEON-AUTH0-ACTIVATION.md](VERCEL-NEON-AUTH0-ACTIVATION.md).
 
 ## Connection settings (app and tools)
 
@@ -52,7 +53,7 @@ Selected provider: **Neon, Singapore** — step-by-step in [NEON-SETUP.md](NEON-
 ```bash
 npm install --prefix tools/trainlive
 node tools/trainlive/db-setup.mjs status            # pending/applied per file
-node tools/trainlive/db-setup.mjs migrate           # 001..012 in order, tracked
+node tools/trainlive/db-setup.mjs migrate           # 001..013 in order, tracked
 TRAINLIVE_APP_DB_PASSWORD="$(openssl rand -hex 32)" \
   node tools/trainlive/db-setup.mjs runtime-role    # trainlive_web + GRANT trainlive_app
 node tools/trainlive/seed.mjs                       # published CTC v1
@@ -74,7 +75,7 @@ an edited applied file stops the run. For a database migrated earlier with
      psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f "$file"
    done
    ```
-   Use the *ordered filenames* 001 to 012; never run these in a browser.
+   Use the *ordered filenames* 001 to 013; never run these in a browser.
 3. Create a separate runtime login with an independently generated strong
    password via DBA-controlled SQL, then `GRANT trainlive_app TO <runtime-login>`.
    The runtime account must **not own any trainlive tables** and must not
