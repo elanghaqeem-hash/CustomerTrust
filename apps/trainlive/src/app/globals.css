@@ -20,3 +20,19 @@ a{text-underline-offset:3px}
 .field-label{font-weight:700;font-size:15px;margin-bottom:8px;display:block}
 .field-input{width:100%;height:50px;padding:12px 14px;border:1px solid #9eabb9;border-radius:10px;background:white;color:#0C1E33}
 .field-area{min-height:125px;height:auto;resize:vertical}
+
+/* TrainLive landing: scoped presentation rules, independent of other routes */
+.trainlive-landing{background:#f7fafb;color:#0c253b}
+.trainlive-stage{position:relative;isolation:isolate;overflow:hidden;background:radial-gradient(ellipse at 14% 8%,#16465a 0%,transparent 42%),linear-gradient(125deg,#071c30 0%,#0c263d 54%,#103c4c 100%)}
+.trainlive-stage::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.28;background-image:linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px);background-size:56px 56px;mask-image:linear-gradient(to bottom,black,transparent 82%)}
+.trainlive-orb{position:absolute;z-index:0;border-radius:50%;pointer-events:none;filter:blur(4px)}
+.trainlive-orb-one{width:460px;height:460px;right:-180px;top:105px;border:1px solid rgba(94,234,212,.2);background:radial-gradient(circle at center,rgba(45,212,191,.15),rgba(45,212,191,0) 66%);box-shadow:0 0 0 65px rgba(94,234,212,.022),0 0 0 135px rgba(94,234,212,.015)}
+.trainlive-orb-two{width:310px;height:310px;left:-190px;bottom:-130px;background:radial-gradient(circle,rgba(45,212,191,.12),transparent 72%)}
+.trainlive-landing .field-label{font-size:13px;margin-bottom:7px;color:#263d50}
+.trainlive-landing .field-input{min-height:50px;border:1px solid #cbd9e0;border-radius:11px;background:#fff;transition:border-color .2s ease,box-shadow .2s ease}
+.trainlive-landing .field-input:hover{border-color:#82aaa9}
+.trainlive-landing .field-input:focus{border-color:#0f766e;outline:none;box-shadow:0 0 0 3px rgba(15,118,110,.13)}
+.trainlive-landing .field-input::placeholder{color:#93a5b1;letter-spacing:normal;font-weight:400}
+.trainlive-feature{box-shadow:0 4px 18px rgba(6,34,50,.025);transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+.trainlive-feature:hover{transform:translateY(-3px);border-color:#b8d9d3;box-shadow:0 14px 32px rgba(6,34,50,.08)}
+@media(prefers-reduced-motion:reduce){.trainlive-feature,.trainlive-landing .field-input{transition:none}.trainlive-feature:hover{transform:none}}
