@@ -114,15 +114,25 @@ export default function HostPage(){
   }catch(e){setError(e instanceof Error?e.message:'Moderasi gagal')}
   finally{setBusy(false)}
  }
- return <main className="min-h-screen bg-paper">
-  <header className="bg-navy px-6 py-5 text-white"><div className="mx-auto flex max-w-6xl justify-between gap-4">
-   <span className="text-xl font-extrabold">TrainLive / Fasilitator</span><span className="text-sm text-slate-300">Kelas {id.slice(0,8)}</span>
+ return <main className="trainlive-workspace trainlive-console min-h-screen pb-16">
+  <header className="workspace-nav text-white"><div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-8">
+   <a href="/" aria-label="TrainLive — Beranda" className="flex items-center gap-3 text-white no-underline">
+    <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#5eead4] text-[#08263b]">
+     <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="m8 5 11 7-11 7V5Z" strokeLinejoin="round"/><path d="M4 6v12" strokeLinecap="round"/></svg>
+    </span><span className="text-xl font-extrabold tracking-[-.04em]">Train<span className="text-[#5eead4]">Live</span></span>
+    <span className="hidden border-l border-white/20 pl-3 text-xs font-medium text-slate-300 sm:inline">Workspace Fasilitator</span>
+   </a><span className="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs font-semibold text-[#bfe8e2]">Kelas {id.slice(0,8)}</span>
   </div></header>
   <div className="mx-auto max-w-6xl px-5 py-8">
-   <nav aria-label="Menu fasilitator" className="mb-6 flex flex-wrap gap-3">
-    <a aria-current="page" href={'/host/'+id} className="rounded-xl bg-teal px-5 py-3 font-bold text-white">Konsol Kelas</a>
-    <a href={'/host/'+id+'/report'} className="rounded-xl border border-teal bg-white px-5 py-3 font-bold text-teal">Laporan & Ekspor</a>
-   </nav>
+   <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div><p className="workspace-eyebrow">LIVE CLASS CONTROL</p><h1 className="mt-1 text-3xl font-extrabold tracking-tight text-[#102d40]">Konsol fasilitator</h1>
+     <p className="mt-2 text-sm text-[#667d8f]">Kelola aktivitas, pantau respons, dan moderasi percakapan kelas.</p>
+    </div>
+    <nav aria-label="Menu fasilitator" className="flex flex-wrap gap-2">
+     <a aria-current="page" href={'/host/'+id} className="inline-flex min-h-11 items-center rounded-xl bg-[#0f766e] px-4 text-sm font-bold text-white no-underline shadow-sm">Konsol kelas</a>
+     <a href={'/host/'+id+'/report'} className="inline-flex min-h-11 items-center rounded-xl border border-[#cce0df] bg-white px-4 text-sm font-bold text-[#0f766e] no-underline hover:bg-[#f2faf8]">Laporan & ekspor</a>
+    </nav>
+   </div>
    {loginMode==='checking'&&<p role="status" className="mb-6 rounded-xl bg-white p-4">Memeriksa akses fasilitator…</p>}
    {loginMode==='blocked'&&<p role="alert" className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
     Login SSO/MFA fasilitator belum dikonfigurasi. Akses operasional kelas belum dibuka.
@@ -155,7 +165,7 @@ export default function HostPage(){
     {(classStatus==='closed'||classStatus==='archived')&&<span className="text-sm text-slate-600">Kelas sudah selesai. Aktivitas tidak dapat dibuka kembali.</span>}
    </section>}
    <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
-    <section><h1 className="mb-4 text-2xl font-extrabold">Rundown interaktif</h1>
+    <section><h2 className="mb-4 text-2xl font-extrabold tracking-tight">Rundown interaktif</h2>
      <div className="mb-4 flex flex-col gap-3 rounded-xl bg-white p-4 sm:flex-row">
       <label className="flex-1"><span className="field-label">Cari aktivitas</span>
        <input className="field-input" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Judul, kode, modul…"/></label>
