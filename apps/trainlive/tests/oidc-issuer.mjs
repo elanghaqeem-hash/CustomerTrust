@@ -3,7 +3,29 @@
 // issuer, audience, verified email and MFA must still be enforced.
 import assert from 'node:assert/strict';
 import {generateKeyPair,exportJWK,SignJWT} from 'jose';
-import {discover,verifiedIdentity} from '../src/lib/staff-oidc.ts';
+import {discover,verifiedIdentity,staffOIDCConfig} from '../src/lib/staff-oidc.ts';
+
+// Auth0 confidential clients must not advertise a login before the token
+// exchange secret exists. This is an isolated environment-only regression.
+const envKeys=['TRAINLIVE_OIDC_ISSUER','TRAINLIVE_OIDC_CLIENT_ID',
+ 'TRAINLIVE_OIDC_CLIENT_SECRET','TRAINLIVE_APP_ORIGIN',
+ 'TRAINLIVE_OIDC_ALLOWED_EMAIL_DOMAINS'];
+const previous=Object.fromEntries(envKeys.map(key=>[key,process.env[key]]));
+try{
+ process.env.TRAINLIVE_OIDC_ISSUER='https://unit-test.auth0.com';
+ process.env.TRAINLIVE_OIDC_CLIENT_ID='unit-client';
+ process.env.TRAINLIVE_APP_ORIGIN='https://trainlive.example.invalid';
+ process.env.TRAINLIVE_OIDC_ALLOWED_EMAIL_DOMAINS='gmail.com';
+ delete process.env.TRAINLIVE_OIDC_CLIENT_SECRET;
+ assert.equal(staffOIDCConfig(),null,'Auth0 login must remain disabled before client secret is set');
+ process.env.TRAINLIVE_OIDC_CLIENT_SECRET='synthetic-ci-only-secret';
+ assert.equal(staffOIDCConfig()?.clientId,'unit-client','Auth0 login enabled once client secret exists');
+}finally{
+ for(const key of envKeys){
+  if(previous[key]===undefined)delete process.env[key];
+  else process.env[key]=previous[key];
+ }
+}
 
 const config={
  issuer:'https://login-trainlive.auth0.invalid',
