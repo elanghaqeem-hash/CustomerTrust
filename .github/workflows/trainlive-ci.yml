@@ -26,7 +26,8 @@ permissions:
 
 jobs:
   isolation-and-build:
-    runs-on: ubuntu-latest
+    # Pin OS supported by the Playwright Chromium browser bundle.
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16-alpine
