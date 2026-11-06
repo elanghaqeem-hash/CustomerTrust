@@ -18,7 +18,17 @@ export default function ClassPage(){
  const [now,setNow]=useState(Date.now()),[tab,setTab]=useState<'active'|'agenda'|'score'>('active');
  const [reloadKey,setReloadKey]=useState(0);
  const [alerts,setAlerts]=useState(false);
+ const [audioReady,setAudioReady]=useState(false);
+ const [notificationState,setNotificationState]=useState<'unknown'|'granted'|'denied'|'default'|'unsupported'>('unknown');
  const audioContext=useRef<AudioContext|null>(null),previousAlertItem=useRef<string|null>(null);
+ const alertSession=useRef(0),alertsEnabled=useRef(false);
+ useEffect(()=>()=>{ // Close audio on exit; discard delayed permission results.
+  alertSession.current++;
+  alertsEnabled.current=false;
+  const context=audioContext.current;
+  audioContext.current=null;
+  if(context)void context.close().catch(()=>{});
+ },[]);
  useEffect(()=>{
   const pulse=()=>{if(document.visibilityState==='visible')void fetch('/api/class/'+id+'/heartbeat',{method:'POST'}).catch(()=>{});};
   pulse();
@@ -49,7 +59,7 @@ export default function ClassPage(){
   previousAlertItem.current=opened.id;
   try{
    const context=audioContext.current;
-   if(context){
+   if(context&&context.state==='running'){
     const oscillator=context.createOscillator(),gain=context.createGain();
     oscillator.type='sine';oscillator.frequency.value=880;gain.gain.value=0.06;
     oscillator.connect(gain).connect(context.destination);
@@ -70,14 +80,68 @@ export default function ClassPage(){
   },800);
   return()=>{clearInterval(timer);document.title='TrainLive | Customer Trust Challenge';};
  },[opened?.id,alerts,alertworthy]);
- async function enableAlerts(){
+ function toggleAlerts(){
+  // Show the new switch state immediately, before any browser permission awaits.
+  const enabled=!alertsEnabled.current;
+  alertsEnabled.current=enabled;
+  const session=++alertSession.current;
+  setAlerts(enabled);
+  if(!enabled){
+   const oldContext=audioContext.current;
+   audioContext.current=null;
+   setAudioReady(false);
+   previousAlertItem.current=null;
+   if(oldContext)void oldContext.close().catch(()=>{});
+   return;
+  }
+  previousAlertItem.current=null;
+  setAudioReady(false);
+  setNotificationState('unknown');
+  // Unlock sound in the originating tap gesture without blocking the UI.
   try{
-   const context=new window.AudioContext();await context.resume();audioContext.current=context;
-   if('Notification' in window&&Notification.permission==='default')
-    await Notification.requestPermission();
-  }catch{/* Continue with visible tab cue even if browser denies audio. */}
-  setAlerts(true);
+   if(typeof window.AudioContext==='function'){
+    const context=new window.AudioContext();
+    audioContext.current=context;
+    void context.resume().then(()=>{
+     if(alertSession.current!==session)return;
+     const ready=context.state==='running';
+     setAudioReady(ready);
+     if(ready){ // Short audio feedback to confirm sound is enabled.
+      const oscillator=context.createOscillator(),gain=context.createGain();
+      oscillator.type='sine';oscillator.frequency.value=740;
+      gain.gain.setValueAtTime(0.0001,context.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.045,context.currentTime+0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001,context.currentTime+0.16);
+      oscillator.connect(gain).connect(context.destination);
+      oscillator.start();oscillator.stop(context.currentTime+0.17);
+     }
+    }).catch(()=>{if(alertSession.current===session)setAudioReady(false);});
+   }
+  }catch{/* Unsupported Web Audio: retain on-screen activity cues. */}
+  if(!('Notification' in window)){
+   setNotificationState('unsupported');
+   return;
+  }
+  try{
+   const permission=Notification.permission;
+   setNotificationState(permission);
+   if(permission==='default'){
+    // Mobile in-app browsers may not support prompts; do not block the toggle.
+    void Notification.requestPermission().then(result=>{
+     if(alertSession.current===session)setNotificationState(result);
+    }).catch(()=>{if(alertSession.current===session)setNotificationState('unsupported');});
+   }
+  }catch{if(alertSession.current===session)setNotificationState('unsupported');}
  }
+ const alertDetail=!alerts?'Ketuk untuk mengaktifkan suara & notifikasi':
+  audioReady&&notificationState==='granted'?'Suara siap · Notifikasi diizinkan':
+  audioReady&&notificationState==='denied'?'Suara siap · Notifikasi diblokir browser':
+  audioReady&&notificationState==='unsupported'?'Suara siap · Notifikasi tak didukung':
+  audioReady?'Suara siap · Izin notifikasi mengikuti browser':
+  notificationState==='granted'?'Notifikasi diizinkan · Suara tidak tersedia':
+  notificationState==='denied'?'Pengingat layar aktif · Notifikasi diblokir':
+  notificationState==='unsupported'?'Pengingat layar aktif · Browser membatasi notifikasi':
+  'Pengingat layar aktif · Memeriksa izin suara & notifikasi';
 
  const revealed=items.filter(x=>x.state==='revealed').sort((a,b)=>b.order_no-a.order_no)[0];
  const current=opened||revealed;
@@ -188,12 +252,11 @@ export default function ClassPage(){
     </div>
    </section>
    <div className="participant-shortcuts">
-    <button type="button" onClick={()=>{if(alerts){setAlerts(false);audioContext.current?.close();audioContext.current=null;}
-     else void enableAlerts();}}
+    <button type="button" onClick={toggleAlerts}
      className={'participant-shortcut participant-alert '+(alerts?'is-enabled':'')}
      aria-pressed={alerts} aria-label={alerts?'Matikan pengingat kuis':'Aktifkan pengingat kuis'}>
      <span className="participant-shortcut-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg></span>
-     <span className="participant-shortcut-copy"><strong>Pengingat kuis</strong><small>{alerts?'Aktif · Sesuai izin browser':'Aktifkan suara & notifikasi'}</small></span>
+     <span className="participant-shortcut-copy"><strong>Pengingat kuis {alerts&&<span className="participant-alert-enabled">AKTIF</span>}</strong><small aria-live="polite">{alertDetail}</small></span>
      <span className={'participant-shortcut-toggle '+(alerts?'is-on':'')} aria-hidden="true"><span></span></span>
     </button>
     <a href={'/class/'+id+'/worksheets'} className="participant-shortcut participant-worksheet">
