@@ -340,7 +340,6 @@ export default function ClassPage(){
      <span className="participant-kicker">MENUNGGU AKTIVITAS</span>
      <h2>Siap untuk tantangan berikutnya?</h2>
      <p>Pertanyaan akan muncul otomatis saat fasilitator membukanya. Tetap di halaman ini sambil mengikuti training di Zoom atau Microsoft Teams.</p>
-     <div className="participant-wait-footer"><span className="participant-live-dot" aria-hidden="true"></span> Terhubung ke kelas · Memeriksa aktivitas setiap 3 detik</div>
     </section>}
   </div>
  </main>;
