@@ -124,15 +124,25 @@ export default function HostPage(){
    </a><span className="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs font-semibold text-[#bfe8e2]">Kelas {id.slice(0,8)}</span>
   </div></header>
   <div className="mx-auto max-w-6xl px-5 py-8">
-   <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-    <div><p className="workspace-eyebrow">LIVE CLASS CONTROL</p><h1 className="mt-1 text-3xl font-extrabold tracking-tight text-[#102d40]">Konsol fasilitator</h1>
-     <p className="mt-2 text-sm text-[#667d8f]">Kelola aktivitas, pantau respons, dan moderasi percakapan kelas.</p>
+   <section className="tl-console-hero" aria-labelledby="console-title">
+    <div className="tl-console-hero-main">
+     <p className="tl-console-kicker"><span aria-hidden="true">✦</span> LIVE CLASS WORKSPACE</p>
+     <h1 id="console-title">Kelas terkendali.<br/><span>Interaksi maksimal.</span></h1>
+     <p>Semua aktivitas, jawaban peserta, dan moderasi kelas dalam satu tampilan.</p>
+     <div className="tl-console-hero-status" role="status"><span className={classStatus==='live'?'tl-console-status-dot live':'tl-console-status-dot'} aria-hidden="true"></span>
+      {access?(classStatus==='live'?'Kelas sedang berlangsung':classStatus==='scheduled'?'Kelas terjadwal':classStatus==='closed'?'Kelas selesai':classStatus==='archived'?'Kelas diarsipkan':'Memuat status kelas'):'Akses fasilitator diperlukan'}</div>
     </div>
-    <nav aria-label="Menu fasilitator" className="flex flex-wrap gap-2">
-     <a aria-current="page" href={'/host/'+id} className="inline-flex min-h-11 items-center rounded-xl bg-[#0f766e] px-4 text-sm font-bold text-white no-underline shadow-sm">Konsol kelas</a>
-     <a href={'/host/'+id+'/report'} className="inline-flex min-h-11 items-center rounded-xl border border-[#cce0df] bg-white px-4 text-sm font-bold text-[#0f766e] no-underline hover:bg-[#f2faf8]">Laporan & ekspor</a>
-    </nav>
-   </div>
+    <div className="tl-console-metrics" aria-label="Ringkasan aktivitas kelas">
+     <div><span>Aktivitas</span><strong>{access?items.length:'—'}</strong><small>total rundown</small></div>
+     <div><span>Sedang aktif</span><strong>{access?items.filter(i=>i.state==='open').length:'—'}</strong><small>aktivitas dibuka</small></div>
+     <div><span>Pesan</span><strong>{access?messages.length:'—'}</strong><small>percakapan</small></div>
+    </div>
+   </section>
+   <nav aria-label="Menu fasilitator" className="tl-console-nav">
+    <a aria-current="page" href={'/host/'+id} className="is-active">◈ &nbsp; Konsol kelas</a>
+    <a href={'/host/'+id+'/report'}>▤ &nbsp; Laporan & ekspor</a>
+    {canCreateClass&&<a href={'/host/'+id+'/admin'}>＋ &nbsp; Buat kelas baru</a>}
+   </nav>
    {loginMode==='checking'&&<p role="status" className="mb-6 rounded-xl bg-white p-4">Memeriksa akses fasilitator…</p>}
    {loginMode==='blocked'&&<p role="alert" className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
     Login SSO/MFA fasilitator belum dikonfigurasi. Akses operasional kelas belum dibuka.
@@ -153,7 +163,7 @@ export default function HostPage(){
      <button className="rounded-xl bg-teal px-5 font-bold text-white" onClick={()=>void refresh()}>Hubungkan</button>
     </div>
    </div>}
-   {canCreateClass&&<a href={'/host/'+id+'/admin'} className="mb-5 inline-flex rounded-xl bg-teal px-5 py-3 font-bold text-white">Buat Kelas Baru (Admin)</a>}
+
    {role&&<p role="status" className="mb-4 text-sm font-semibold text-teal">Peran kelas: {role==='observer'?'Observer (hanya melihat dan mengunduh laporan)':role==='cohost'?'Co-host':'Fasilitator'}</p>}
    {error&&<p role="alert" className="mb-6 rounded-xl bg-red-50 p-4 text-red-800">{error}</p>}
    {classStatus&&<section className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-slate-200 bg-white p-5">
@@ -165,8 +175,8 @@ export default function HostPage(){
     {(classStatus==='closed'||classStatus==='archived')&&<span className="text-sm text-slate-600">Kelas sudah selesai. Aktivitas tidak dapat dibuka kembali.</span>}
    </section>}
    <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
-    <section><h2 className="mb-4 text-2xl font-extrabold tracking-tight">Rundown interaktif</h2>
-     <div className="mb-4 flex flex-col gap-3 rounded-xl bg-white p-4 sm:flex-row">
+    <section className="min-w-0"><div className="tl-console-section-head"><div><p className="workspace-eyebrow">YOUR SESSION</p><h2>Rundown interaktif</h2></div><span>{access?items.length+' aktivitas':'Belum terhubung'}</span></div>
+     <div className="tl-console-filters mb-4 flex flex-col gap-3 rounded-xl bg-white p-4 sm:flex-row">
       <label className="min-w-0 flex-1"><span className="field-label">Cari aktivitas</span>
        <input className="field-input" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Judul, kode, modul…"/></label>
       <label className="min-w-0 sm:w-44"><span className="field-label">Status</span><select className="field-input" value={filter}
@@ -206,14 +216,14 @@ export default function HostPage(){
       <p className="rounded-xl bg-white p-6 text-slate-600">Tidak ada aktivitas yang cocok dengan pencarian.</p>}
     </section>
     <aside className="space-y-6">
-     <section className="shadow-card rounded-xl bg-white p-5">
+     <section className="tl-console-panel shadow-card rounded-xl bg-white p-5">
       <h2 className="mb-4 text-xl font-bold">Monitor jawaban</h2>
       <p className="text-sm text-slate-500">Item dipantau: {items.find(i=>i.id===active)?.payload.title||items.find(i=>i.id===active)?.item_key||'Belum dipilih'}</p>
       <p className="mt-3 text-3xl font-extrabold text-teal">{results?.answered??0} <span className="text-base text-slate-500">/ {results?.joined??0} peserta terdaftar</span></p>
       <div className="mt-4 space-y-2">{results?.counts.map(c=><div key={c.choice} className="flex justify-between border-b border-slate-100 py-2">
        <span>{c.choice}</span><strong>{c.count}</strong></div>)}</div>
      </section>
-     <section className="shadow-card rounded-xl bg-white p-5">
+     <section className="tl-console-panel shadow-card rounded-xl bg-white p-5">
       <h2 className="mb-3 text-xl font-bold">Chat & moderasi</h2>
       <p className="mb-4 text-sm text-slate-500">Bacakan pesan yang relevan (+5 poin), atau sembunyikan pesan sensitif. Aksi tercatat pada audit.</p>
       <div className="max-h-96 space-y-3 overflow-y-auto">
@@ -232,7 +242,7 @@ export default function HostPage(){
        {!messages.length&&<p className="text-sm text-slate-500">Belum ada pesan peserta.</p>}
       </div>
      </section>
-     <section className="shadow-card rounded-xl bg-white p-5"><h2 className="mb-4 text-xl font-bold">Top 10 kelas</h2>
+     <section className="tl-console-panel shadow-card rounded-xl bg-white p-5"><h2 className="mb-4 text-xl font-bold">Top 10 kelas</h2>
       <ol className="space-y-2">{score.map(p=><li key={p.participant_id} className="flex justify-between gap-4 border-b border-slate-100 py-2">
        <span>{p.rank_no}. {p.display_name}</span><strong>{p.points}</strong></li>)}</ol>
      </section>
