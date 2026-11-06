@@ -67,7 +67,7 @@ export default function AdminClassPage(){
    {mode==='checking'&&<p role="status" className="mt-6">Memeriksa akses administrator…</p>}
    {mode==='invalid_class'&&<p role="alert" className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">Tautan kelas sumber tidak lengkap. Buka halaman ini melalui konsol kelas dengan ID lengkap, bukan kode 8 karakter.</p>}
    {mode==='unavailable'&&<div role="alert" className="mt-5 rounded-xl border border-slate-200 bg-white p-4 text-slate-800">Tidak dapat memeriksa status login. <button type="button" className="ml-2 font-bold text-teal underline" onClick={()=>setAuthRetry(n=>n+1)}>Coba lagi</button></div>}
-   {mode==='blocked'&&<p role="alert" className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">SSO/MFA belum diaktifkan pada lingkungan deployment ini. Aksi admin tetap dinonaktifkan hingga konfigurasi identitas siap.</p>
+   {mode==='blocked'&&<p role="alert" className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">SSO/MFA belum diaktifkan pada lingkungan deployment ini. Aksi admin tetap dinonaktifkan hingga konfigurasi identitas siap.</p>}
    {mode==='sso_login'&&<a className="mt-5 inline-flex rounded-xl bg-teal p-4 font-bold text-white" href={'/api/auth/staff/start?classId='+encodeURIComponent(id)}>Masuk SSO + MFA</a>}
    {mode==='manual'&&<div className="mt-5 rounded-xl bg-amber-50 p-4">
     <label htmlFor="staff-token" className="field-label">Token staf — hanya staging</label>
