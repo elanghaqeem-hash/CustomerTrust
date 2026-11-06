@@ -100,7 +100,11 @@ jobs:
           umask 077
           dump="$(mktemp --suffix=.dump)"
           trap 'rm -f "$dump"' EXIT
-          pg_dump "$DATABASE_URL_ADMIN" --format=custom --file="$dump"
+          # Use pg_dump 16 to match the PostgreSQL 16 recovery image; the
+          # runner may ship pg_dump 17/18, whose custom archive is unsupported
+          # by pg_restore 16 (archive header 1.16).
+          docker run --rm --network host -e DATABASE_URL_ADMIN postgres:16-alpine \
+            sh -c 'pg_dump "$DATABASE_URL_ADMIN" --format=custom' > "$dump"
           bash deploy/hostinger/restore-drill.sh "$dump"
       - name: Create two independent classes with the same master
         run: |
