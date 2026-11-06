@@ -7,6 +7,7 @@ on:
       - "tools/trainlive/**"
       - "apps/trainlive/**"
       - "deploy/hostinger/**"
+      - "docs/VERCEL-NEON-AUTH0-ACTIVATION.md"
       - ".dockerignore"
       - ".github/workflows/trainlive-ci.yml"
   pull_request:
@@ -16,6 +17,7 @@ on:
       - "tools/trainlive/**"
       - "apps/trainlive/**"
       - "deploy/hostinger/**"
+      - "docs/VERCEL-NEON-AUTH0-ACTIVATION.md"
       - ".dockerignore"
       - ".github/workflows/trainlive-ci.yml"
 
