@@ -43,7 +43,9 @@ Tidak ada kredensial atau hak admin yang diberikan hanya dengan mengunjungi link
 - db/tests/01_rls_isolation.sql — actual PostgreSQL transactional A/B isolation fixtures
 - db/tests/02_worksheet.sql — class-specific LK2 and idempotent scoring integration test
 - db/tests/03_join_throttle.sql — 100 allowed attempts followed by enforcement
-- seed/customer-trust-challenge.v1.json — **canonical** Bank Sulteng CTC v1 content: 16 interactive items, 11 scenario quizzes, 20 pre/post questions, LK1–LK5
+- seed/customer-trust-challenge.v1.json — Bank Sulteng CTC v1 content (published, immutable): 16 interactive items, 11 scenario quizzes, 20 pre/post questions, LK1–LK5
+- seed/customer-trust-challenge.v2.json — **current** CTC v2, aligned to deck revision 13 (83 slides): adds the Trust Equation quiz (TE1, slide 15), deck slide numbers, schedule and recaps; 17 items, 12 scenario quizzes. `seed.mjs` publishes every vN in order; new classes (CLI and Super Admin) use the newest published version, existing classes keep their snapshot
+- db/migrations/014_admin_class_latest_content.sql — Super Admin class creation uses the newest published content version
 - tools/trainlive — idempotent content seeder, class factory and seed validation
 - apps/trainlive — patched Next.js 15.5.28 / React 19 mobile UI, facilitator staging console, individual worksheets, reports and class-scoped CSV/XLSX/PDF exports
 - .github/workflows/trainlive-ci.yml — real Postgres CI tests, build and REST cross-class smoke test

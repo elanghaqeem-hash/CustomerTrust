@@ -14,7 +14,8 @@ const code=()=>Array.from({length:6},()=>alphabet[randomInt(alphabet.length)]).j
 try {
  await db.query('BEGIN');
  const v=(await db.query(
-  "SELECT p.id program_id,v.id version_id FROM trainlive.program p JOIN trainlive.content_version v ON v.program_id=p.id WHERE p.code='CTC-BPDSULTENG' AND v.version_no=1 AND v.status='published'"
+  "SELECT p.id program_id,v.id version_id,v.version_no FROM trainlive.program p JOIN trainlive.content_version v ON v.program_id=p.id WHERE p.code='CTC-BPDSULTENG' AND v.status='published' AND ($1::int IS NULL OR v.version_no=$1) ORDER BY v.version_no DESC LIMIT 1",
+  [process.env.TRAINLIVE_CONTENT_VERSION?Number(process.env.TRAINLIVE_CONTENT_VERSION):null]
  )).rows[0];
  if(!v) throw new Error('Seed must be published first');
  let row;
@@ -35,7 +36,7 @@ try {
  }
  if(!row) throw new Error('Could not generate unique join code');
  await db.query('COMMIT');
- console.info(JSON.stringify({class_id:row.id,join_code:row.join_code,batch,date,
+ console.info(JSON.stringify({class_id:row.id,join_code:row.join_code,batch,date,content_version:v.version_no,
   note:'Treat the join code as a credential; distribute only during the class join window.'},null,2));
 } catch(e) { await db.query('ROLLBACK'); throw e; }
 finally { await db.end(); }

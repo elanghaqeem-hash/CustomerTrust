@@ -70,6 +70,7 @@ jobs:
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/011_class_lifecycle.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/012_class_close_guard.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/013_super_admin_sso_entry.sql
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/014_admin_class_latest_content.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -v app_password=trainlive_ci_web_only -f deploy/hostinger/create-runtime-role.sql
       - name: Real-PostgreSQL RLS isolation tests
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/01_rls_isolation.sql
@@ -81,7 +82,7 @@ jobs:
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/06_join_throttle_multiclass.sql
       - name: Install database tooling
         run: npm install --prefix tools/trainlive --no-audit --no-fund
-      - name: Seed v1 twice (idempotency and immutability)
+      - name: Seed v1 and v2 twice (idempotency and immutability)
         run: |
           node tools/trainlive/seed.mjs
           node tools/trainlive/seed.mjs
@@ -261,7 +262,10 @@ jobs:
           created_id="$(jq -r '.classId' /tmp/trainlive-created-class.json)"
           test -n "$created_id" && test "$created_id" != "$a_id"
           jq -e '.joinCode | test("^[A-HJ-NP-Z2-9]{6}$")' /tmp/trainlive-created-class.json
-          test "$(psql "$DATABASE_URL_ADMIN" -At -c "SELECT count(*) FROM trainlive.class_item WHERE class_id='$created_id'")" = "16"
+          test "$(psql "$DATABASE_URL_ADMIN" -At -c "SELECT count(*) FROM trainlive.class_item WHERE class_id='$created_id'")" = "17"
+          # Admin-created classes use the newest published content (v2, deck revision 13).
+          test "$(psql "$DATABASE_URL_ADMIN" -At -c "SELECT v.version_no FROM trainlive.class_session c JOIN trainlive.content_version v ON v.id=c.content_version_id WHERE c.id='$created_id'")" = "2"
+          test "$(psql "$DATABASE_URL_ADMIN" -At -c "SELECT count(*) FROM trainlive.class_item WHERE class_id='$created_id' AND item_key='TE1' AND slide_ref=15")" = "1"
           test "$(psql "$DATABASE_URL_ADMIN" -At -c "SELECT count(*) FROM trainlive.class_worksheet WHERE class_id='$created_id'")" = "5"
           test "$(psql "$DATABASE_URL_ADMIN" -At -c "SELECT count(*) FROM trainlive.participant WHERE class_id='$created_id'")" = "0"
           denied="$(curl -s -o /dev/null -w '%{http_code}' \
