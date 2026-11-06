@@ -127,8 +127,8 @@ export default function HostPage(){
    <section className="tl-console-hero" aria-labelledby="console-title">
     <div className="tl-console-hero-main">
      <p className="tl-console-kicker"><span aria-hidden="true">✦</span> LIVE CLASS WORKSPACE</p>
-     <h1 id="console-title">Kelas terkendali.<br/><span>Interaksi maksimal.</span></h1>
-     <p>Semua aktivitas, jawaban peserta, dan moderasi kelas dalam satu tampilan.</p>
+     <h1 id="console-title">Konsol <span>fasilitator</span></h1>
+     <p>Kelas terkendali, interaksi maksimal. Semua aktivitas, jawaban peserta, dan moderasi kelas dalam satu tampilan.</p>
      <div className="tl-console-hero-status" role="status"><span className={classStatus==='live'?'tl-console-status-dot live':'tl-console-status-dot'} aria-hidden="true"></span>
       {access?(classStatus==='live'?'Kelas sedang berlangsung':classStatus==='scheduled'?'Kelas terjadwal':classStatus==='closed'?'Kelas selesai':classStatus==='archived'?'Kelas diarsipkan':'Memuat status kelas'):'Akses fasilitator diperlukan'}</div>
     </div>
