@@ -7,6 +7,7 @@ on:
       - "tools/trainlive/**"
       - "apps/trainlive/**"
       - "deploy/hostinger/**"
+      - "docs/VERCEL-NEON-AUTH0-ACTIVATION.md"
       - ".dockerignore"
       - ".github/workflows/trainlive-ci.yml"
   pull_request:
@@ -16,6 +17,7 @@ on:
       - "tools/trainlive/**"
       - "apps/trainlive/**"
       - "deploy/hostinger/**"
+      - "docs/VERCEL-NEON-AUTH0-ACTIVATION.md"
       - ".dockerignore"
       - ".github/workflows/trainlive-ci.yml"
 
@@ -116,6 +118,7 @@ jobs:
         run: |
           npm install --prefix apps/trainlive --no-audit --no-fund
           npm run typecheck --prefix apps/trainlive
+          node --experimental-strip-types apps/trainlive/tests/oidc-issuer.mjs
           npm run build --prefix apps/trainlive
       - name: Admin login page is served without a class ID
         run: |

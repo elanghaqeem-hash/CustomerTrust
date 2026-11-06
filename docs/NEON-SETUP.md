@@ -27,7 +27,7 @@ From *Connect*, copy two strings for the owner role (`neondb_owner`), database `
 export DATABASE_URL_ADMIN='postgresql://neondb_owner:<owner-pw>@ep-xxxx.ap-southeast-1.aws.neon.tech/neondb?sslmode=require'
 npm install --prefix tools/trainlive
 
-node tools/trainlive/db-setup.mjs migrate          # 001..012, tracked
+node tools/trainlive/db-setup.mjs migrate          # 001..013, tracked
 
 # Neon requires >= 60 bits entropy; avoid URL-unsafe characters.
 export TRAINLIVE_APP_DB_PASSWORD="$(openssl rand -base64 36 | tr -d '/+=')"
@@ -54,6 +54,9 @@ Repeat for staging with the staging project's values.
 Redeploy. `/api/health` stays **503 `setup_required`** on Vercel production until the
 staff OIDC variables are also set (`STAFF-SSO.md`); after that it must return
 200 `{"ready":true}`.
+
+See also [VERCEL-NEON-AUTH0-ACTIVATION.md](VERCEL-NEON-AUTH0-ACTIVATION.md) for the complete
+Neon + Auth0 Super Admin go-live procedure and migration 013.
 
 ## 4. Operations
 

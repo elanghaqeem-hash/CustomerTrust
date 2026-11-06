@@ -115,16 +115,22 @@ export async function discover(config:StaffOIDCConfig):Promise<Metadata>{
  });
  if(!res.ok)throw Error('OIDC discovery failed');
  const data=await res.json() as Partial<Metadata>;
- if(data.issuer!==config.issuer||
+ // OIDC issuer identifiers commonly end with a slash (notably Auth0),
+ // while the application config uses a slashless discovery base URL.
+ // Accept only that syntactic trailing-slash difference, then verify the
+ // signed ID token against the EXACT issuer advertised in metadata.
+ if(typeof data.issuer!=='string'||data.issuer.replace(/\/$/,'')!==config.issuer||
   !httpsEndpoint(data.authorization_endpoint)||!httpsEndpoint(data.token_endpoint)||
   !httpsEndpoint(data.jwks_uri))throw Error('OIDC provider metadata invalid');
  return data as Metadata;
 }
 export async function verifiedIdentity(idToken:string,config:StaffOIDCConfig,nonce:string,
- metadata:Metadata):Promise<{email:string;issuer:string;subject:string}> {
- const jwks=createRemoteJWKSet(new URL(metadata.jwks_uri));
+ metadata:Metadata, verificationKey?:Parameters<typeof jwtVerify>[1]):Promise<{email:string;issuer:string;subject:string}> {
+ // Test-only key injection is used exclusively by synthetic tests. Production
+ // callers do not pass a key and always fetch the trusted issuer's JWKS.
+ const jwks=verificationKey??createRemoteJWKSet(new URL(metadata.jwks_uri));
  const {payload}=await jwtVerify(idToken,jwks,{
-  issuer:isGoogle(config)?[GOOGLE_ISSUER,'accounts.google.com']:config.issuer,
+  issuer:isGoogle(config)?[GOOGLE_ISSUER,'accounts.google.com']:metadata.issuer,
   audience:config.clientId,algorithms:['RS256','PS256','ES256']
  });
  if(typeof payload.nonce!=='string'||!safeEqual(payload.nonce,nonce))
@@ -148,5 +154,5 @@ export async function verifiedIdentity(idToken:string,config:StaffOIDCConfig,non
  const acr=typeof details.acr==='string'&&config.acceptedAcr.includes(details.acr);
  if(!mfa&&!acr)throw Error('Staff MFA claim missing or unapproved');
  if(!payload.sub||typeof payload.sub!=='string')throw Error('OIDC subject missing');
- return {email,issuer:config.issuer,subject:payload.sub};
+ return {email,issuer:metadata.issuer,subject:payload.sub};
 }

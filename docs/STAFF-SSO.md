@@ -30,6 +30,20 @@ policy as well; the claim check is the application's second gate.
 | Microsoft Entra ID | `https://login.microsoftonline.com/<tenant-id>/v2.0` | Web platform redirect URI, client secret | Require MFA via Conditional Access; **check a real ID token** — if `amr` is absent, add an approved `acr` mapping, otherwise login is correctly rejected |
 | Google Workspace | `https://accounts.google.com` | Web client | Enforce 2SV in Workspace; enable authentication-strength claims in Google Auth Platform (published/verified app) and set `TRAINLIVE_OIDC_REQUEST_AMR=true`. Google may still omit `amr`, in which case login is rejected |
 
+## Auth0 — approved alternative for individual verified staff emails
+
+For the tenant-based Auth0 path, provision a Regular Web Application, enforce
+MFA for each login, set the exact callback URI, and verify that the Auth0 ID
+token carries the expected `amr` MFA signal. A tenant issuer ending in `/` is
+supported: discovery normalizes only that trailing delimiter while the signed
+ID token is checked against the exact issuer advertised by the provider.
+
+For an approved named administrator using a non-Workspace email account, the
+Google Workspace hosted-domain `hd` rule will reject consumer identities.
+Use a company-controlled Auth0 application and exact staff DB authorization,
+never a public sign-up with automatic Super Admin privileges.
+See [VERCEL-NEON-AUTH0-ACTIVATION.md](VERCEL-NEON-AUTH0-ACTIVATION.md).
+
 ## Selected IdP: Google Workspace — setup
 
 Code behaviour when `TRAINLIVE_OIDC_ISSUER=https://accounts.google.com`:
