@@ -11,7 +11,7 @@ fi
 command -v docker >/dev/null || { echo "Docker Engine is required" >&2; exit 1; }
 docker info >/dev/null 2>&1 || { echo "Docker daemon unavailable" >&2; exit 1; }
 backup="$(realpath "$backup")"
-container="trainlive-restore-drill-$RANDOM-$"
+container="trainlive-restore-drill-${RANDOM}-${BASHPID}"
 restore_log="$(mktemp)"
 cleanup() { docker rm -f "$container" >/dev/null 2>&1 || true; rm -f "$restore_log"; }
 trap cleanup EXIT
