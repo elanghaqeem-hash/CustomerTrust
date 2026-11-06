@@ -44,13 +44,13 @@ export default function AdminClassPage(){
   }catch(e){setError(e instanceof Error?e.message:'Kesalahan membuat kelas');}
   finally{setBusy(false)}
  }
- return <main className="min-h-screen bg-paper pb-16">
-  <header className="bg-navy p-5 text-white"><div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
-   <strong>TrainLive / Administrator</strong>
-   <a className="text-sm underline" href={'/host/'+id}>Kembali ke kelas</a>
+ return <main className="trainlive-workspace min-h-screen pb-16">
+  <header className="workspace-nav text-white"><div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-4 px-5 py-4">
+   <a href="/" className="text-xl font-extrabold tracking-tight text-white no-underline">Train<span className="text-[#5eead4]">Live</span><span className="ml-3 border-l border-white/20 pl-3 text-xs font-medium text-slate-300">Administrator</span></a>
+   <a className="rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white no-underline hover:bg-white/20" href={'/host/'+id}>← Kembali ke kelas</a>
   </div></header>
   <div className="mx-auto max-w-3xl px-5 py-9">
-   <h1 className="text-3xl font-extrabold">Buat kelas training baru</h1>
+   <p className="workspace-eyebrow">CLASS MANAGEMENT</p><h1 className="mt-2 text-3xl font-extrabold tracking-tight">Buat kelas training baru</h1>
    <p className="mt-2 text-slate-600">Salin materi terpublikasi dari kelas sumber tanpa menyalin data peserta, jawaban, atau skor.</p>
    {mode==='checking'&&<p role="status" className="mt-6">Memeriksa akses administrator…</p>}
    {mode==='blocked'&&<p role="alert" className="mt-5 rounded-xl bg-amber-50 p-4 text-amber-900">SSO/MFA belum disiapkan. Aksi admin dinonaktifkan.</p>}
@@ -61,7 +61,7 @@ export default function AdminClassPage(){
    </div>}
    {access&&!allowed&&<p role="alert" className="mt-5 rounded-xl bg-amber-50 p-4 text-amber-900">Hak Super Admin belum diberikan untuk kelas sumber ini.</p>}
    {error&&<p role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-red-900">{error}</p>}
-   <form className="mt-7 space-y-5 rounded-2xl border border-slate-200 bg-white p-6" onSubmit={save}>
+   <form className="workspace-card mt-7 space-y-5 p-6 sm:p-8" onSubmit={save}>
     <div><label htmlFor="name" className="field-label">Nama kelas *</label><input id="name" className="field-input" required minLength={3} maxLength={160} value={name} onChange={e=>setName(e.target.value)}/></div>
     <div><label htmlFor="batch" className="field-label">Kode batch *</label><input id="batch" className="field-input" required maxLength={32} pattern="[A-Za-z0-9_-]{1,32}" placeholder="BATCH-02" value={batch} onChange={e=>setBatch(e.target.value)}/></div>
     <div><label htmlFor="date" className="field-label">Tanggal kelas (WITA) *</label><input id="date" type="date" className="field-input" required value={date} onChange={e=>setDate(e.target.value)}/>
