@@ -200,7 +200,7 @@ export default function HostPage(){
       <span className="tl-console-empty-icon" aria-hidden="true">▤</span>
       <strong>{access?'Aktivitas belum tersedia':'Hubungkan akun fasilitator'}</strong>
       <p>{access?'Belum ada materi terpublikasi di kelas ini. Periksa materi kelas sumber sebelum memulai sesi.':'Masuk menggunakan SSO + MFA untuk melihat rundown, hasil kuis, dan jawaban peserta.'}</p>
-     </div>
+     </div>}
      {items.length>0&&!items.some(i=>(filter==='all'||(filter==='finished'?['closed','revealed'].includes(i.state):i.state===filter))&&
       [i.item_key,i.payload.title||'',i.payload.prompt||'',String(i.module_no)].join(' ').toLowerCase().includes(search.toLowerCase().trim()))&&
       <p className="rounded-xl bg-white p-6 text-slate-600">Tidak ada aktivitas yang cocok dengan pencarian.</p>}
