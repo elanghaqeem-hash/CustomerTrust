@@ -119,6 +119,7 @@ jobs:
           npm install --prefix apps/trainlive --no-audit --no-fund
           npm run typecheck --prefix apps/trainlive
           node --experimental-strip-types apps/trainlive/tests/oidc-issuer.mjs
+          node --experimental-strip-types apps/trainlive/tests/oidc-google.mjs
           npm run build --prefix apps/trainlive
       - name: Admin login page is served without a class ID
         run: |
