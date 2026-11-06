@@ -1,0 +1,83 @@
+name: TrainLive production database (migrate + seed)
+
+# Manual only. Applies pending db/migrations with tools/trainlive/db-setup.mjs
+# and publishes new seed versions with tools/trainlive/seed.mjs against the
+# production database. The owner credential lives ONLY in the GitHub secret
+# DATABASE_URL_ADMIN (environment "production"); it is never printed.
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'status = read-only check; migrate-and-seed = apply pending migrations, then publish seed'
+        required: true
+        default: status
+        type: choice
+        options:
+          - status
+          - migrate-and-seed
+      confirm:
+        description: 'For migrate-and-seed type exactly: APPROVE-PRODUCTION-DB'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trainlive-production-db
+  cancel-in-progress: false
+
+jobs:
+  production-db:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    env:
+      DATABASE_URL_ADMIN: ${{ secrets.DATABASE_URL_ADMIN }}
+    steps:
+      - name: Guard inputs and branch
+        shell: bash
+        env:
+          ACTION: ${{ inputs.action }}
+          CONFIRM: ${{ inputs.confirm }}
+          REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          test "$REF" = "refs/heads/main" || { echo 'Run from main only.' >&2; exit 2; }
+          test -n "$DATABASE_URL_ADMIN" || { echo 'Secret DATABASE_URL_ADMIN is not set for environment "production".' >&2; exit 2; }
+          if [ "$ACTION" = "migrate-and-seed" ] && [ "$CONFIRM" != "APPROVE-PRODUCTION-DB" ]; then
+            echo 'migrate-and-seed requires confirm = APPROVE-PRODUCTION-DB' >&2; exit 2
+          fi
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Install migration tools and validate seed
+        run: |
+          npm install --prefix tools/trainlive --omit=dev --no-audit --no-fund
+          node tools/trainlive/validate-seed.mjs
+      - name: Migration status (creates the tracking table if missing; changes no data)
+        run: node tools/trainlive/db-setup.mjs status
+      - name: Apply pending migrations
+        if: inputs.action == 'migrate-and-seed'
+        run: node tools/trainlive/db-setup.mjs migrate
+      - name: Publish seed versions (published versions are only verified)
+        if: inputs.action == 'migrate-and-seed'
+        run: node tools/trainlive/seed.mjs
+      - name: Summary (no personal data, no secrets)
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module -e '
+            import pg from "./tools/trainlive/node_modules/pg/lib/index.js";
+            const db=new pg.Client({connectionString:process.env.DATABASE_URL_ADMIN});await db.connect();
+            const q=async s=>(await db.query(s)).rows;
+            const out={
+             migrations:(await q("SELECT count(*)::int n, max(filename) last FROM trainlive_meta.schema_migration"))[0],
+             content:await q("SELECT v.version_no,v.status,(SELECT count(*)::int FROM trainlive.content_item i WHERE i.content_version_id=v.id) items FROM trainlive.content_version v JOIN trainlive.program p ON p.id=v.program_id WHERE p.code=$$CTC-BPDSULTENG$$ ORDER BY 1"),
+             open_classes:await q("SELECT c.status,c.capacity,v.version_no,count(*)::int classes FROM trainlive.class_session c JOIN trainlive.content_version v ON v.id=c.content_version_id WHERE c.status IN ($$scheduled$$,$$live$$) GROUP BY 1,2,3 ORDER BY 1"),
+             join_cap_per_ip_class:(await q("SELECT CASE WHEN pg_get_functiondef($$trainlive.allow_join_attempt(text,text)$$::regprocedure) LIKE $$%per_class<=80%$$ THEN 80 ELSE 40 END n"))[0].n
+            };
+            await db.end();console.log(JSON.stringify(out,null,1));
+            const fs=await import("node:fs");if(process.env.GITHUB_STEP_SUMMARY)
+             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,"### TrainLive production database\n\n```json\n"+JSON.stringify(out,null,1)+"\n```\n");
+          '
