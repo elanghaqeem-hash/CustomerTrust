@@ -10,7 +10,7 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path=trainlive,pg_temp AS $$
 DECLARE v_id uuid; v_class uuid; v_issuer text; v_subject text;
 BEGIN
  IF p_email IS NULL OR p_email<>lower(btrim(p_email))
-    OR length(p_email)>254 OR p_email !~ '^[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+
+    OR length(p_email)>254 OR p_email !~ '^[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+$'
     OR p_issuer IS NULL OR p_issuer !~ '^https://'
     OR length(p_issuer)>2048 OR p_subject IS NULL
     OR length(p_subject)<1 OR length(p_subject)>512
