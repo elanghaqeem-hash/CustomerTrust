@@ -153,7 +153,8 @@ export default function ClassPage(){
  async function send(){
   if(!current||!canAnswer)return;
   setBusy(true);setError('');
-  const text=typeof selected==='string'?selected:'';
+  // Survey free-text answers are checked for long digit runs too.
+  const text=typeof selected==='string'?selected:Array.isArray(selected)?selected.filter(x=>typeof x==='string').join(' '):'';
   const confirmNoSensitiveData=/\b\d{10,16}\b/.test(text)
    ?window.confirm('Terdeteksi deretan angka panjang. Pastikan ini bukan NIK, nomor rekening, atau data rahasia bank sebelum mengirim.'):false;
   if(/\b\d{10,16}\b/.test(text)&&!confirmNoSensitiveData){setBusy(false);return;}
@@ -210,7 +211,10 @@ export default function ClassPage(){
    return <div key={i}><label className="field-label">{i+1}. {q.q}</label>
     {q.scale?<select className="field-input" disabled={!canAnswer} value={all[i]||''}
       onChange={e=>{const next=[...all];next[i]=Number(e.target.value);updateAnswer(next);}}>
-      <option value="">Pilih nilai</option>{[1,2,3,4,5].map(v=><option key={v} value={v}>{v}</option>)}</select>
+      <option value="">Pilih nilai</option>{Array.from({length:q.scale},(_,k)=>k+1).map(v=><option key={v} value={v}>{v}</option>)}</select>
+     :q.options?<select className="field-input" disabled={!canAnswer} value={String(all[i]||'')}
+      onChange={e=>{const next=[...all];next[i]=e.target.value;updateAnswer(next);}}>
+      <option value="">Pilih salah satu</option>{q.options.map((opt,j)=><option key={j} value={letters[j]}>{opt}</option>)}</select>
      :<textarea className="field-input field-area" disabled={!canAnswer} value={String(all[i]||'')}
       onChange={e=>{const next=[...all];next[i]=e.target.value;updateAnswer(next);}}/>}</div>;
   })}</div>;
@@ -218,7 +222,7 @@ export default function ClassPage(){
  }
  const complete=()=>{if(!current)return false;
   if(current.type==='test'||current.type==='survey')
-   return Array.isArray(selected)&&selected.length===(current.payload.questions?.length||0)&&selected.every(x=>x!==''&&x!==undefined);
+   return Array.isArray(selected)&&selected.length===(current.payload.questions?.length||0)&&selected.every(x=>x!==undefined&&x!==null&&String(x).trim()!=='');
   if(current.type==='multi_choice')return Array.isArray(selected)&&selected.length>0;
   return typeof selected==='string'&&selected.trim().length>0;
  };

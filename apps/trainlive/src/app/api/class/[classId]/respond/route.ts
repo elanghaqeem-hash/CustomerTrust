@@ -33,8 +33,18 @@ function normalize(item:Item,answer:unknown,confirmed:boolean) {
   return {text:answer.trim()};
  }
  if(item.type==='survey') {
-  if(!Array.isArray(answer)||answer.length!==(item.payload.questions?.length||0))throw new Error('bad_answer');
-  return {answers:answer};
+  // Every answer must match its own question: a scale value, an option letter, or short text.
+  const q=(item.payload.questions||[]) as Array<{scale?:number;options?:string[]}>;
+  if(!Array.isArray(answer)||answer.length!==q.length)throw new Error('bad_answer');
+  const clean=answer.map((a,i)=>{
+   const spec=q[i]||{};
+   if(spec.scale){if(!Number.isInteger(a)||(a as number)<1||(a as number)>spec.scale)throw new Error('bad_answer');return a;}
+   if(spec.options){if(typeof a!=='string'||!letters.slice(0,spec.options.length).includes(a))throw new Error('bad_answer');return a;}
+   if(typeof a!=='string'||!a.trim()||a.length>1000)throw new Error('bad_answer');
+   if(/\b\d{10,16}\b/.test(a)&&!confirmed)throw new Error('sensitive_confirmation');
+   return a.trim();
+  });
+  return {answers:clean};
  }
  throw new Error('unsupported_type');
 }
@@ -68,15 +78,18 @@ export async function POST(req:Request,{params}:{params:Promise<{classId:string}
    const anonymous=item.payload.anonymous===true;
    const anonKey=anonymous?createHmac('sha256',process.env.TRAINLIVE_JWT_SECRET||'')
     .update(session.classId+':'+item.id+':'+session.participantId).digest('hex'):null;
-   const result=await db.query<{id:string}>(
-    "INSERT INTO trainlive.response(class_id,class_item_id,participant_id,anonymous_key,answer_json,latency_ms) SELECT $1,$2,$3,$4,$5,GREATEST(0,(EXTRACT(EPOCH FROM (now()-opened_at))*1000)::integer) FROM trainlive.class_item WHERE class_id=$1 AND id=$2 AND state='open' AND NOT hidden AND (timer_sec=0 OR now()<opened_at+make_interval(secs=>timer_sec)) RETURNING id",
+   // No RETURNING: an anonymous row (participant_id NULL) is deliberately not
+   // readable by its author under RLS, and PostgreSQL applies SELECT policies to
+   // RETURNING, which made every anonymous poll answer fail with 403.
+   const result=await db.query(
+    "INSERT INTO trainlive.response(class_id,class_item_id,participant_id,anonymous_key,answer_json,latency_ms) SELECT $1,$2,$3,$4,$5,GREATEST(0,(EXTRACT(EPOCH FROM (now()-opened_at))*1000)::integer) FROM trainlive.class_item WHERE class_id=$1 AND id=$2 AND state='open' AND NOT hidden AND (timer_sec=0 OR now()<opened_at+make_interval(secs=>timer_sec))",
     [session.classId,item.id,anonymous?null:session.participantId,anonKey,JSON.stringify(answer)]);
    if(!result.rowCount)return NextResponse.json({error:'Waktu jawaban sudah berakhir'},{status:409});
    if(item.payload.tag==='chat'&&'text' in answer){
     await db.query('INSERT INTO trainlive.chat_message(class_id,participant_id,body) VALUES($1,$2,$3)',
       [session.classId,session.participantId,answer.text]);
    }
-   return NextResponse.json({saved:true,responseId:result.rows[0].id},{status:201});
+   return NextResponse.json({saved:true},{status:201});
   });
  }catch(e){return privateError(e)}
 }
