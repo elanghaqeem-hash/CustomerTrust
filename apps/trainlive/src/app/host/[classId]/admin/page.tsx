@@ -61,22 +61,25 @@ export default function AdminClassPage(){
    </div>}
    {access&&!allowed&&<p role="alert" className="mt-5 rounded-xl bg-amber-50 p-4 text-amber-900">Hak Super Admin belum diberikan untuk kelas sumber ini.</p>}
    {error&&<p role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-red-900">{error}</p>}
-   <form className="workspace-card mt-7 space-y-5 p-6 sm:p-8" onSubmit={save}>
-    <div><label htmlFor="name" className="field-label">Nama kelas *</label><input id="name" className="field-input" required minLength={3} maxLength={160} value={name} onChange={e=>setName(e.target.value)}/></div>
+   <form className="workspace-card mt-7 p-6 sm:p-8" onSubmit={save}>
+    <div className="tl-class-form-header"><span className="number">01</span><div><h2>Informasi kelas</h2><p>Lengkapi detail batch dan tanggal pelaksanaan.</p></div></div>
+    <div className="tl-class-form-grid">
+    <div className="tl-class-form-wide"><label htmlFor="name" className="field-label">Nama kelas *</label><input id="name" className="field-input" required minLength={3} maxLength={160} value={name} onChange={e=>setName(e.target.value)}/></div>
     <div><label htmlFor="batch" className="field-label">Kode batch *</label><input id="batch" className="field-input" required maxLength={32} pattern="[A-Za-z0-9_-]{1,32}" placeholder="BATCH-02" value={batch} onChange={e=>setBatch(e.target.value)}/></div>
-    <div><label htmlFor="date" className="field-label">Tanggal kelas (WITA) *</label><input id="date" type="date" className="field-input" required value={date} onChange={e=>setDate(e.target.value)}/>
-     <p className="mt-2 text-xs text-slate-500">Jadwal 09.00–16.00 WITA, kode peserta aktif satu hari sebelum hingga satu hari sesudah kelas.</p></div>
-    <button disabled={!allowed||busy} className="rounded-xl bg-teal px-6 py-3 font-bold text-white disabled:opacity-50">{busy?'Menyimpan…':'Buat kelas dan kode peserta'}</button>
+    <div><label htmlFor="date" className="field-label">Tanggal kelas (WITA) *</label><input id="date" type="date" className="field-input" required value={date} onChange={e=>setDate(e.target.value)}/></div>
+    <p className="tl-class-form-hint tl-class-form-wide">Jadwal 09.00–16.00 WITA. Kode peserta berlaku dari satu hari sebelum hingga satu hari setelah kelas.</p>
+    <div className="tl-class-form-wide"><button disabled={!allowed||busy} className="tl-staff-button">{busy?'Menyimpan…':'Buat kelas dan kode peserta →'}</button></div>
+    </div>
    </form>
    {created&&<section aria-live="polite" className="mt-7 rounded-2xl border border-teal bg-white p-6">
     <h2 className="text-xl font-bold text-teal">Kelas berhasil dibuat</h2>
     <p className="mt-3">{created.name} · {created.batch} · {created.date}</p>
     <p className="mt-4 text-sm text-slate-500">Kode akses khusus peserta:</p>
-    <p className="mt-1 font-mono text-4xl font-extrabold tracking-wider">{created.joinCode}</p>
+    <p className="mt-2"><span className="tl-access-code font-mono">{created.joinCode}</span></p>
     <p className="mt-2 text-sm">Kapasitas {created.capacity}. Kelas baru tidak berisi peserta maupun jawaban sebelumnya.</p>
     <div className="mt-4 flex flex-wrap gap-5">
-     <a className="font-bold text-teal underline" href={'/host/'+created.classId}>Konsol kelas baru</a>
-     <button type="button" className="text-teal underline" onClick={()=>void navigator.clipboard.writeText(window.location.origin+'/?code='+created.joinCode).catch(()=>setError('Tautan gagal disalin'))}>Salin tautan peserta</button>
+     <a className="tl-staff-button" href={'/host/'+created.classId}>Buka konsol kelas →</a>
+     <button type="button" className="tl-staff-button tl-staff-button-secondary" onClick={()=>void navigator.clipboard.writeText(window.location.origin+'/?code='+created.joinCode).catch(()=>setError('Tautan gagal disalin'))}>Salin tautan peserta</button>
     </div>
    </section>}
   </div>

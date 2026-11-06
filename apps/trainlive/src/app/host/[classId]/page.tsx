@@ -167,9 +167,9 @@ export default function HostPage(){
    <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
     <section><h2 className="mb-4 text-2xl font-extrabold tracking-tight">Rundown interaktif</h2>
      <div className="mb-4 flex flex-col gap-3 rounded-xl bg-white p-4 sm:flex-row">
-      <label className="flex-1"><span className="field-label">Cari aktivitas</span>
+      <label className="min-w-0 flex-1"><span className="field-label">Cari aktivitas</span>
        <input className="field-input" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Judul, kode, modul…"/></label>
-      <label><span className="field-label">Status</span><select className="field-input" value={filter}
+      <label className="min-w-0 sm:w-44"><span className="field-label">Status</span><select className="field-input" value={filter}
        onChange={e=>setFilter(e.target.value as typeof filter)}>
        <option value="all">Semua ({items.length})</option><option value="idle">Belum dibuka</option>
        <option value="open">Sedang dibuka</option><option value="finished">Selesai</option>
@@ -196,7 +196,11 @@ export default function HostPage(){
         className="rounded-lg border border-gold bg-white px-4 py-2 font-bold text-navy">Reveal</button>
       </div>
      </div>)}</div>
-     {!items.length&&<p className="rounded-xl bg-white p-6 text-slate-600">Belum terhubung atau item kelas tidak tersedia.</p>}
+     {!items.length&&<div className="tl-console-empty" role="status">
+      <span className="tl-console-empty-icon" aria-hidden="true">▤</span>
+      <strong>{access?'Aktivitas belum tersedia':'Hubungkan akun fasilitator'}</strong>
+      <p>{access?'Belum ada materi terpublikasi di kelas ini. Periksa materi kelas sumber sebelum memulai sesi.':'Masuk menggunakan SSO + MFA untuk melihat rundown, hasil kuis, dan jawaban peserta.'}</p>
+     </div>
      {items.length>0&&!items.some(i=>(filter==='all'||(filter==='finished'?['closed','revealed'].includes(i.state):i.state===filter))&&
       [i.item_key,i.payload.title||'',i.payload.prompt||'',String(i.module_no)].join(' ').toLowerCase().includes(search.toLowerCase().trim()))&&
       <p className="rounded-xl bg-white p-6 text-slate-600">Tidak ada aktivitas yang cocok dengan pencarian.</p>}
