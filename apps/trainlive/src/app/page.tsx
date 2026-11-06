@@ -26,7 +26,7 @@ export default function JoinPage(){
  return <main className="min-h-screen">
   <header className="bg-navy text-white"><div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5">
    <div className="text-xl font-extrabold tracking-tight">Train<span className="text-[#55d3c2]">Live</span></div>
-   <span className="text-xs font-semibold tracking-wider text-slate-200">CUSTOMER TRUST CHALLENGE</span>
+   <nav className="flex items-center gap-4"><span className="hidden text-xs font-semibold tracking-wider text-slate-200 sm:inline">CUSTOMER TRUST CHALLENGE</span><a href="/admin/login" className="rounded-lg border border-white/50 px-3 py-2 text-xs font-bold text-white hover:bg-white/10">Login Admin</a></nav>
   </div></header>
   <div className="mx-auto grid max-w-5xl gap-10 px-5 pb-20 pt-12 md:grid-cols-[1fr_420px] md:pt-20">
    <section className="max-w-xl">
