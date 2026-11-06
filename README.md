@@ -16,6 +16,22 @@ deployment option; it does not grant Hostinger access or change the existing
 Vercel production environment. Do not open registration until production
 readiness checks and UAT pass.
 
+## Login Administrator TrainLive
+
+Pintu masuk khusus Admin: **`/admin/login`** (Vercel: `https://ct-kohl.vercel.app/admin/login`;
+Hostinger setelah aktif: `https://trainlive.seraya.id/admin/login`). Halaman peserta memiliki
+link `Login Admin`. Admin menggunakan **SSO + MFA**, bukan kode kelas atau
+password hardcoded. Callback OIDC yang sama (`/api/auth/staff/callback`) memilih
+kelas pertama yang diotorisasi secara server-side dan membuka
+`/host/CLASS_UUID/admin`. SQL `013_super_admin_sso_entry.sql` harus
+terpasang sebelum login Admin dapat berhasil.
+
+**Provisioning belum otomatis:** operator menyiapkan PostgreSQL, SSO/MFA, satu
+kelas yang diterbitkan, menjalankan `assign-staff.mjs` dan kemudian melakukan
+persetujuan `promote-admin.mjs` menggunakan koneksi DB owner secara privat.
+Tanpa seluruh prasyarat ini, link tetap dapat tampil tetapi login tidak aktif.
+Tidak ada kredensial atau hak admin yang diberikan hanya dengan mengunjungi link.
+
 ## Source layout
 
 - db/migrations/001_core.sql — normalized multi-class schema; immutable published content and class snapshots

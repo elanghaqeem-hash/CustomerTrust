@@ -149,6 +149,16 @@ For an authorized master admin, a trusted operator may use
 `tools/trainlive/promote-admin.mjs` after staff assignment; this is a
 privileged audited operation, NOT part of automatic bootstrap.
 
+## Login Administrator (satu URL tanpa mengetahui ID kelas)
+
+Buka `https://trainlive.seraya.id/admin/login` setelah domain dan aplikasi
+siap. Gunakan akun staf yang sudah dipromosikan menjadi Super Admin dengan
+SSO/MFA; peserta menggunakan halaman utama. Migration 013 menambahkan resolver
+admin terbatas, bukan user atau password default. Operator perlu menjalankan
+`tools/trainlive/assign-staff.mjs` dan `tools/trainlive/promote-admin.mjs`
+terhadap kelas sumber, menggunakan database owner di lingkungan aman. Callback
+OIDC yang perlu didaftarkan tetap `https://trainlive.seraya.id/api/auth/staff/callback`.
+
 ## 4. Mandatory release tests
 
 - Public HTTPS certificate valid; HTTP redirects; no public access to 3000/5432.

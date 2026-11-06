@@ -66,6 +66,7 @@ jobs:
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/010_admin_class_create.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/011_class_lifecycle.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/012_class_close_guard.sql
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/013_super_admin_sso_entry.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -v app_password=trainlive_ci_web_only -f deploy/hostinger/create-runtime-role.sql
       - name: Real-PostgreSQL RLS isolation tests
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/01_rls_isolation.sql
@@ -107,6 +108,8 @@ jobs:
           test "$(jq -r '.class_id' /tmp/trainlive-class-a.json)" != "$(jq -r '.class_id' /tmp/trainlive-class-b.json)"
       - name: Staff OIDC binding, MFA-authorized class mapping and cross-class rejection
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/04_staff_oidc.sql
+      - name: Super Admin SSO route cannot grant access to unauthorized identities
+        run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/07_super_admin_sso_entry.sql
       - name: Production preflight validates restricted runtime, RLS and published seed
         run: psql "$DATABASE_URL_APP" -v ON_ERROR_STOP=1 -f db/tests/05_production_preflight.sql
       - name: Typecheck and build Next.js application
@@ -114,6 +117,18 @@ jobs:
           npm install --prefix apps/trainlive --no-audit --no-fund
           npm run typecheck --prefix apps/trainlive
           npm run build --prefix apps/trainlive
+      - name: Admin login page is served without a class ID
+        run: |
+          npm run start --prefix apps/trainlive -- -p 3350 > /tmp/trainlive-admin-login.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3350/admin/login > /tmp/trainlive-admin.html; then break; fi
+            sleep 1
+          done
+          grep -q 'Login Administrator' /tmp/trainlive-admin.html
+          grep -q '/api/auth/staff/start?role=admin' /tmp/trainlive-admin.html
+          echo 'PASS: standalone admin entry route'
       - name: Hostinger VPS Compose contract and container builds
         run: |
           bash -n deploy/hostinger/bootstrap.sh
