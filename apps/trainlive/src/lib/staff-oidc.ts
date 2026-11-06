@@ -125,8 +125,10 @@ export async function discover(config:StaffOIDCConfig):Promise<Metadata>{
  return data as Metadata;
 }
 export async function verifiedIdentity(idToken:string,config:StaffOIDCConfig,nonce:string,
- metadata:Metadata):Promise<{email:string;issuer:string;subject:string}> {
- const jwks=createRemoteJWKSet(new URL(metadata.jwks_uri));
+ metadata:Metadata, verificationKey?:Parameters<typeof jwtVerify>[1]):Promise<{email:string;issuer:string;subject:string}> {
+ // Test-only key injection is used exclusively by synthetic tests. Production
+ // callers do not pass a key and always fetch the trusted issuer's JWKS.
+ const jwks=verificationKey??createRemoteJWKSet(new URL(metadata.jwks_uri));
  const {payload}=await jwtVerify(idToken,jwks,{
   issuer:isGoogle(config)?[GOOGLE_ISSUER,'accounts.google.com']:metadata.issuer,
   audience:config.clientId,algorithms:['RS256','PS256','ES256']
