@@ -54,6 +54,7 @@ async function runClass(cls,idx){
  const rejected=people.filter(p=>!p.ok);
  expect(C,!rejected.length,`${rejected.length}/${perClass} join ditolak (HTTP ${[...new Set(rejected.map(p=>p.status))]})`);
  const P=people.filter(p=>p.ok);
+ if(!P.length){fail(C,'no participant could join: '+JSON.stringify(joins[0]?.data));return {C,participants:0,report:null,expectedMax:0};}
  const ph=(path,opt={})=>call(path,opt);
 
  await Promise.all(P.map(p=>ph(`/api/class/${cls.class_id}/heartbeat`,{method:'POST',cookie:p.cookie,body:{}})

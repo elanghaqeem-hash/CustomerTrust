@@ -450,7 +450,7 @@ jobs:
           pid=$!
           trap 'kill "$pid" 2>/dev/null || true; rm -f /tmp/trainlive-multiclass-*.json' EXIT
           for i in $(seq 1 60); do
-            if curl -fsS http://127.0.0.1:3342/api/health >/dev/null; then break; fi
+            if curl -fsS http://localhost:3342/api/health >/dev/null; then break; fi
             sleep 1
           done
           # Disposable CI DB: earlier steps already spent this runner IP's join budget.
@@ -471,6 +471,6 @@ jobs:
             echo ']' >> "$out"
           }
           make_classes SIM
-          node tools/trainlive/test-multiclass-sim.mjs http://127.0.0.1:3342 /tmp/trainlive-multiclass-SIM.json 30
+          node tools/trainlive/test-multiclass-sim.mjs http://localhost:3342 /tmp/trainlive-multiclass-SIM.json 30
           make_classes UI --leave-scheduled
-          node tools/trainlive/test-ui-multiclass.mjs http://127.0.0.1:3342 /tmp/trainlive-multiclass-UI.json 32 2
+          node tools/trainlive/test-ui-multiclass.mjs http://localhost:3342 /tmp/trainlive-multiclass-UI.json 32 2
