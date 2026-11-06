@@ -257,3 +257,14 @@ a{text-underline-offset:3px}
 @media(max-width:900px){.facilitator-content-grid{grid-template-columns:minmax(0,1fr)}.facilitator-insights{grid-template-columns:repeat(2,minmax(0,1fr))}.facilitator-insights .facilitator-insight-card:first-child{grid-column:span 2}.facilitator-hero-art{right:-55px;opacity:.38}}
 @media(max-width:600px){.facilitator-hero{min-height:216px;padding:23px 21px;border-radius:21px}.facilitator-hero-art{right:-100px;opacity:.17}.facilitator-hero p{max-width:360px}.facilitator-navigation{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.facilitator-navigation-link{padding:9px 5px;font-size:12px}.facilitator-stats{gap:8px}.facilitator-stat{min-height:71px;flex-direction:column;align-items:flex-start;gap:6px;padding:12px}.facilitator-stat-icon{width:29px;height:29px;font-size:17px;border-radius:9px}.facilitator-stat strong{font-size:21px}.facilitator-stat small{font-size:10px}.facilitator-status-card{padding:17px}.facilitator-primary-button,.facilitator-danger-button{width:100%}.facilitator-filter-panel{grid-template-columns:minmax(0,1fr)}.facilitator-insights{grid-template-columns:1fr}.facilitator-insights .facilitator-insight-card:first-child{grid-column:auto}.facilitator-item{padding:16px}.facilitator-item-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.facilitator-item-action{min-height:44px;font-size:12px}.facilitator-section-heading h2{font-size:21px}}
 @media(prefers-reduced-motion:reduce){.facilitator-dot.is-live{animation:none}.facilitator-navigation-link,.facilitator-item,.facilitator-item-action,.facilitator-progress-fill{transition:none}.facilitator-item-action:not(:disabled):hover{transform:none}}
+
+/* Make the quiz reminder switch immediately acknowledge taps (including Android webviews). */
+.participant-alert{touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none}
+.participant-alert:active{transform:scale(.992)}
+.participant-alert .participant-shortcut-copy{flex:1}
+.participant-alert .participant-shortcut-copy strong{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.participant-alert-enabled{display:inline-flex;align-items:center;padding:3px 6px;border-radius:6px;background:#daf8eb;color:#08725d;font-size:9px;letter-spacing:.08em;font-weight:900}
+.participant-alert.is-enabled .participant-shortcut-icon{background:#d5f6e8;color:#067964}
+.participant-alert.is-enabled .participant-shortcut-toggle{box-shadow:0 0 0 3px rgba(6,130,111,.09)}
+.participant-alert .participant-shortcut-toggle{min-width:39px}
+@media(prefers-reduced-motion:reduce){.participant-alert:active{transform:none}}
