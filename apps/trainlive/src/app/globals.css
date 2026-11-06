@@ -268,3 +268,78 @@ a{text-underline-offset:3px}
 .participant-alert.is-enabled .participant-shortcut-toggle{box-shadow:0 0 0 3px rgba(6,130,111,.09)}
 .participant-alert .participant-shortcut-toggle{min-width:39px}
 @media(prefers-reduced-motion:reduce){.participant-alert:active{transform:none}}
+
+/* TrainLive worksheet refresh — scoped to participant worksheets only. */
+.trainlive-worksheet{background:linear-gradient(180deg,#eaf5f5 0,#f6fafb 340px,#f7fafb 100%);color:#102e40}
+.worksheet-topbar{background:#081f31;border-bottom:1px solid rgba(255,255,255,.1)}
+.worksheet-topbar-label{color:#b9d6dc;font-size:11px;font-weight:800;letter-spacing:.13em;text-align:right}
+.worksheet-back-link{display:inline-flex;align-items:center;gap:9px;min-height:44px;margin-bottom:17px;color:#176f70;text-decoration:none;font-size:13px;font-weight:800;transition:color .18s}
+.worksheet-back-link:hover{color:#084d50}
+.worksheet-back-icon{display:grid;place-items:center;flex:none;width:33px;height:33px;border:1px solid #cce4e2;border-radius:10px;background:#fff;box-shadow:0 3px 9px rgba(12,65,77,.035);transition:transform .18s,background .18s}
+.worksheet-back-link:hover .worksheet-back-icon{transform:translateX(-2px);background:#e9f9f5}
+.worksheet-hero{position:relative;isolation:isolate;overflow:hidden;padding:27px 31px 29px;border-radius:23px;background:radial-gradient(circle at 88% 18%,rgba(70,208,181,.25),transparent 41%),linear-gradient(115deg,#092439,#0d414d 72%,#107b70);color:#fff;box-shadow:0 18px 38px rgba(8,57,69,.12)}
+.worksheet-hero::after{content:"";position:absolute;right:-115px;top:-156px;width:340px;height:340px;border:1px solid rgba(190,255,231,.15);border-radius:50%;box-shadow:0 0 0 47px rgba(158,243,217,.036),0 0 0 100px rgba(158,243,217,.023);pointer-events:none;z-index:-1}
+.worksheet-eyebrow{font-size:10px;letter-spacing:.17em;font-weight:850;color:#a6f1dc}
+.worksheet-hero h1{margin-top:10px;font-size:clamp(26px,4.5vw,37px);line-height:1.18;font-weight:850;letter-spacing:-.04em}
+.worksheet-hero h1 span{color:#98ead2}
+.worksheet-hero p{max-width:610px;margin-top:9px;font-size:13px;line-height:1.75;color:#d7eae9}
+.worksheet-hero-stats{display:flex;flex-wrap:wrap;gap:9px;margin-top:20px}
+.worksheet-hero-stats span{display:inline-flex;align-items:center;gap:5px;min-height:33px;padding:6px 12px;border:1px solid rgba(209,255,241,.24);border-radius:99px;background:rgba(0,23,39,.2);font-size:11px;font-weight:700;color:#d7f5eb}
+.worksheet-hero-stats strong{color:#fff;font-size:12px}
+.worksheet-grid{display:grid;grid-template-columns:196px minmax(0,1fr);gap:19px;align-items:start;margin-top:23px}
+.worksheet-tabs{display:flex;flex-direction:column;gap:9px;min-width:0}
+.worksheet-tab{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:4px;min-width:0;min-height:65px;padding:12px 15px;border:1px solid #dfeaed;border-radius:13px;background:#fff;text-align:left;box-shadow:0 4px 14px rgba(14,55,68,.025);transition:background .18s,border-color .18s,box-shadow .18s}
+.worksheet-tab strong{font-size:14px;color:#294656}
+.worksheet-tab small{font-size:11px;color:#6b8790;font-weight:650}
+.worksheet-tab.is-active{border-color:#0c7c75;background:linear-gradient(115deg,#0b6e6a,#0e8a7a);box-shadow:0 7px 18px rgba(13,113,105,.17)}
+.worksheet-tab.is-active strong,.worksheet-tab.is-active small{color:#fff}
+.worksheet-tab:hover:not(.is-active){border-color:#92cbc4;background:#f6fcfa}
+.worksheet-card{min-width:0;padding:26px 28px 28px;border:1px solid #e0eaed;border-radius:21px;background:#fff;box-shadow:0 14px 35px rgba(12,46,63,.05)}
+.worksheet-card-meta{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:9px}
+.worksheet-module{font-size:10px;font-weight:850;letter-spacing:.12em;color:#128076}
+.worksheet-due{font-size:11px;font-weight:700;color:#718591}
+.worksheet-due.is-submitted{display:inline-flex;align-items:center;padding:5px 9px;border-radius:99px;background:#e6f8ef;color:#067b60}
+.worksheet-card-title{margin-top:10px;font-size:clamp(21px,3.5vw,27px);line-height:1.25;letter-spacing:-.035em;font-weight:850;color:#102f43}
+.worksheet-note{margin-top:16px;padding:15px 16px;border:1px solid #e4eef0;border-radius:13px;background:#f7fafb;font-size:13px;line-height:1.7;color:#587584}
+.worksheet-warning{display:flex;align-items:flex-start;gap:9px;margin-top:20px;padding:11px 13px;border:1px solid #f4e9c9;border-radius:11px;background:#fffbef;color:#866018;font-size:12px;line-height:1.55;font-weight:700}
+.worksheet-warning span{font-size:16px;line-height:1.15}
+.worksheet-fields{display:grid;gap:12px;margin-top:20px}
+.worksheet-field .field-label{font-size:13px;line-height:1.5;color:#365365}
+.worksheet-input{border-color:#cadbdc;border-radius:11px}
+.worksheet-input:focus{outline:3px solid rgba(13,124,116,.13);outline-offset:0;border-color:#0c8077}
+.worksheet-option{display:flex;align-items:flex-start;gap:13px;min-height:60px;padding:15px 17px;border:1px solid #dee8eb;border-radius:13px;background:#fff;cursor:pointer;box-shadow:0 3px 10px rgba(8,45,63,.018);transition:border-color .18s,background .18s,box-shadow .18s}
+.worksheet-option:hover:not(:has(input:disabled)){border-color:#8ecdc3;background:#f8fcfb}
+.worksheet-option.is-selected{border-color:#67b9ad;background:#effaf6;box-shadow:inset 0 0 0 1px rgba(15,131,117,.14)}
+.worksheet-option:focus-within{outline:3px solid rgba(13,124,116,.22);outline-offset:2px}
+.worksheet-option-checkbox{flex:none;width:22px;height:22px;margin:1px 0 0;accent-color:#0d8076;cursor:pointer}
+.worksheet-option-label{min-width:0;line-height:1.5;font-size:14px;font-weight:650;color:#203d4e}
+.worksheet-option.is-selected .worksheet-option-label{color:#105f5a}
+.worksheet-option:has(input:disabled){cursor:default}
+.worksheet-multi-options{display:grid;gap:10px}
+.worksheet-initiative{min-width:0;margin:0;padding:17px;border:1px solid #dce9e9;border-radius:14px;background:#f9fcfb}
+.worksheet-initiative legend{padding:0 7px;font-size:13px;font-weight:850;color:#166e68}
+.worksheet-initiative>div{display:grid;gap:15px}
+.worksheet-remove{margin-top:15px;min-height:42px;padding:8px 13px;border:1px solid #e9b7a8;border-radius:9px;background:#fff7f4;color:#a24230;font-size:12px;font-weight:800}
+.worksheet-add{width:100%;min-height:47px;padding:10px 15px;border:1px dashed #77b6ad;border-radius:11px;background:#eef9f5;color:#0d796e;font-size:13px;font-weight:800}
+.worksheet-disclaimer{margin-top:19px;padding:13px 15px;border:1px solid #f5e4bf;border-radius:12px;background:#fffbef;color:#855c1d;font-size:12px;line-height:1.7}
+.worksheet-action-area{margin-top:24px;padding-top:18px;border-top:1px solid #e7eef0}
+.worksheet-save-caption{display:flex;align-items:center;gap:6px;margin-bottom:13px;color:#66848a;font-size:11px;font-weight:700}
+.worksheet-save-caption span{display:grid;place-items:center;width:17px;height:17px;border-radius:50%;background:#dff6e9;color:#0a806d;font-size:11px}
+.worksheet-actions{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:11px}
+.worksheet-save-button,.worksheet-submit-button{display:flex;align-items:center;justify-content:center;gap:9px;min-height:51px;padding:12px 15px;border-radius:12px;font-size:13px;font-weight:850;text-align:center;transition:transform .18s,box-shadow .18s,background .18s}
+.worksheet-save-button{border:1px solid #b6d8d3;background:#fff;color:#0d766d}
+.worksheet-save-button:hover:not(:disabled){background:#edf9f5}
+.worksheet-submit-button{background:linear-gradient(110deg,#0b7771,#0c8c7b);color:#fff;box-shadow:0 8px 18px rgba(11,126,111,.15)}
+.worksheet-submit-button:hover:not(:disabled){box-shadow:0 11px 24px rgba(11,126,111,.23);background:linear-gradient(110deg,#096c67,#0b8073)}
+.worksheet-submit-button svg{flex:none}
+.worksheet-save-button:active:not(:disabled),.worksheet-submit-button:active:not(:disabled){transform:scale(.985)}
+.worksheet-feedback{margin-top:17px;padding:13px 16px;border:1px solid transparent;border-radius:12px;font-size:13px;font-weight:700}
+.worksheet-feedback.is-error{border-color:#f3c7c7;background:#fff3f3;color:#9b3434}
+.worksheet-feedback.is-success{border-color:#bce8d5;background:#eafaf2;color:#096c56}
+.worksheet-loading{padding:28px 0;color:#587382;font-size:14px}
+.worksheet-redflags{display:grid;gap:12px;margin-top:20px}
+.worksheet-redflag{padding:17px;border:1px solid #e0eaed;border-radius:13px;background:#fcfefe}
+.worksheet-empty{padding:19px;border:1px dashed #cce4e2;border-radius:13px;background:#f6fbfa;color:#64808a;font-size:13px;line-height:1.7}
+@media(max-width:767px){.worksheet-grid{display:block;margin-top:17px}.worksheet-tabs{display:flex;flex-direction:row;gap:8px;overflow-x:auto;padding:0 2px 12px;scroll-snap-type:x proximity}.worksheet-tab{flex:0 0 auto;min-width:114px;min-height:62px;scroll-snap-align:start}.worksheet-card{padding:21px 18px;border-radius:19px}.worksheet-option{min-height:58px;padding:14px 15px}.worksheet-hero{padding:25px 21px;border-radius:20px}.worksheet-hero::after{right:-220px}.worksheet-card-meta{align-items:flex-start}.worksheet-save-caption{line-height:1.6}}
+@media(max-width:420px){.worksheet-topbar-label{font-size:10px}.worksheet-card{padding:19px 16px}.worksheet-hero h1{font-size:28px}.worksheet-hero-stats span{font-size:10px}.worksheet-option-label{font-size:14px}.worksheet-actions{grid-template-columns:minmax(0,1fr)}.worksheet-submit-button{order:-1}.worksheet-save-button,.worksheet-submit-button{min-height:52px;width:100%}}
+@media(prefers-reduced-motion:reduce){.worksheet-back-link,.worksheet-back-icon,.worksheet-tab,.worksheet-option,.worksheet-save-button,.worksheet-submit-button{transition:none}.worksheet-save-button:active:not(:disabled),.worksheet-submit-button:active:not(:disabled){transform:none}}
