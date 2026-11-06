@@ -4,6 +4,8 @@ import { useEffect,useState } from 'react';
 type Item={id:string;item_key:string;state:string;type:string;module_no:number;slide_ref:number|null;payload:{title?:string;prompt?:string}};
 type Score={participant_id:string;display_name:string;unit:string;points:number;rank_no:number};
 type ChatMessage={id:string;body:string;display_name:string;hidden:boolean;read_aloud:boolean;created_at:string};
+type LoginMode='checking'|'sso_login'|'sso_ready'|'manual'|'blocked'|'invalid_class'|'unavailable';
+const isFullClassId=(value:string)=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 export default function HostPage(){
  const id=useParams<{classId:string}>().classId;
  const [token,setToken]=useState(''),[items,setItems]=useState<Item[]>([]),[score,setScore]=useState<Score[]>([]);
@@ -16,7 +18,8 @@ export default function HostPage(){
  const [search,setSearch]=useState(''),[filter,setFilter]=useState<'all'|'idle'|'open'|'finished'>('all');
  const [results,setResults]=useState<{answered:number;joined:number;counts:{choice:string;count:number}[]}|null>(null);
  const [error,setError]=useState(''),[busy,setBusy]=useState(false);
- const [loginMode,setLoginMode]=useState<'checking'|'sso_login'|'sso_ready'|'manual'|'blocked'>('checking');
+ const [loginMode,setLoginMode]=useState<LoginMode>('checking');
+ const [authRetry,setAuthRetry]=useState(0);
  const access=loginMode==='sso_ready'||(loginMode==='manual'&&Boolean(token));
  const authHeaders=():Record<string,string>=>loginMode==='manual'&&token
   ?{Authorization:'Bearer '+token}:{};
@@ -32,13 +35,22 @@ export default function HostPage(){
  },[access,token,id,loginMode]);
  useEffect(()=>{
   let mounted=true;
+  setLoginMode('checking');
+  if(!isFullClassId(id)){
+   setLoginMode('invalid_class');
+   return()=>{mounted=false};
+  }
   fetch('/api/auth/staff/status?classId='+encodeURIComponent(id),{cache:'no-store'})
-   .then(async r=>{if(!r.ok)throw Error('status unavailable');return r.json()})
-   .then(s=>{if(mounted)setLoginMode(s.authenticated?'sso_ready':
-    s.configured?'sso_login':s.manualAllowed?'manual':'blocked')})
-   .catch(()=>{if(mounted)setLoginMode('blocked')});
+   .then(async r=>{
+    if(r.status===400)return {invalidClass:true};
+    if(!r.ok)throw Error('status unavailable');
+    return r.json();
+   })
+   .then(s=>{if(mounted)setLoginMode(s.invalidClass?'invalid_class':
+    s.authenticated?'sso_ready':s.configured?'sso_login':s.manualAllowed?'manual':'blocked')})
+   .catch(()=>{if(mounted)setLoginMode('unavailable')});
   return()=>{mounted=false};
- },[id]);
+ },[id,authRetry]);
  async function logout(){
   await fetch('/api/auth/staff/logout',{method:'POST',headers:{'Content-Type':'application/json'},
    body:JSON.stringify({classId:id})}).catch(()=>{});
@@ -141,9 +153,21 @@ export default function HostPage(){
     <a href={'/host/'+id+'/report'} className="facilitator-navigation-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 4v16h16M8 15l4-4 3 2 4-6"/></svg>Laporan & ekspor</a>
    </nav>
    {loginMode==='checking'&&<p role="status" className="mb-6 rounded-xl bg-white p-4">Memeriksa akses fasilitator…</p>}
-   {loginMode==='blocked'&&<p role="alert" className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
-    Login SSO/MFA fasilitator belum dikonfigurasi. Akses operasional kelas belum dibuka.
-   </p>}
+   {loginMode==='invalid_class'&&<section role="alert" className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-950">
+    <h2 className="text-lg font-extrabold">Tautan kelas tidak lengkap</h2>
+    <p className="mt-2 text-sm leading-relaxed">Gunakan tautan fasilitator dengan ID kelas lengkap (36 karakter). Kode 8 karakter yang ditampilkan pada header hanya ringkasan, bukan alamat kelas.</p>
+    <a href="/" className="mt-4 inline-flex min-h-11 items-center rounded-xl border border-amber-300 bg-white px-4 text-sm font-bold text-amber-950">Kembali ke beranda TrainLive</a>
+   </section>}
+   {loginMode==='unavailable'&&<section role="alert" className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 text-[#12384d]">
+    <h2 className="text-lg font-extrabold">Status login belum dapat diperiksa</h2>
+    <p className="mt-2 text-sm leading-relaxed text-slate-600">Koneksi ke layanan autentikasi terganggu atau sementara tidak tersedia. Status ini tidak berarti SSO belum dikonfigurasi.</p>
+    <button type="button" className="mt-4 rounded-xl bg-teal px-5 py-3 text-sm font-bold text-white" onClick={()=>setAuthRetry(n=>n+1)}>Coba periksa kembali</button>
+   </section>}
+   {loginMode==='blocked'&&<section role="alert" className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-950">
+    <h2 className="text-lg font-extrabold">SSO/MFA fasilitator belum aktif</h2>
+    <p className="mt-2 text-sm leading-relaxed">Akses staf belum tersedia di lingkungan deployment ini. Administrator perlu memeriksa konfigurasi penyedia identitas, variabel Vercel untuk lingkungan yang digunakan, dan deployment terbaru. Login tanpa MFA tetap dinonaktifkan.</p>
+    <a className="mt-4 inline-flex min-h-11 items-center rounded-xl border border-amber-300 bg-white px-4 text-sm font-bold text-amber-950" href="/admin/login">Lihat halaman login administrator</a>
+   </section>}
    {loginMode==='sso_login'&&<a href={'/api/auth/staff/start?classId='+encodeURIComponent(id)}
     className="mb-6 inline-flex rounded-xl bg-teal px-5 py-3 font-bold text-white">
     Masuk sebagai fasilitator (SSO + MFA)</a>}

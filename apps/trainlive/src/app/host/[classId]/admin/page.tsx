@@ -2,10 +2,12 @@
 import {useParams} from 'next/navigation';
 import {useEffect,useState,type FormEvent} from 'react';
 type NewClass={classId:string;joinCode:string;name:string;batch:string;date:string;capacity:number};
-type Mode='checking'|'sso_login'|'sso_ready'|'manual'|'blocked';
+type Mode='checking'|'sso_login'|'sso_ready'|'manual'|'blocked'|'invalid_class'|'unavailable';
+const isFullClassId=(value:string)=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 export default function AdminClassPage(){
  const id=useParams<{classId:string}>().classId;
  const [mode,setMode]=useState<Mode>('checking'),[token,setToken]=useState('');
+ const [authRetry,setAuthRetry]=useState(0);
  const [allowed,setAllowed]=useState(false),[busy,setBusy]=useState(false);
  const [name,setName]=useState('Customer Trust Challenge'),[batch,setBatch]=useState(''),[date,setDate]=useState('');
  const [error,setError]=useState(''),[created,setCreated]=useState<NewClass|null>(null);
@@ -13,12 +15,22 @@ export default function AdminClassPage(){
  const authHeaders=():Record<string,string>=>mode==='manual'&&token?{Authorization:'Bearer '+token}:{};
  useEffect(()=>{
   let active=true;
+  setMode('checking');
+  if(!isFullClassId(id)){
+   setMode('invalid_class');
+   return()=>{active=false};
+  }
   fetch('/api/auth/staff/status?classId='+encodeURIComponent(id),{cache:'no-store'})
-   .then(async r=>{if(!r.ok)throw Error('Login unavailable');return r.json()})
-   .then(s=>{if(active)setMode(s.authenticated?'sso_ready':s.configured?'sso_login':s.manualAllowed?'manual':'blocked')})
-   .catch(()=>{if(active)setMode('blocked')});
+   .then(async r=>{
+    if(r.status===400)return {invalidClass:true};
+    if(!r.ok)throw Error('Login unavailable');
+    return r.json();
+   })
+   .then(s=>{if(active)setMode(s.invalidClass?'invalid_class':
+    s.authenticated?'sso_ready':s.configured?'sso_login':s.manualAllowed?'manual':'blocked')})
+   .catch(()=>{if(active)setMode('unavailable')});
   return()=>{active=false};
- },[id]);
+ },[id,authRetry]);
  useEffect(()=>{
   if(!access){setAllowed(false);return;}
   let active=true;
@@ -53,7 +65,9 @@ export default function AdminClassPage(){
    <p className="workspace-eyebrow">CLASS MANAGEMENT</p><h1 className="mt-2 text-3xl font-extrabold tracking-tight">Buat kelas training baru</h1>
    <p className="mt-2 text-slate-600">Salin materi terpublikasi dari kelas sumber tanpa menyalin data peserta, jawaban, atau skor.</p>
    {mode==='checking'&&<p role="status" className="mt-6">Memeriksa akses administrator…</p>}
-   {mode==='blocked'&&<p role="alert" className="mt-5 rounded-xl bg-amber-50 p-4 text-amber-900">SSO/MFA belum disiapkan. Aksi admin dinonaktifkan.</p>}
+   {mode==='invalid_class'&&<p role="alert" className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">Tautan kelas sumber tidak lengkap. Buka halaman ini melalui konsol kelas dengan ID lengkap, bukan kode 8 karakter.</p>}
+   {mode==='unavailable'&&<div role="alert" className="mt-5 rounded-xl border border-slate-200 bg-white p-4 text-slate-800">Tidak dapat memeriksa status login. <button type="button" className="ml-2 font-bold text-teal underline" onClick={()=>setAuthRetry(n=>n+1)}>Coba lagi</button></div>}
+   {mode==='blocked'&&<p role="alert" className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">SSO/MFA belum diaktifkan pada lingkungan deployment ini. Aksi admin tetap dinonaktifkan hingga konfigurasi identitas siap.</p>}
    {mode==='sso_login'&&<a className="mt-5 inline-flex rounded-xl bg-teal p-4 font-bold text-white" href={'/api/auth/staff/start?classId='+encodeURIComponent(id)}>Masuk SSO + MFA</a>}
    {mode==='manual'&&<div className="mt-5 rounded-xl bg-amber-50 p-4">
     <label htmlFor="staff-token" className="field-label">Token staf — hanya staging</label>
