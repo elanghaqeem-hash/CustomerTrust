@@ -93,7 +93,7 @@ async function answerInUi(page,item,meta){
 }
 
 async function hostCard(host,title){
- return host.locator('div.shadow-card').filter({has:host.getByRole('heading',{name:title,exact:true})});
+ return host.locator('article.facilitator-item').filter({has:host.getByRole('heading',{name:title,exact:true})});
 }
 async function clickWhenEnabled(btn){await btn.waitFor();await host_wait(btn);await btn.click();}
 async function host_wait(btn){for(let i=0;i<60;i++){if(await btn.isEnabled())return;await new Promise(r=>setTimeout(r,250));}throw Error('button stayed disabled');}
@@ -107,13 +107,13 @@ async function runClass(cls,idx){
  await host.getByRole('button',{name:'Hubungkan'}).click();
  await host.getByText('Peran kelas: Fasilitator').waitFor();pass('fasilitator: Hubungkan token');
  await clickWhenEnabled(host.getByRole('button',{name:'Mulai kelas'}));
- await host.getByText('LIVE',{exact:true}).waitFor();pass('fasilitator: Mulai kelas');
+ await host.locator('.facilitator-status-pill').getByText('Berlangsung').waitFor();pass('fasilitator: Mulai kelas');
  // Search + filter.
  await host.getByPlaceholder('Judul, kode, modul…').fill('Kasus 3');
- assert.equal(await host.locator('div.shadow-card h2').count(),1);
+ assert.equal(await host.locator('article.facilitator-item').count(),1);
  await host.getByPlaceholder('Judul, kode, modul…').fill('');
  await host.locator('select').first().selectOption('idle');
- assert.equal(await host.locator('div.shadow-card h2').count(),17);
+ assert.equal(await host.locator('article.facilitator-item').count(),17);
  await host.locator('select').first().selectOption('all');pass('fasilitator: Cari aktivitas + filter status');
 
  const contexts=[];const pages=[];
@@ -133,22 +133,23 @@ async function runClass(cls,idx){
   const full={...item,...meta};
   const card=await hostCard(host,meta.title);
   await clickWhenEnabled(card.getByRole('button',{name:'Buka'}));
-  await card.getByText('open',{exact:true}).waitFor();
+  await card.locator('.facilitator-item-state').getByText('Sedang dibuka').waitFor();
   await Promise.all([
    ...pages.map(p=>answerInUi(p,full,meta)),
    ...apiPeople.map(ck=>api(`/api/class/${cls.class_id}/respond`,{method:'POST',cookie:ck,body:{itemId:item.id,answer:apiAnswer(meta)}})
     .then(r=>assert.equal(r.status,201,`${C} API respond ${meta.key} ${r.status} ${JSON.stringify(r.data)}`)))]);
   await card.getByRole('button',{name:'Lihat hasil'}).click();
-  await host.getByText(new RegExp('^'+TOTAL+' / '+TOTAL+' peserta terdaftar$')).waitFor({timeout:15000}).catch(async()=>{
-   await host.locator('aside').getByText(`${TOTAL}`,{exact:false}).first().waitFor({timeout:10000});});
-  const monitor=await host.locator('aside section').first().innerText();
+  const mon=host.locator('section[aria-label="Monitor jawaban"]');
+  await mon.locator('.facilitator-response-count strong').getByText(String(TOTAL),{exact:true}).waitFor({timeout:15000});
+  await mon.getByText('100% respons terkumpul').waitFor();
+  const monitor=await mon.innerText();
   assert.ok(monitor.includes(String(TOTAL)),`${C} monitor for ${meta.key}: ${monitor}`);
   if(item.type==='multi_choice')assert.ok(/\bB\b[\s\S]*\d/.test(monitor)&&/\bD\b/.test(monitor),`${C} poll breakdown missing: ${monitor}`);
   await clickWhenEnabled(card.getByRole('button',{name:'Tutup'}));
-  await card.getByText('closed',{exact:true}).waitFor();
+  await card.locator('.facilitator-item-state').getByText('Ditutup').waitFor();
   if(item.type==='single_choice'||item.type==='test'){
-   await clickWhenEnabled(card.getByRole('button',{name:'Reveal'}));
-   await card.getByText('revealed',{exact:true}).waitFor();
+   await clickWhenEnabled(card.getByRole('button',{name:'Bahas'}));
+   await card.locator('.facilitator-item-state').getByText('Dibahas').waitFor();
    if(item.type==='single_choice')await Promise.all(pages.map(p=>p.getByText('Kunci: '+meta.correct).waitFor({timeout:30000})));
   }
   if(meta.key==='CHAT-WARMUP'){
@@ -160,7 +161,7 @@ async function runClass(cls,idx){
    await host.getByRole('button',{name:'Tampilkan'}).first().click();
    await host.waitForFunction(()=>!document.body.innerText.includes('Tersembunyi'));pass('fasilitator: Sembunyikan / Tampilkan chat');
   }
-  pass(`alur ${meta.key} (${item.type}): Buka → jawab UI+API → Lihat hasil → Tutup${item.type==='single_choice'||item.type==='test'?' → Reveal':''}`);
+  pass(`alur ${meta.key} (${item.type}): Buka → jawab UI+API → Lihat hasil → Tutup${item.type==='single_choice'||item.type==='test'?' → Bahas':''}`);
  }
  log(C,'17 aktivitas selesai');
 
@@ -213,7 +214,7 @@ async function runClass(cls,idx){
  await host.locator('#staff-token').or(host.getByText('Peran kelas: Fasilitator')).first().waitFor();
  if(await host.locator('#staff-token').count()){await host.locator('#staff-token').fill(cls.staff_token);await host.getByRole('button',{name:'Hubungkan'}).click();}
  await clickWhenEnabled(host.getByRole('button',{name:'Tutup kelas'}));
- await host.getByText('CLOSED',{exact:true}).waitFor();pass('fasilitator: Tutup kelas');
+ await host.locator('.facilitator-status-pill').getByText('Selesai').waitFor();pass('fasilitator: Tutup kelas');
  assert.equal(await host.getByRole('button',{name:'Buka'}).first().isDisabled(),true,'Buka must be disabled after close');
  await Promise.all(contexts.map(c=>c.close()));await hostCtx.close();
  log(C,'PASS');
