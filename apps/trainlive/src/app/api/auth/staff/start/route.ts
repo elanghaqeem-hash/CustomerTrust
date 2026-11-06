@@ -8,8 +8,13 @@ export async function GET(req:NextRequest){
  const config=staffOIDCConfig();
  if(!config)return NextResponse.json({error:'SSO staf belum dikonfigurasi'}, {status:503});
  if(!matchesPublicOrigin(req,config.origin))return NextResponse.json({error:'Host SSO tidak sesuai'}, {status:400});
- const classId=req.nextUrl.searchParams.get('classId')||'';
- if(!z.string().uuid().safeParse(classId).success)
+ const role=req.nextUrl.searchParams.get('role');
+ if(role!==null && role!=='admin')
+  return NextResponse.json({error:'Jenis login tidak valid'},{status:400});
+ if(role==='admin'&&req.nextUrl.searchParams.has('classId'))
+  return NextResponse.json({error:'Parameter login tidak sesuai'},{status:400});
+ const classId=role==='admin'?'admin':req.nextUrl.searchParams.get('classId')||'';
+ if(classId!=='admin'&&!z.string().uuid().safeParse(classId).success)
   return NextResponse.json({error:'classId tidak valid'},{status:400});
  try{
   const provider=await discover(config),state=randomURLSafe(),nonce=randomURLSafe();
