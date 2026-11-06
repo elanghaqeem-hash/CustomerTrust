@@ -75,3 +75,66 @@ a{text-underline-offset:3px}
 .trainlive-console button:not(:disabled):active{transform:translateY(1px)}
 .trainlive-console .shadow-card h2{letter-spacing:-.025em}
 .trainlive-console .shadow-card .text-slate-500{color:#69808d}
+
+/* Participant classroom — responsive, accessible visual language. */
+.trainlive-participant{background:radial-gradient(ellipse 85% 380px at 50% 0,rgba(162,226,218,.32),transparent 100%),#f6fafb;color:#112b3d;min-height:100vh}
+.participant-topbar{background:#091e31;color:#fff;box-shadow:0 6px 26px rgba(5,30,48,.13);border-bottom:1px solid rgba(255,255,255,.08)}
+.participant-brand{display:inline-flex;align-items:center;gap:11px;font-size:22px;font-weight:850;letter-spacing:-.06em;text-decoration:none;color:#fff}
+.participant-brand-accent{color:#61dfc8}
+.participant-brand-mark{width:34px;height:34px;display:grid;place-items:center;color:#b3fcef;background:rgba(84,221,194,.15);border:1px solid rgba(106,241,218,.22);border-radius:11px}
+.participant-topbar-label{font-size:10px;letter-spacing:.13em;font-weight:750;color:#c5d5df;text-align:right}
+.participant-hero{position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:center;min-height:224px;padding:30px 32px;border-radius:26px;background:linear-gradient(118deg,#0c3044 0%,#105364 55%,#15877a 100%);color:#fff;box-shadow:0 22px 40px rgba(6,74,86,.16)}
+.participant-hero::before{content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;background:radial-gradient(circle at 87% 30%,rgba(175,255,218,.22),transparent 33%),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:auto,36px 36px}
+.participant-hero-content{position:relative;z-index:2;max-width:540px}
+.participant-eyebrow{display:inline-flex;align-items:center;gap:8px;color:#b3ffe6;font-size:10px;font-weight:850;letter-spacing:.16em}
+.participant-eyebrow span{font-size:16px}
+.participant-hero h1{font-size:clamp(27px,4.8vw,40px);line-height:1.14;letter-spacing:-.045em;font-weight:850;margin:13px 0 11px}
+.participant-hero h1 span{color:#adf7df}
+.participant-hero p{color:#dcefed;font-size:13px;line-height:1.75;max-width:430px}
+.participant-live-status{display:inline-flex;align-items:center;gap:8px;margin-top:20px;padding:8px 12px;border:1px solid rgba(215,255,240,.25);border-radius:999px;background:rgba(3,26,36,.22);color:#e9fff8;font-size:12px;font-weight:700}
+.participant-live-dot{display:inline-block;flex:none;width:8px;height:8px;border-radius:50%;background:#25c7ac;box-shadow:0 0 0 4px rgba(37,199,172,.14)}
+.participant-live-dot.is-live{animation:participant-pulse 1.8s ease-in-out infinite}
+.participant-hero-art{position:absolute;right:2%;top:50%;width:220px;height:220px;transform:translateY(-50%);opacity:.92}
+.participant-hero-ring{position:absolute;inset:0;border:1px solid rgba(188,255,226,.28);border-radius:50%}
+.participant-hero-ring-outer{box-shadow:0 0 0 27px rgba(192,255,230,.055),0 0 0 61px rgba(192,255,230,.03)}
+.participant-hero-ring-inner{inset:35px;border-style:dashed;border-color:rgba(205,255,239,.42)}
+.participant-hero-center{position:absolute;inset:69px;border-radius:24px;display:grid;place-items:center;transform:rotate(-12deg);background:linear-gradient(145deg,#8eedd7,#e0fff1);box-shadow:0 12px 45px rgba(5,29,42,.24);color:#0f685f;font-size:40px}
+.participant-hero-center span{transform:rotate(12deg)}
+.participant-hero-star{position:absolute;color:#bbfcea;font-size:22px}
+.participant-hero-star-one{left:10px;top:20px}.participant-hero-star-two{right:13px;bottom:25px}
+.participant-shortcuts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:19px 0 22px}
+.participant-shortcut{display:flex;align-items:center;gap:14px;width:100%;min-height:86px;padding:18px;text-decoration:none;text-align:left;border-radius:19px;border:1px solid #dbe9eb;background:#fff;color:#112c40;box-shadow:0 7px 18px rgba(17,49,66,.045);transition:transform .18s,box-shadow .18s,border-color .18s}
+.participant-shortcut:hover{transform:translateY(-2px);border-color:#acdcd7;box-shadow:0 11px 26px rgba(17,49,66,.075)}
+.participant-shortcut-icon{width:46px;height:46px;display:grid;place-items:center;flex:none;border-radius:14px;background:#e9f7f4;color:#087a72}
+.participant-shortcut-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
+.participant-shortcut-copy strong{font-size:15px;line-height:1.25;font-weight:800}
+.participant-shortcut-copy small{font-size:12px;line-height:1.45;color:#617789}
+.participant-shortcut-toggle{margin-left:auto;width:39px;height:23px;flex:none;background:#d3e0e4;border-radius:100px;padding:3px;transition:background .2s}
+.participant-shortcut-toggle span{display:block;width:17px;height:17px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.16);transition:transform .2s}
+.participant-shortcut-toggle.is-on{background:#078579}.participant-shortcut-toggle.is-on span{transform:translateX(16px)}
+.participant-alert.is-enabled{border-color:#9bd9cf;background:#f4fffc}
+.participant-worksheet{background:linear-gradient(110deg,#e4f8f1,#effcf8);border-color:#cae8de}
+.participant-worksheet .participant-shortcut-icon{background:#d0f1e4}
+.participant-shortcut-arrow{margin-left:auto;font-size:23px;line-height:1;color:#0b887a}
+.participant-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:5px;margin-bottom:21px;border:1px solid #e2ebed;border-radius:17px;background:#fff;box-shadow:0 4px 12px rgba(9,48,64,.035)}
+.participant-tab{display:flex;align-items:center;justify-content:center;gap:9px;min-height:49px;border-radius:12px;color:#516b7a;font-size:14px;font-weight:800;transition:background .18s,color .18s,box-shadow .18s}
+.participant-tab:hover:not(.is-active){background:#f0f8f7;color:#0b655f}
+.participant-tab.is-active{background:#086e70;color:#fff;box-shadow:0 5px 12px rgba(10,119,112,.18)}
+.participant-panel{background:#fff;border:1px solid #e2eaed;border-radius:23px;box-shadow:0 14px 32px rgba(11,44,59,.065)}
+.participant-activity-heading{background:linear-gradient(100deg,#092e43,#0f746f)}
+.participant-kicker{color:#0b867c;font-size:10px;font-weight:850;letter-spacing:.16em}
+.participant-waiting{padding:40px 25px 30px;overflow:hidden}
+.participant-wait-illustration{width:142px;height:142px;position:relative;margin:0 auto 20px}
+.participant-wait-orbit{position:absolute;border-radius:50%;border:1px solid #bce6da}
+.participant-wait-orbit-one{inset:0;background:radial-gradient(circle,rgba(209,252,239,.28) 0%,rgba(209,252,239,0) 70%)}
+.participant-wait-orbit-two{inset:16px;border-style:dashed;border-color:#a3d8cc}
+.participant-wait-icon{position:absolute;inset:37px;display:grid;place-items:center;border-radius:22px;background:linear-gradient(145deg,#d1f5e9,#eafbf5);color:#087e76;box-shadow:0 9px 18px rgba(12,99,89,.09)}
+.participant-wait-sparkle{position:absolute;right:5px;top:7px;color:#0fa78d;font-size:21px}
+.participant-waiting h2{margin:11px 0 0;font-size:clamp(22px,3.6vw,28px);font-weight:850;letter-spacing:-.035em;color:#113247}
+.participant-waiting p{max-width:500px;margin:12px auto 0;font-size:14px;line-height:1.8;color:#617584}
+.participant-wait-footer{display:inline-flex;align-items:center;gap:10px;max-width:100%;margin-top:28px;padding:12px 15px;border-radius:12px;background:#f1faf7;color:#2d716c;font-size:11px;font-weight:700;line-height:1.5;text-align:left}
+.trainlive-participant .select-btn{transition:border-color .18s,background .18s,transform .18s}
+.trainlive-participant .select-btn:not(:disabled):hover{border-color:#0c9c8c;transform:translateY(-1px)}
+@keyframes participant-pulse{0%,100%{box-shadow:0 0 0 4px rgba(37,199,172,.14)}50%{box-shadow:0 0 0 8px rgba(37,199,172,.04)}}
+@media(max-width:680px){.participant-hero{min-height:218px;padding:26px 24px;border-radius:22px}.participant-hero-art{right:-85px;opacity:.25}.participant-hero-content{max-width:100%}.participant-hero p{max-width:320px}.participant-shortcuts{grid-template-columns:1fr;gap:10px}.participant-shortcut{min-height:76px;padding:14px 16px}.participant-shortcut-icon{width:43px;height:43px}.participant-waiting{padding:32px 20px 27px}.participant-tab{font-size:13px;gap:6px}.participant-topbar-label{font-size:9px;letter-spacing:.08em}}
+@media(prefers-reduced-motion:reduce){.participant-live-dot.is-live{animation:none}.participant-shortcut,.participant-tab,.participant-shortcut-toggle,.participant-shortcut-toggle span,.trainlive-participant .select-btn{transition:none}.participant-shortcut:hover,.trainlive-participant .select-btn:not(:disabled):hover{transform:none}}

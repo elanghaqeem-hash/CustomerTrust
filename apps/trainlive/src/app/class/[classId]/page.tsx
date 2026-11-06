@@ -158,38 +158,65 @@ export default function ClassPage(){
   if(current.type==='multi_choice')return Array.isArray(selected)&&selected.length>0;
   return typeof selected==='string'&&selected.trim().length>0;
  };
- return <main className="min-h-screen pb-20">
-  <header className="sticky top-0 z-10 bg-navy text-white shadow-lg">
-   <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-5 py-4">
-    <div className="font-extrabold">Train<span className="text-[#55d3c2]">Live</span></div>
-    <span className="text-right text-xs text-slate-200">CUSTOMER TRUST CHALLENGE</span>
+ return <main className="trainlive-participant min-h-screen pb-16">
+  <header className="participant-topbar sticky top-0 z-20">
+   <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
+    <a href="/" className="participant-brand" aria-label="TrainLive — beranda">
+     <span className="participant-brand-mark" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 13h4l3-8 4 14 3-6h2"/></svg></span>
+     <span>Train<span className="participant-brand-accent">Live</span></span>
+    </a>
+    <span className="participant-topbar-label">CUSTOMER TRUST <span className="hidden sm:inline">CHALLENGE</span></span>
    </div>
   </header>
-  <div className="mx-auto max-w-3xl px-4 pt-7 md:px-5">
-   <button type="button" onClick={()=>{if(alerts){setAlerts(false);audioContext.current?.close();audioContext.current=null;}
-    else void enableAlerts();}}
-    className="mb-4 min-h-12 w-full rounded-xl border border-teal bg-white px-4 font-semibold text-teal"
-    aria-pressed={alerts}>
-    {alerts?'Notifikasi kuis: aktif · Ketuk untuk mematikan':'Aktifkan suara dan notifikasi saat kuis dibuka'}
-   </button>
-   <a href={'/class/'+id+'/worksheets'}
-    className="mb-5 flex min-h-14 items-center justify-between rounded-xl border border-[#b5cfc8] bg-[#e8f5f1] px-5 py-3 font-bold text-teal">
-    <span>Isi Lembar Kerja LK1–LK5</span><span aria-hidden="true">→</span>
-   </a>
-   <div className="mb-6 grid grid-cols-3 gap-2 rounded-xl bg-white p-1 shadow-sm" role="tablist" aria-label="Menu peserta">
+  <div className="mx-auto max-w-4xl px-4 pt-6 sm:px-6 sm:pt-8">
+   <section className="participant-hero" aria-label="Informasi kelas">
+    <div className="participant-hero-content">
+     <span className="participant-eyebrow"><span aria-hidden="true">✦</span> YOUR INTERACTIVE CLASSROOM</span>
+     <h1>Customer Trust <span>Challenge.</span></h1>
+     <p>Setiap pertanyaan adalah kesempatan belajar. Ikuti aktivitas, bagikan ide, dan raih poin terbaikmu.</p>
+     <div className="participant-live-status" role="status">
+      <span className={'participant-live-dot '+(opened?'is-live':'')} aria-hidden="true"></span>
+      {loading?'Menghubungkan ke kelas…':opened?'Aktivitas sedang berlangsung':revealed?'Pembahasan tersedia':'Siap belajar · Menunggu fasilitator'}
+     </div>
+    </div>
+    <div className="participant-hero-art" aria-hidden="true">
+     <div className="participant-hero-ring participant-hero-ring-outer"></div>
+     <div className="participant-hero-ring participant-hero-ring-inner"></div>
+     <div className="participant-hero-center"><span>✦</span></div>
+     <span className="participant-hero-star participant-hero-star-one">✳</span>
+     <span className="participant-hero-star participant-hero-star-two">✦</span>
+    </div>
+   </section>
+   <div className="participant-shortcuts">
+    <button type="button" onClick={()=>{if(alerts){setAlerts(false);audioContext.current?.close();audioContext.current=null;}
+     else void enableAlerts();}}
+     className={'participant-shortcut participant-alert '+(alerts?'is-enabled':'')}
+     aria-pressed={alerts} aria-label={alerts?'Matikan pengingat kuis':'Aktifkan pengingat kuis'}>
+     <span className="participant-shortcut-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg></span>
+     <span className="participant-shortcut-copy"><strong>Pengingat kuis</strong><small>{alerts?'Aktif · Sesuai izin browser':'Aktifkan suara & notifikasi'}</small></span>
+     <span className={'participant-shortcut-toggle '+(alerts?'is-on':'')} aria-hidden="true"><span></span></span>
+    </button>
+    <a href={'/class/'+id+'/worksheets'} className="participant-shortcut participant-worksheet">
+     <span className="participant-shortcut-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3h8l4 4v14H4V3h4zM16 3v5h4M8 13h8M8 17h6"/></svg></span>
+     <span className="participant-shortcut-copy"><strong>Lembar kerja</strong><small>Isi LK1–LK5 dan kumpulkan poin</small></span>
+     <span className="participant-shortcut-arrow" aria-hidden="true">↗</span>
+    </a>
+   </div>
+   <div className="participant-tabs" role="tablist" aria-label="Menu peserta">
     <button type="button" role="tab" aria-selected={tab==='active'} onClick={()=>setTab('active')}
-     className={'rounded-lg px-2 py-3 text-sm font-bold sm:px-4 sm:text-base '+(tab==='active'?'bg-teal text-white':'text-navy')}>Aktivitas</button>
+     className={'participant-tab '+(tab==='active'?'is-active':'')}><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 17h7M17.5 14v7"/></svg>Aktivitas</button>
     <button type="button" role="tab" aria-selected={tab==='agenda'} onClick={()=>setTab('agenda')}
-     className={'rounded-lg px-2 py-3 text-sm font-bold sm:px-4 sm:text-base '+(tab==='agenda'?'bg-teal text-white':'text-navy')}>Rundown</button>
+     className={'participant-tab '+(tab==='agenda'?'is-active':'')}><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 15h3M14 15h3"/></svg>Rundown</button>
     <button type="button" role="tab" aria-selected={tab==='score'} onClick={()=>setTab('score')}
-     className={'rounded-lg px-2 py-3 text-sm font-bold sm:px-4 sm:text-base '+(tab==='score'?'bg-teal text-white':'text-navy')}>Skor</button>
+     className={'participant-tab '+(tab==='score'?'is-active':'')}><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 21h8M12 17v4M7 4H5a2 2 0 0 0-2 2c0 4 3 6 6 6M17 4h2a2 2 0 0 1 2 2c0 4-3 6-6 6M7 3h10v6a5 5 0 0 1-10 0z"/></svg>Skor</button>
    </div>
    {error&&<div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-800">
     <p>{error}</p><button type="button" className="mt-3 rounded-lg border border-red-600 px-4 py-2 font-bold"
     onClick={()=>setReloadKey(n=>n+1)}>Coba muat ulang</button></div>}
-   {loading?<p aria-live="polite" className="py-16 text-center text-slate-600">Memuat kelas…</p>:tab==='score'?
-    <section className="shadow-card rounded-2xl bg-white p-6">
-     <h1 className="mb-2 text-2xl font-extrabold">Papan Skor Kelas</h1>
+   {loading?<p aria-live="polite" className="participant-panel py-12 text-center text-slate-600">Memuat kelas…</p>:tab==='score'?
+    <section className="participant-panel p-5 sm:p-7">
+     <span className="participant-kicker">PERINGKAT PESERTA</span>
+     <h2 className="mb-2 mt-2 text-2xl font-extrabold">Papan Skor Kelas</h2>
      <p className="mb-6 text-sm text-slate-500">Poin kuis benar, kontribusi chat, dan lembar kerja lengkap.</p>
      <ol className="space-y-3">{leader.map(r=><li key={r.participant_id}
       className="flex items-center justify-between rounded-xl border border-slate-200 p-4">
@@ -197,8 +224,9 @@ export default function ClassPage(){
        <div className="font-bold">{r.display_name}<div className="text-sm font-normal text-slate-500">{r.unit}</div></div></div>
       <strong>{r.points} poin</strong></li>)}</ol>
      {!leader.length&&<p className="py-8 text-center text-slate-500">Belum ada poin dalam kelas.</p>}
-    </section>:tab==='agenda'?<section className="shadow-card rounded-2xl bg-white p-6">
-     <h1 className="text-2xl font-extrabold">Rundown aktivitas</h1>
+    </section>:tab==='agenda'?<section className="participant-panel p-5 sm:p-7">
+     <span className="participant-kicker">AGENDA TRAINING</span>
+     <h2 className="mt-2 text-2xl font-extrabold">Rundown aktivitas</h2>
      <p className="mt-2 text-sm text-slate-600">Agenda ini diperbarui otomatis oleh fasilitator. Jawaban dan pembahasan hanya muncul saat diizinkan.</p>
      <ol className="mt-5 space-y-3">{items.map(item=><li key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-4">
       <div><p className="text-xs font-semibold text-teal">Modul {item.module_no} · Slide {item.slide_ref??'—'}</p>
@@ -207,8 +235,8 @@ export default function ClassPage(){
      </li>)}</ol>
      {!items.length&&<p className="mt-6 text-slate-500">Rundown belum tersedia.</p>}
     </section>:
-    current?<section className="shadow-card overflow-hidden rounded-2xl border border-slate-200 bg-white">
-     <div className="flex flex-wrap items-center justify-between gap-3 bg-navy px-6 py-5 text-white">
+    current?<section className="participant-panel overflow-hidden">
+     <div className="participant-activity-heading flex flex-wrap items-center justify-between gap-3 px-5 py-5 text-white sm:px-7">
       <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-extrabold tracking-wider">{kindLabel(current)}</span>
       <span className="text-sm">Modul {current.module_no} · Slide {current.slide_ref??'—'}</span>
      </div>
@@ -218,7 +246,7 @@ export default function ClassPage(){
        <span aria-live="off" className={'tabular-nums '+(remaining<=10?'text-brick':'text-slate-700')}>
         {current.state==='open'?(remaining===Infinity?'Tanpa batas waktu':'Sisa '+remaining+' detik'):'Selesai'}</span>
       </div>
-      <h1 className="text-2xl font-extrabold">{current.payload.title||'Aktivitas Peserta'}</h1>
+      <h2 className="text-2xl font-extrabold">{current.payload.title||'Aktivitas Peserta'}</h2>
       {current.payload.scenario&&<p className="mt-4 rounded-xl border-l-4 border-gold bg-paper p-4 leading-relaxed">{current.payload.scenario}</p>}
       <p className="mt-5 text-lg font-semibold leading-relaxed">{current.payload.prompt}</p>
       {renderAnswer()}
@@ -235,10 +263,17 @@ export default function ClassPage(){
         {busy?'Menyimpan…':'Kirim Jawaban'}</button>:null}
      </div>
     </section>:
-    <section className="shadow-card rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center">
-     <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-full bg-[#e8f5f1] text-3xl text-teal">◎</div>
-     <h1 className="text-2xl font-extrabold">Menunggu fasilitator</h1>
-     <p className="mx-auto mt-3 max-w-md leading-relaxed text-slate-600">Pertanyaan akan tampil otomatis saat dibuka. Tetap buka halaman ini sambil mengikuti training melalui Zoom atau Microsoft Teams.</p>
+    <section className="participant-panel participant-waiting text-center" aria-live="polite">
+     <div className="participant-wait-illustration" aria-hidden="true">
+      <div className="participant-wait-orbit participant-wait-orbit-one"></div>
+      <div className="participant-wait-orbit participant-wait-orbit-two"></div>
+      <div className="participant-wait-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a9 9 0 1 0 9 9M12 7v5l3 2"/><path d="M17 3h4v4M21 3l-6 6"/></svg></div>
+      <span className="participant-wait-sparkle">✦</span>
+     </div>
+     <span className="participant-kicker">MENUNGGU AKTIVITAS</span>
+     <h2>Siap untuk tantangan berikutnya?</h2>
+     <p>Pertanyaan akan muncul otomatis saat fasilitator membukanya. Tetap di halaman ini sambil mengikuti training di Zoom atau Microsoft Teams.</p>
+     <div className="participant-wait-footer"><span className="participant-live-dot" aria-hidden="true"></span> Terhubung ke kelas · Memeriksa aktivitas setiap 3 detik</div>
     </section>}
   </div>
  </main>;
