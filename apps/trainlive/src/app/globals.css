@@ -36,3 +36,31 @@ a{text-underline-offset:3px}
 .trainlive-feature{box-shadow:0 4px 18px rgba(6,34,50,.025);transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
 .trainlive-feature:hover{transform:translateY(-3px);border-color:#b8d9d3;box-shadow:0 14px 32px rgba(6,34,50,.08)}
 @media(prefers-reduced-motion:reduce){.trainlive-feature,.trainlive-landing .field-input{transition:none}.trainlive-feature:hover{transform:none}}
+
+
+/* Shared facilitator workspace and report design, aligned with the TrainLive landing. */
+.trainlive-workspace{background:linear-gradient(180deg,#eaf3f3 0,#f4f8f9 360px,#f7fafb 100%);color:#102d40}
+.workspace-nav{position:relative;z-index:3;background:#081f31;border-bottom:1px solid rgba(255,255,255,.1)}
+.report-hero{position:relative;isolation:isolate;overflow:hidden;background:radial-gradient(ellipse at 85% 25%,rgba(36,180,161,.31),transparent 43%),linear-gradient(120deg,#081f31,#0a3345 70%,#0c514f)}
+.report-hero::before{content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;opacity:.24;background-image:linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px);background-size:45px 45px;mask-image:linear-gradient(to bottom,black,transparent)}
+.report-hero::after{content:"";position:absolute;right:-140px;top:-200px;width:560px;height:560px;border:1px solid rgba(110,237,214,.12);border-radius:50%;box-shadow:0 0 0 80px rgba(110,237,214,.027),0 0 0 155px rgba(110,237,214,.018);pointer-events:none}
+.workspace-card{background:#fff;border:1px solid #e1ecef;border-radius:22px;box-shadow:0 14px 35px rgba(9,45,61,.055)}
+.workspace-eyebrow{font-size:11px;font-weight:850;letter-spacing:.17em;color:#0e8177}
+.report-empty{background:radial-gradient(ellipse at top,rgba(223,249,244,.56),transparent 65%),#fff}
+.report-preview-tile{border:1px solid #e0eced;border-radius:16px;padding:18px;background:rgba(250,253,253,.87)}
+.report-preview-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:#e8f6f4;color:#0e8177}
+.report-preview-tile h3{margin-top:15px;font-size:14px;font-weight:800;color:#12364b}
+.report-preview-tile p{margin-top:6px;font-size:12px;line-height:1.7;color:#677f8e}
+.workspace-table{border-collapse:separate;border-spacing:0}
+.workspace-table th{white-space:nowrap;background:#f2f8f8;padding:14px 18px;font-size:11px;font-weight:850;letter-spacing:.055em;text-transform:uppercase;color:#597182}
+.workspace-table td{padding:15px 18px;vertical-align:middle;border-top:1px solid #edf2f4;color:#364f60}
+.workspace-table tbody tr{transition:background .18s ease}
+.workspace-table tbody tr:hover{background:#f7fbfa}
+.trainlive-workspace .field-input:focus{outline:3px solid rgba(15,118,110,.15);outline-offset:0;border-color:#0f766e}
+.trainlive-workspace button:disabled{opacity:.48;filter:saturate(.5)}
+@media(max-width:639px){
+ .workspace-card{border-radius:18px}
+ .report-hero::after{right:-330px;top:-180px}
+ .workspace-table th,.workspace-table td{padding:13px 15px}
+}
+@media(prefers-reduced-motion:reduce){.workspace-table tbody tr{transition:none}}
