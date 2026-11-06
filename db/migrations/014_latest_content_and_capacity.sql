@@ -1,8 +1,17 @@
--- TrainLive 014: Super Admin class creation uses the newest published content
--- version of the source class's program (e.g. CTC v2, deck revision 13) instead of
--- copying the source class's possibly older version. Signature, authorization,
--- validation and isolation are unchanged; participants and scores are never copied.
+-- TrainLive 014
+-- 1. Super Admin class creation uses the newest published content version of the
+--    source class's program (CTC v2, deck revision 13) instead of copying the
+--    source's possibly older version. Signature, authorization, validation and
+--    isolation are unchanged; participants and scores are never copied.
+-- 2. Capacity: 25 seats rejected the 26th participant of a 30-person class.
+--    New and not-yet-closed classes get at least 40 seats.
+-- 3. Join throttle: 40 joins per IP per class code per 10 minutes blocked a
+--    30-40 person branch behind one NAT once a few people re-joined. Raised to
+--    80; the 16-shard per-IP ceiling (1024 / 10 min) is unchanged.
 BEGIN;
+ALTER TABLE trainlive.class_session ALTER COLUMN capacity SET DEFAULT 40;
+UPDATE trainlive.class_session SET capacity=40
+ WHERE status IN ('scheduled','live') AND capacity<40;
 CREATE OR REPLACE FUNCTION trainlive.admin_create_class(
  p_source uuid,p_name text,p_batch text,p_day date,p_join_code text
 ) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
@@ -35,7 +44,7 @@ BEGIN
  )
  VALUES(v_source.program_id,v_version,btrim(p_name),p_batch,
    v_start,v_end,'Asia/Makassar',p_join_code,v_start-interval '24 hours',
-   v_end+interval '24 hours',v_source.capacity,'scheduled')
+   v_end+interval '24 hours',GREATEST(v_source.capacity,40),'scheduled')
  RETURNING id INTO v_id;
  INSERT INTO trainlive.class_staff(class_id,user_id,role)
  VALUES(v_id,trainlive.claim_staff(),'facilitator');
@@ -43,8 +52,40 @@ BEGIN
  VALUES(trainlive.claim_staff(),'super_admin',p_source,'class.create',v_id::text,
   jsonb_build_object('batch',p_batch,'date',p_day::text,'content_version_id',v_version));
  RETURN jsonb_build_object('classId',v_id,'joinCode',p_join_code,'batch',p_batch,
-   'date',p_day::text,'name',btrim(p_name),'capacity',v_source.capacity);
+   'date',p_day::text,'name',btrim(p_name),'capacity',GREATEST(v_source.capacity,40));
 END $$;
 REVOKE ALL ON FUNCTION trainlive.admin_create_class(uuid,text,text,date,text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION trainlive.admin_create_class(uuid,text,text,date,text) TO trainlive_app;
+CREATE OR REPLACE FUNCTION trainlive.allow_join_attempt(p_ip_hash text,p_ip_class_hash text)
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER
+SET search_path=trainlive,pg_temp AS $$
+DECLARE overall integer; per_class integer;
+BEGIN
+ IF p_ip_hash IS NULL OR p_ip_class_hash IS NULL
+    OR p_ip_hash !~ '^[a-f0-9]{64}$'
+    OR p_ip_class_hash !~ '^[a-f0-9]{64}$'
+    OR p_ip_hash=p_ip_class_hash THEN RETURN false; END IF;
+
+ INSERT INTO trainlive.join_throttle(key_hash,period_start,attempt_count)
+ VALUES(p_ip_hash,now(),1)
+ ON CONFLICT(key_hash) DO UPDATE SET
+  attempt_count=CASE WHEN join_throttle.period_start<now()-interval '10 minutes'
+   THEN 1 ELSE join_throttle.attempt_count+1 END,
+  period_start=CASE WHEN join_throttle.period_start<now()-interval '10 minutes'
+   THEN now() ELSE join_throttle.period_start END
+ RETURNING attempt_count INTO overall;
+ IF overall>64 THEN RETURN false; END IF;
+
+ INSERT INTO trainlive.join_throttle(key_hash,period_start,attempt_count)
+ VALUES(p_ip_class_hash,now(),1)
+ ON CONFLICT(key_hash) DO UPDATE SET
+  attempt_count=CASE WHEN join_throttle.period_start<now()-interval '10 minutes'
+   THEN 1 ELSE join_throttle.attempt_count+1 END,
+  period_start=CASE WHEN join_throttle.period_start<now()-interval '10 minutes'
+   THEN now() ELSE join_throttle.period_start END
+ RETURNING attempt_count INTO per_class;
+ RETURN per_class<=80;
+END $$;
+REVOKE ALL ON FUNCTION trainlive.allow_join_attempt(text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION trainlive.allow_join_attempt(text,text) TO trainlive_app;
 COMMIT;

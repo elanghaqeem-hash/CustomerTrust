@@ -7,6 +7,9 @@ if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !batch) {
 }
 const start = new Date(date+'T09:00:00+08:00'), end = new Date(date+'T16:00:00+08:00');
 if (Number.isNaN(start.getTime()) || start.toISOString().slice(0,10)!==date) throw new Error('Invalid date');
+// Seats per class; 40 covers a 30+ participant class plus re-joins on a new device.
+const capacity=Number(process.env.TRAINLIVE_CLASS_CAPACITY||40);
+if(!Number.isInteger(capacity)||capacity<1||capacity>10000)throw new Error('TRAINLIVE_CLASS_CAPACITY must be 1..10000');
 const db = new pg.Client({connectionString:process.env.DATABASE_URL_ADMIN});
 await db.connect();
 const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -23,9 +26,9 @@ try {
    await db.query('SAVEPOINT code_attempt');
    try {
      row=(await db.query(
-       "INSERT INTO trainlive.class_session(program_id,content_version_id,name,batch_no,start_at,end_at,timezone,join_code,join_open_from,join_open_until,capacity) VALUES($1,$2,$3,$4,$5,$6,'Asia/Makassar',$7,$8,$9,25) RETURNING id,join_code",
+       "INSERT INTO trainlive.class_session(program_id,content_version_id,name,batch_no,start_at,end_at,timezone,join_code,join_open_from,join_open_until,capacity) VALUES($1,$2,$3,$4,$5,$6,'Asia/Makassar',$7,$8,$9,$10) RETURNING id,join_code",
        [v.program_id,v.version_id,name||'Customer Trust Challenge '+batch,batch,start,end,code(),
-        new Date(start.getTime()-86400000),new Date(end.getTime()+86400000)]
+        new Date(start.getTime()-86400000),new Date(end.getTime()+86400000),capacity]
      )).rows[0];
      await db.query('RELEASE SAVEPOINT code_attempt');
      break;

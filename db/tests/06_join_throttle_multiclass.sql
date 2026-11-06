@@ -1,4 +1,4 @@
--- Verify 24 × 25 attendees behind a shared IP using 16 bounded shards.
+-- Verify per-class cap and 24 × 25 attendees behind a shared IP using 16 bounded shards.
 -- Hashed identifiers are synthetic; NO real addresses or join codes stored.
 \set ON_ERROR_STOP on
 BEGIN;
@@ -6,13 +6,15 @@ DO $$
 DECLARE i integer; c integer; permitted boolean;
  ipkey text; classkey text;
 BEGIN
- -- Brute-force attempts on the same class code must stop after 40.
- FOR i IN 1..40 LOOP
-  SELECT trainlive.allow_join_attempt(repeat('b',64),repeat('c',64)) INTO permitted;
+ -- One office IP may join one class up to 80 times per window (a 40-seat
+-- class plus re-joins on new devices); attempt 81 is refused. Attempts spread
+-- over the 16 server-chosen shards exactly as the join route does.
+ FOR i IN 1..80 LOOP
+  SELECT trainlive.allow_join_attempt(lpad(to_hex(i%16+1),64,'b'),repeat('c',64)) INTO permitted;
   IF NOT permitted THEN RAISE EXCEPTION 'class quota rejected legitimate attempt %',i; END IF;
  END LOOP;
- SELECT trainlive.allow_join_attempt(repeat('b',64),repeat('c',64)) INTO permitted;
- IF permitted THEN RAISE EXCEPTION 'class quota missed attempt 41'; END IF;
+ SELECT trainlive.allow_join_attempt(lpad(to_hex(81%16+1),64,'b'),repeat('c',64)) INTO permitted;
+ IF permitted THEN RAISE EXCEPTION 'class quota missed attempt 81'; END IF;
 
  -- Six hundred participants can join 24 distinct 25-person classes
  -- through 16 secret-keyed IP buckets without exhausting any bucket.

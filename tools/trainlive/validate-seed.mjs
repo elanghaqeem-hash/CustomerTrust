@@ -32,4 +32,6 @@ assert.deepEqual(v2.items.filter(x=>x.type==='single_choice').map(x=>x.key),
 const slides = v2.items.filter(i=>i.slide!=null).map(i=>i.slide);
 assert.deepEqual(slides,[...slides].sort((a,b)=>a-b),'v2 items must follow deck slide order');
 assert.ok(slides.every(s=>s>=1&&s<=v2.release.deck_slides),'v2 slide out of deck range');
+for(const q of v2.items.find(i=>i.key==='EVAL').questions)
+ assert.ok([q.scale,q.options,q.type==='open_text'].filter(Boolean).length===1,'EVAL question must be scale, options or open_text');
 console.info('PASS: v1 16 items/11 scenarios; v2 17 items/12 scenarios; 20 test questions and 5 worksheets each.');
