@@ -64,3 +64,14 @@ a{text-underline-offset:3px}
  .workspace-table th,.workspace-table td{padding:13px 15px}
 }
 @media(prefers-reduced-motion:reduce){.workspace-table tbody tr{transition:none}}
+
+
+/* Gentle visual lift for the operational consoles without changing their behaviour. */
+.trainlive-console .shadow-card{border-radius:20px;border-color:#dfebed;box-shadow:0 10px 28px rgba(9,45,61,.05)}
+.trainlive-console .shadow-card:hover{border-color:#cce2e2}
+.trainlive-console .field-input{border-color:#cadce1;border-radius:12px;min-height:48px}
+.trainlive-console .field-input:focus{border-color:#0f766e}
+.trainlive-console button:not(:disabled){transition:background-color .18s ease,border-color .18s ease,box-shadow .18s ease}
+.trainlive-console button:not(:disabled):active{transform:translateY(1px)}
+.trainlive-console .shadow-card h2{letter-spacing:-.025em}
+.trainlive-console .shadow-card .text-slate-500{color:#69808d}
