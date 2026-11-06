@@ -228,7 +228,7 @@ export default function ClassPage(){
  };
  const highestScore=Math.max(0,...leader.map(r=>r.points));
  const featured=leader.filter(r=>r.points>0).slice(0,3);
- const remaining=featured.length?leader.filter(r=>!featured.some(f=>f.participant_id===r.participant_id)):leader;
+ const otherLeaders=featured.length?leader.filter(r=>!featured.some(f=>f.participant_id===r.participant_id)):leader;
  const initials=(name:string)=>name.trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0].toLocaleUpperCase('id-ID')).join('')||'P';
  return <main className="trainlive-participant min-h-screen pb-16">
   <header className="participant-topbar sticky top-0 z-20">
@@ -320,8 +320,8 @@ export default function ClassPage(){
        </div>}
        <div className="leaderboard-area">
         <div className="leaderboard-area-head"><h3>{featured.length?'Peringkat lainnya':'Daftar peserta'}</h3><span>{leader.length} peserta tampil</span></div>
-        {remaining.length?<ol className="leaderboard-rows">
-         {remaining.map(r=><li key={r.participant_id} className="leaderboard-row">
+        {otherLeaders.length?<ol className="leaderboard-rows">
+         {otherLeaders.map(r=><li key={r.participant_id} className="leaderboard-row">
           <span className="leaderboard-position" aria-label={'Peringkat '+r.rank_no}>{r.rank_no}</span>
           <span className="leaderboard-avatar" aria-hidden="true">{initials(r.display_name)}</span>
           <span className="leaderboard-person"><strong>{r.display_name}</strong><small>{r.unit||'Peserta'}</small></span>
