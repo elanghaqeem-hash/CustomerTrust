@@ -226,6 +226,10 @@ export default function ClassPage(){
   if(current.type==='multi_choice')return Array.isArray(selected)&&selected.length>0;
   return typeof selected==='string'&&selected.trim().length>0;
  };
+ const highestScore=Math.max(0,...leader.map(r=>r.points));
+ const featured=leader.filter(r=>r.points>0).slice(0,3);
+ const remaining=featured.length?leader.filter(r=>!featured.some(f=>f.participant_id===r.participant_id)):leader;
+ const initials=(name:string)=>name.trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0].toLocaleUpperCase('id-ID')).join('')||'P';
  return <main className="trainlive-participant min-h-screen pb-16">
   <header className="participant-topbar sticky top-0 z-20">
    <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
@@ -281,16 +285,53 @@ export default function ClassPage(){
     <p>{error}</p><button type="button" className="mt-3 rounded-lg border border-red-600 px-4 py-2 font-bold"
     onClick={()=>setReloadKey(n=>n+1)}>Coba muat ulang</button></div>}
    {loading?<p aria-live="polite" className="participant-panel py-12 text-center text-slate-600">Memuat kelas…</p>:tab==='score'?
-    <section className="participant-panel p-5 sm:p-7">
-     <span className="participant-kicker">PERINGKAT PESERTA</span>
-     <h2 className="mb-2 mt-2 text-2xl font-extrabold">Papan Skor Kelas</h2>
-     <p className="mb-6 text-sm text-slate-500">Poin kuis benar, kontribusi chat, dan lembar kerja lengkap.</p>
-     <ol className="space-y-3">{leader.map(r=><li key={r.participant_id}
-      className="flex items-center justify-between rounded-xl border border-slate-200 p-4">
-      <div className="flex items-center gap-4"><span className="w-7 text-center font-extrabold text-teal">{r.rank_no}</span>
-       <div className="font-bold">{r.display_name}<div className="text-sm font-normal text-slate-500">{r.unit}</div></div></div>
-      <strong>{r.points} poin</strong></li>)}</ol>
-     {!leader.length&&<p className="py-8 text-center text-slate-500">Belum ada poin dalam kelas.</p>}
+    <section className="participant-panel leaderboard-panel" aria-labelledby="leaderboard-title">
+     <header className="leaderboard-header">
+      <div className="leaderboard-heading">
+       <span className="leaderboard-kicker"><span className="leaderboard-live-dot" aria-hidden="true"></span> SKOR & PARTISIPASI</span>
+       <h2 id="leaderboard-title">Papan Skor <span>Kelas</span></h2>
+       <p>Raih poin dari kuis, chat, dan lembar kerja. Semakin aktif berpartisipasi, semakin tinggi pencapaianmu.</p>
+      </div>
+      <span className="leaderboard-trophy" aria-hidden="true"><svg viewBox="0 0 48 48" width="45" height="45" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M14 8h20v12c0 9-5 14-10 14s-10-5-10-14V8ZM14 13H7v4c0 5 3 9 9 10M34 13h7v4c0 5-3 9-9 10M24 34v7m-8 0h16"/></svg></span>
+     </header>
+     <div className="leaderboard-metrics">
+      <div className="leaderboard-metric"><span aria-hidden="true">♙</span><div><small>Peserta tampil</small><strong>{leader.length} <em>orang</em></strong></div></div>
+      <div className="leaderboard-metric"><span aria-hidden="true">✦</span><div><small>Skor tertinggi</small><strong>{highestScore} <em>poin</em></strong></div></div>
+      <div className="leaderboard-refresh"><span aria-hidden="true"></span>Update otomatis · 3 detik</div>
+     </div>
+     {!leader.length?
+      <div className="leaderboard-empty" role="status"><div aria-hidden="true">☆</div><h3>Belum ada peserta di papan skor</h3><p>Nama dan poin akan tampil saat data peserta tersedia.</p></div>:
+      <>
+       {highestScore===0&&<div className="leaderboard-not-started" role="status">
+        <span className="leaderboard-not-started-symbol" aria-hidden="true">✧</span>
+        <div><strong>Siap untuk tantangan pertama?</strong><p>Semua peserta masih memiliki 0 poin. Papan skor akan berkembang setelah aktivitas dinilai.</p></div>
+       </div>}
+       {featured.length>0&&<div className="leaderboard-area">
+        <div className="leaderboard-area-head"><h3>Peserta unggulan</h3><span>Peringkat sementara</span></div>
+        <ol className={'leaderboard-podium podium-'+featured.length}>
+         {featured.map((r,i)=><li key={r.participant_id} className={'leaderboard-podium-card rank-'+(i+1)}>
+          <div className="leaderboard-podium-top"><span>#{r.rank_no} {i===0?'✦':''}</span></div>
+          <div className="leaderboard-podium-avatar" aria-hidden="true">{initials(r.display_name)}</div>
+          <strong title={r.display_name}>{r.display_name}</strong>
+          <small title={r.unit}>{r.unit||'Peserta'}</small>
+          <div className="leaderboard-podium-points"><b>{r.points}</b><span>poin</span></div>
+         </li>)}
+        </ol>
+       </div>}
+       <div className="leaderboard-area">
+        <div className="leaderboard-area-head"><h3>{featured.length?'Peringkat lainnya':'Daftar peserta'}</h3><span>{leader.length} peserta tampil</span></div>
+        {remaining.length?<ol className="leaderboard-rows">
+         {remaining.map(r=><li key={r.participant_id} className="leaderboard-row">
+          <span className="leaderboard-position" aria-label={'Peringkat '+r.rank_no}>{r.rank_no}</span>
+          <span className="leaderboard-avatar" aria-hidden="true">{initials(r.display_name)}</span>
+          <span className="leaderboard-person"><strong>{r.display_name}</strong><small>{r.unit||'Peserta'}</small></span>
+          <span className="leaderboard-points"><b>{r.points}</b><small>poin</small></span>
+          {highestScore>0&&<span className="leaderboard-progress" aria-hidden="true"><span style={{width:Math.min(100,Math.max(0,r.points/highestScore*100))+'%'}}/></span>}
+         </li>)}
+        </ol>:<p className="leaderboard-complete">Semua peserta yang sudah memperoleh poin ditampilkan di atas.</p>}
+       </div>
+      </>}
+     <p className="leaderboard-note">Peringkat dan poin mengikuti data resmi TrainLive. Daftar ini menampilkan peserta teratas yang tersedia.</p>
     </section>:tab==='agenda'?<section className="participant-panel p-5 sm:p-7">
      <span className="participant-kicker">AGENDA TRAINING</span>
      <h2 className="mt-2 text-2xl font-extrabold">Rundown aktivitas</h2>
