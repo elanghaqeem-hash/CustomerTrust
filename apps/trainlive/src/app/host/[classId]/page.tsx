@@ -20,6 +20,7 @@ export default function HostPage(){
  const [error,setError]=useState(''),[busy,setBusy]=useState(false);
  const [loginMode,setLoginMode]=useState<LoginMode>('checking');
  const [authRetry,setAuthRetry]=useState(0);
+ const [ssoCheck,setSsoCheck]=useState<'idle'|'checking'|'provider_reachable'|'configuration_required'|'provider_unreachable'|'origin_mismatch'|'invalid_class'|'error'>('idle');
  const access=loginMode==='sso_ready'||(loginMode==='manual'&&Boolean(token));
  const authHeaders=():Record<string,string>=>loginMode==='manual'&&token
   ?{Authorization:'Bearer '+token}:{};
@@ -51,6 +52,19 @@ export default function HostPage(){
    .catch(()=>{if(mounted)setLoginMode('unavailable')});
   return()=>{mounted=false};
  },[id,authRetry]);
+ async function checkSSO(){
+  setSsoCheck('checking');
+  try{
+   const r=await fetch('/api/auth/staff/check?classId='+encodeURIComponent(id),{cache:'no-store'});
+   const result=await r.json() as {status?:string};
+   const status=result.status;
+   if(status==='provider_reachable'||status==='configuration_required'||status==='provider_unreachable'||
+      status==='origin_mismatch'||status==='invalid_class'){
+    setSsoCheck(status);
+    if(status==='provider_reachable')setAuthRetry(n=>n+1);
+   }else setSsoCheck('error');
+  }catch{setSsoCheck('error')}
+ }
  async function logout(){
   await fetch('/api/auth/staff/logout',{method:'POST',headers:{'Content-Type':'application/json'},
    body:JSON.stringify({classId:id})}).catch(()=>{});
@@ -161,16 +175,34 @@ export default function HostPage(){
    {loginMode==='unavailable'&&<section role="alert" className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 text-[#12384d]">
     <h2 className="text-lg font-extrabold">Status login belum dapat diperiksa</h2>
     <p className="mt-2 text-sm leading-relaxed text-slate-600">Koneksi ke layanan autentikasi terganggu atau sementara tidak tersedia. Status ini tidak berarti SSO belum dikonfigurasi.</p>
-    <button type="button" className="mt-4 rounded-xl bg-teal px-5 py-3 text-sm font-bold text-white" onClick={()=>setAuthRetry(n=>n+1)}>Coba periksa kembali</button>
+    <div className="mt-4 flex flex-wrap gap-2">
+     <button type="button" className="rounded-xl bg-teal px-5 py-3 text-sm font-bold text-white" onClick={()=>setAuthRetry(n=>n+1)}>Coba periksa kembali</button>
+     <button type="button" className="rounded-xl border border-teal bg-white px-5 py-3 text-sm font-bold text-teal" disabled={ssoCheck==='checking'} onClick={()=>void checkSSO()}>{ssoCheck==='checking'?'Memeriksa…':'Periksa koneksi SSO'}</button>
+    </div>
    </section>}
    {loginMode==='blocked'&&<section role="alert" className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-950">
     <h2 className="text-lg font-extrabold">SSO/MFA fasilitator belum aktif</h2>
     <p className="mt-2 text-sm leading-relaxed">Akses staf belum tersedia di lingkungan deployment ini. Administrator perlu memeriksa konfigurasi penyedia identitas, variabel Vercel untuk lingkungan yang digunakan, dan deployment terbaru. Login tanpa MFA tetap dinonaktifkan.</p>
-    <a className="mt-4 inline-flex min-h-11 items-center rounded-xl border border-amber-300 bg-white px-4 text-sm font-bold text-amber-950" href="/admin/login">Lihat halaman login administrator</a>
+    <div className="mt-4 flex flex-wrap gap-2">
+     <button type="button" className="min-h-11 rounded-xl bg-teal px-4 text-sm font-bold text-white" disabled={ssoCheck==='checking'} onClick={()=>void checkSSO()}>{ssoCheck==='checking'?'Memeriksa…':'Periksa koneksi SSO'}</button>
+     <a className="inline-flex min-h-11 items-center rounded-xl border border-amber-300 bg-white px-4 text-sm font-bold text-amber-950" href="/admin/login">Login administrator</a>
+    </div>
    </section>}
-   {loginMode==='sso_login'&&<a href={'/api/auth/staff/start?classId='+encodeURIComponent(id)}
-    className="mb-6 inline-flex rounded-xl bg-teal px-5 py-3 font-bold text-white">
-    Masuk sebagai fasilitator (SSO + MFA)</a>}
+   {loginMode==='sso_login'&&<div className="mb-6 flex flex-wrap items-center gap-3">
+    <a href={'/api/auth/staff/start?classId='+encodeURIComponent(id)}
+     className="inline-flex min-h-12 items-center rounded-xl bg-teal px-5 py-3 font-bold text-white">
+     Masuk sebagai fasilitator (SSO + MFA)</a>
+    <button type="button" className="min-h-11 rounded-xl border border-teal px-4 text-sm font-bold text-teal"
+     disabled={ssoCheck==='checking'} onClick={()=>void checkSSO()}>{ssoCheck==='checking'?'Memeriksa…':'Uji koneksi SSO'}</button>
+   </div>}
+   {ssoCheck!=='idle'&&ssoCheck!=='checking'&&<p role="status" className="mb-5 rounded-xl border border-slate-200 bg-white p-4 text-sm leading-relaxed text-slate-700">
+    {ssoCheck==='provider_reachable'?'Koneksi ke penyedia SSO berhasil. Silakan masuk menggunakan SSO + MFA. Keberhasilan login dan otorisasi kelas tetap perlu diverifikasi.':
+     ssoCheck==='configuration_required'?'Konfigurasi SSO untuk lingkungan ini belum lengkap. Administrator perlu memeriksa variabel identitas di Vercel.':
+     ssoCheck==='provider_unreachable'?'Konfigurasi SSO terdeteksi, tetapi metadata penyedia identitas belum dapat diakses dari server. Periksa koneksi penyedia dan coba kembali.':
+     ssoCheck==='origin_mismatch'?'Alamat aplikasi tidak sesuai dengan domain SSO yang dikonfigurasi. Gunakan domain produksi TrainLive.':
+     ssoCheck==='invalid_class'?'ID kelas tidak valid. Gunakan tautan dengan ID kelas lengkap.':
+     'Pemeriksaan koneksi tidak dapat diselesaikan. Coba lagi atau hubungi administrator.'}
+   </p>}
    {loginMode==='sso_ready'&&<div className="facilitator-auth-strip mb-5 flex flex-wrap items-center justify-between gap-3">
     <span className="facilitator-auth-label"><span className="facilitator-auth-icon" aria-hidden="true">✓</span><span><strong>SSO / MFA terverifikasi</strong><small>Sesi staf Anda aman dan aktif</small></span></span>
     <button type="button" className="facilitator-logout" onClick={()=>void logout()}>Keluar <span aria-hidden="true">↗</span></button>
