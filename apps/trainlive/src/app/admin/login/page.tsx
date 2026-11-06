@@ -20,7 +20,7 @@ export default function AdminLoginPage(){
     </div>
    </aside>
    <section className="tl-login-panel" aria-labelledby="admin-title">
-    <span className="tl-login-badge">● &nbsp; Akses khusus staf</span>
+    <span className="tl-login-badge">● &nbsp; Login Administrator · Akses khusus staf</span>
     <h1 id="admin-title">Selamat datang kembali.</h1>
     <p className="mt-4">Masuk ke area administrator menggunakan akun staf dengan peran Super Admin yang telah disetujui.</p>
     {configured
