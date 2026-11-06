@@ -11,8 +11,9 @@ fi
 command -v docker >/dev/null || { echo "Docker Engine is required" >&2; exit 1; }
 docker info >/dev/null 2>&1 || { echo "Docker daemon unavailable" >&2; exit 1; }
 backup="$(realpath "$backup")"
-container="trainlive-restore-drill-$RANDOM-$$"
-cleanup() { docker rm -f "$container" >/dev/null 2>&1 || true; }
+container="trainlive-restore-drill-$RANDOM-$"
+restore_log="$(mktemp)"
+cleanup() { docker rm -f "$container" >/dev/null 2>&1 || true; rm -f "$restore_log"; }
 trap cleanup EXIT
 # Network isolation and an unbound Postgres port prevent this recovery test
 # from ever accepting external connections.
@@ -36,8 +37,13 @@ done
 docker exec "$container" psql -X -v ON_ERROR_STOP=1 -U postgres -d trainlive_restore \
  -c 'CREATE ROLE trainlive_app NOLOGIN' >/dev/null
 if ! docker exec "$container" pg_restore --exit-on-error --no-owner --no-acl \
- -U postgres -d trainlive_restore /backup.dump >/dev/null 2>&1; then
+ -U postgres -d trainlive_restore /backup.dump >/dev/null 2>"$restore_log"; then
  echo "NO-GO: backup could not be fully restored to the disposable database" >&2
+ # Production backup contents must not be echoed to logs. Synthetic GitHub CI
+ # may safely print the first bounded error summary for diagnosis.
+ if [[ "${CI:-false}" == true ]]; then
+  grep -m 3 '^pg_restore: error:' "$restore_log" | cut -c 1-240 >&2 || true
+ fi
  exit 1
 fi
 if ! docker exec "$container" psql -X -At -v ON_ERROR_STOP=1 -U postgres -d trainlive_restore \
