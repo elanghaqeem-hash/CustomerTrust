@@ -13,6 +13,8 @@ const kindLabel=(i:Item)=>i.payload.tag==='focus'?'FOKUS PENUH':i.payload.tag===
 export default function ClassPage(){
  const id=useParams<{classId:string}>().classId;
  const [items,setItems]=useState<Item[]>([]),[leader,setLeader]=useState<Leader[]>([]);
+ const [branding,setBranding]=useState<{clientName:string;trainingTitle:string}|null>(null);
+ const trainingTitle=branding?.trainingTitle||'Training interaktif';
  const [answers,setAnswers]=useState<Record<string,unknown>>({}),[submitted,setSubmitted]=useState<Record<string,boolean>>({});
  const [loading,setLoading]=useState(true),[error,setError]=useState(''),[busy,setBusy]=useState(false);
  const [now,setNow]=useState(Date.now()),[tab,setTab]=useState<'active'|'agenda'|'score'>('active');
@@ -44,7 +46,7 @@ export default function ClassPage(){
     if(a.status===403)throw new Error('Sesi kelas tidak berlaku. Silakan bergabung kembali dengan kode kelas.');
     if(!a.ok)throw new Error('Belum dapat mengambil aktivitas kelas.');
     const x=await a.json(),y=b.ok?await b.json():{top:[]};
-    if(!cancelled){setItems(x.items);setLeader(y.top||[]);setLoading(false);setError('');}
+    if(!cancelled){setItems(x.items);setLeader(y.top||[]);if(x.branding)setBranding(x.branding);setLoading(false);setError('');}
    }catch(e){if(!cancelled){setError(e instanceof Error?e.message:'Gagal memuat kelas');setLoading(false);}}
   };
   refresh();
@@ -71,15 +73,15 @@ export default function ClassPage(){
  },[opened?.id,alerts,alertworthy]);
  useEffect(()=>{
   if(!alerts||!opened||!alertworthy){
-   document.title='TrainLive | Customer Trust Challenge';return;
+   document.title='TrainLive | '+trainingTitle;return;
   }
   let flashing=false;
   const timer=setInterval(()=>{
    flashing=!flashing;
-   document.title=flashing?'● KUIS DIBUKA | TrainLive':'TrainLive | Customer Trust Challenge';
+   document.title=flashing?'● KUIS DIBUKA | TrainLive':'TrainLive | '+trainingTitle;
   },800);
-  return()=>{clearInterval(timer);document.title='TrainLive | Customer Trust Challenge';};
- },[opened?.id,alerts,alertworthy]);
+  return()=>{clearInterval(timer);document.title='TrainLive | '+trainingTitle;};
+ },[opened?.id,alerts,alertworthy,trainingTitle]);
  function toggleAlerts(){
   // Show the new switch state immediately, before any browser permission awaits.
   const enabled=!alertsEnabled.current;
@@ -237,15 +239,15 @@ export default function ClassPage(){
      <span className="participant-brand-mark" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 13h4l3-8 4 14 3-6h2"/></svg></span>
      <span>Train<span className="participant-brand-accent">Live</span></span>
     </a>
-    <span className="participant-topbar-label">CUSTOMER TRUST <span className="hidden sm:inline">CHALLENGE</span></span>
+    <span className="participant-topbar-label" title={trainingTitle}>{trainingTitle}</span>
    </div>
   </header>
   <div className="mx-auto max-w-4xl px-4 pt-6 sm:px-6 sm:pt-8">
    <section className="participant-hero" aria-label="Informasi kelas">
     <div className="participant-hero-content">
      <span className="participant-eyebrow"><span aria-hidden="true">✦</span> YOUR INTERACTIVE CLASSROOM</span>
-     <h1>Customer Trust <span>Challenge.</span></h1>
-     <p>Setiap pertanyaan adalah kesempatan belajar. Ikuti aktivitas, bagikan ide, dan raih poin terbaikmu.</p>
+     <h1>{trainingTitle}</h1>
+     <p>{branding?.clientName&&<strong className="mb-1 block text-white">{branding.clientName}</strong>}Setiap pertanyaan adalah kesempatan belajar. Ikuti aktivitas, bagikan ide, dan raih poin terbaikmu.</p>
      <div className="participant-live-status" role="status">
       <span className={'participant-live-dot '+(opened?'is-live':'')} aria-hidden="true"></span>
       {loading?'Menghubungkan ke kelas…':opened?'Aktivitas sedang berlangsung':revealed?'Pembahasan tersedia':'Siap belajar · Menunggu fasilitator'}
