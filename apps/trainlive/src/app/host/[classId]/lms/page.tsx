@@ -1,6 +1,7 @@
 'use client';
 
-import {useParams} from 'next/navigation';
+import {notFound,useParams} from 'next/navigation';
+import {LMS_ENABLED} from '@/lib/lms-flags';
 import {useEffect,useState,type FormEvent} from 'react';
 
 type Mode='checking'|'sso_login'|'sso_ready'|'manual'|'blocked'|'unavailable';
@@ -101,6 +102,7 @@ export default function LmsCatalogPage(){
   window.scrollTo({top:0,behavior:'smooth'});
  }
 
+ if(!LMS_ENABLED)notFound();
  return <main className="trainlive-workspace min-h-screen bg-slate-50 pb-16">
   <header className="workspace-nav text-white">
    <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-4">
