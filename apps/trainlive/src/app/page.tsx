@@ -116,10 +116,6 @@ export default function JoinPage() {
        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 10h8m-8 4h5" strokeLinecap="round"/></svg>
       </span>
      </div>
-     <div className={`mt-6 flex items-start gap-3 rounded-xl border px-4 py-3 text-sm leading-6 ${readiness === 'ready' ? 'border-[#b7e7d8] bg-[#edfaf5] text-[#16654f]' : 'border-[#f1dfb2] bg-[#fff9ea] text-[#855b16]'}`} role="status" aria-live="polite">
-      <span className={`mt-2 h-2 w-2 shrink-0 rounded-full ${readiness === 'ready' ? 'bg-[#169b75]' : 'bg-[#d59b30]'}`} aria-hidden="true"/>
-      <span>{readiness === 'checking' ? 'Memeriksa kesiapan sistem…' : readiness === 'ready' ? 'Sistem siap. Silakan masukkan kode kelas Anda.' : 'Sistem sedang dalam persiapan. Pendaftaran peserta belum dibuka.'}</span>
-     </div>
      <form className="mt-6 space-y-4" onSubmit={submit}>
       <div><label htmlFor="join-code" className="field-label">Kode kelas <span className="text-[#0f766e]">*</span></label>
        <input id="join-code" className="field-input font-mono text-lg font-bold uppercase tracking-[.25em]" maxLength={6} required autoComplete="off" value={code} onChange={event => setCode(event.target.value.toUpperCase().replace(/[^A-Z2-9]/g, ''))} placeholder="ABC234" aria-describedby="code-hint"/>
@@ -142,6 +138,7 @@ export default function JoinPage() {
       <button type="submit" disabled={busy || readiness !== 'ready' || !consent || code.length !== 6} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0f766e] px-5 py-3.5 font-bold text-white transition hover:bg-[#0b5f59] disabled:hover:bg-[#0f766e]">
        {busy ? 'Memproses…' : 'Gabung Kelas'} <span aria-hidden="true">→</span>
       </button>
+       {readiness === 'offline' && <p role="alert" className="text-center text-xs font-medium text-amber-700">Pendaftaran sementara tidak tersedia. Muat ulang halaman untuk mencoba kembali.</p>}
       <p className="text-center text-[11px] leading-5 text-slate-500">Jangan masukkan data nasabah, nomor rekening, NIK, atau informasi rahasia bank.</p>
      </form>
     </section>

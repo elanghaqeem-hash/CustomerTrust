@@ -7,6 +7,9 @@ if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !batch) {
 }
 const start = new Date(date+'T09:00:00+08:00'), end = new Date(date+'T16:00:00+08:00');
 if (Number.isNaN(start.getTime()) || start.toISOString().slice(0,10)!==date) throw new Error('Invalid date');
+// Seats per class; 40 covers a 30+ participant class plus re-joins on a new device.
+const capacity=Number(process.env.TRAINLIVE_CLASS_CAPACITY||40);
+if(!Number.isInteger(capacity)||capacity<1||capacity>10000)throw new Error('TRAINLIVE_CLASS_CAPACITY must be 1..10000');
 const db = new pg.Client({connectionString:process.env.DATABASE_URL_ADMIN});
 await db.connect();
 const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -14,7 +17,8 @@ const code=()=>Array.from({length:6},()=>alphabet[randomInt(alphabet.length)]).j
 try {
  await db.query('BEGIN');
  const v=(await db.query(
-  "SELECT p.id program_id,v.id version_id FROM trainlive.program p JOIN trainlive.content_version v ON v.program_id=p.id WHERE p.code='CTC-BPDSULTENG' AND v.version_no=1 AND v.status='published'"
+  "SELECT p.id program_id,v.id version_id,v.version_no FROM trainlive.program p JOIN trainlive.content_version v ON v.program_id=p.id WHERE p.code='CTC-BPDSULTENG' AND v.status='published' AND ($1::int IS NULL OR v.version_no=$1) ORDER BY v.version_no DESC LIMIT 1",
+  [process.env.TRAINLIVE_CONTENT_VERSION?Number(process.env.TRAINLIVE_CONTENT_VERSION):null]
  )).rows[0];
  if(!v) throw new Error('Seed must be published first');
  let row;
@@ -22,9 +26,9 @@ try {
    await db.query('SAVEPOINT code_attempt');
    try {
      row=(await db.query(
-       "INSERT INTO trainlive.class_session(program_id,content_version_id,name,batch_no,start_at,end_at,timezone,join_code,join_open_from,join_open_until,capacity) VALUES($1,$2,$3,$4,$5,$6,'Asia/Makassar',$7,$8,$9,25) RETURNING id,join_code",
+       "INSERT INTO trainlive.class_session(program_id,content_version_id,name,batch_no,start_at,end_at,timezone,join_code,join_open_from,join_open_until,capacity) VALUES($1,$2,$3,$4,$5,$6,'Asia/Makassar',$7,$8,$9,$10) RETURNING id,join_code",
        [v.program_id,v.version_id,name||'Customer Trust Challenge '+batch,batch,start,end,code(),
-        new Date(start.getTime()-86400000),new Date(end.getTime()+86400000)]
+        new Date(start.getTime()-86400000),new Date(end.getTime()+86400000),capacity]
      )).rows[0];
      await db.query('RELEASE SAVEPOINT code_attempt');
      break;
@@ -35,7 +39,7 @@ try {
  }
  if(!row) throw new Error('Could not generate unique join code');
  await db.query('COMMIT');
- console.info(JSON.stringify({class_id:row.id,join_code:row.join_code,batch,date,
+ console.info(JSON.stringify({class_id:row.id,join_code:row.join_code,batch,date,content_version:v.version_no,
   note:'Treat the join code as a credential; distribute only during the class join window.'},null,2));
 } catch(e) { await db.query('ROLLBACK'); throw e; }
 finally { await db.end(); }

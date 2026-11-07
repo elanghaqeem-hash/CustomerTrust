@@ -70,6 +70,7 @@ jobs:
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/011_class_lifecycle.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/012_class_close_guard.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/013_super_admin_sso_entry.sql
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/014_latest_content_and_capacity.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -v app_password=trainlive_ci_web_only -f deploy/hostinger/create-runtime-role.sql
       - name: Real-PostgreSQL RLS isolation tests
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/01_rls_isolation.sql
@@ -81,7 +82,7 @@ jobs:
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/06_join_throttle_multiclass.sql
       - name: Install database tooling
         run: npm install --prefix tools/trainlive --no-audit --no-fund
-      - name: Seed v1 twice (idempotency and immutability)
+      - name: Seed v1 and v2 twice (idempotency and immutability)
         run: |
           node tools/trainlive/seed.mjs
           node tools/trainlive/seed.mjs
@@ -261,7 +262,10 @@ jobs:
           created_id="$(jq -r '.classId' /tmp/trainlive-created-class.json)"
           test -n "$created_id" && test "$created_id" != "$a_id"
           jq -e '.joinCode | test("^[A-HJ-NP-Z2-9]{6}$")' /tmp/trainlive-created-class.json
-          test "$(psql "$DATABASE_URL_ADMIN" -At -c "SELECT count(*) FROM trainlive.class_item WHERE class_id='$created_id'")" = "16"
+          test "$(psql "$DATABASE_URL_ADMIN" -At -c "SELECT count(*) FROM trainlive.class_item WHERE class_id='$created_id'")" = "17"
+          # Admin-created classes use the newest published content (v2, deck revision 13).
+          test "$(psql "$DATABASE_URL_ADMIN" -At -c "SELECT v.version_no FROM trainlive.class_session c JOIN trainlive.content_version v ON v.id=c.content_version_id WHERE c.id='$created_id'")" = "2"
+          test "$(psql "$DATABASE_URL_ADMIN" -At -c "SELECT count(*) FROM trainlive.class_item WHERE class_id='$created_id' AND item_key='TE1' AND slide_ref=15")" = "1"
           test "$(psql "$DATABASE_URL_ADMIN" -At -c "SELECT count(*) FROM trainlive.class_worksheet WHERE class_id='$created_id'")" = "5"
           test "$(psql "$DATABASE_URL_ADMIN" -At -c "SELECT count(*) FROM trainlive.participant WHERE class_id='$created_id'")" = "0"
           denied="$(curl -s -o /dev/null -w '%{http_code}' \
@@ -398,7 +402,8 @@ jobs:
           curl -fsS http://localhost:3338/api/health | jq -e '.ready==true'
           d="$(TZ=Asia/Makassar date +%F)"
           for n in $(seq -w 1 24); do
-            node tools/trainlive/create-class.mjs "$d" "PERF-${n}" > "/tmp/trainlive-perf-${n}.json"
+            # This scenario models 24 x 25-seat classes and checks seat 26 is refused.
+            TRAINLIVE_CLASS_CAPACITY=25 node tools/trainlive/create-class.mjs "$d" "PERF-${n}" > "/tmp/trainlive-perf-${n}.json"
           done
           jq -s '[.[].join_code]' /tmp/trainlive-perf-*.json > /tmp/trainlive-perf-codes.json
           node tools/trainlive/test-capacity-600.mjs \
@@ -435,3 +440,37 @@ jobs:
           rm -f /tmp/trainlive-browser-staff-output
           node tools/trainlive/test-browser-uat.mjs http://localhost:3340 \
             "$class_id" "$join_code" /tmp/trainlive-browser-staff-token "$other_id"
+
+      - name: 3 parallel classes x 30+ participants — full session API simulation and browser UAT
+        shell: bash
+        timeout-minutes: 20
+        run: |
+          set -euo pipefail
+          npm run start --prefix apps/trainlive -- -p 3342 > /tmp/trainlive-multiclass.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true; rm -f /tmp/trainlive-multiclass-*.json' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3342/api/health >/dev/null; then break; fi
+            sleep 1
+          done
+          # Disposable CI DB: earlier steps already spent this runner IP's join budget.
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -c "TRUNCATE trainlive.join_throttle"
+          d="$(TZ=Asia/Makassar date +%F)"
+          make_classes() { # $1 batch prefix, $2 optional provision flag
+            out=/tmp/trainlive-multiclass-$1.json; echo '[' > "$out"
+            for n in 1 2 3; do
+              c="$(node tools/trainlive/create-class.mjs "$d" "$1-$n")"
+              id="$(jq -r .class_id <<<"$c")"; code="$(jq -r .join_code <<<"$c")"
+              # Synthetic classes only: give slow CI browsers time to answer.
+              psql "$DATABASE_URL_ADMIN" -q -v ON_ERROR_STOP=1 -c \
+                "UPDATE trainlive.class_item SET timer_sec=600 WHERE class_id='$id' AND timer_sec>0"
+              tok="$(node tools/trainlive/provision-facilitator.mjs "$id" "fac$n-$1@example.invalid" "Fasilitator $n" ${2:-} | tail -n 1)"
+              [ "$n" -gt 1 ] && echo , >> "$out"
+              jq -n --arg i "$id" --arg c "$code" --arg t "$tok" '{class_id:$i,join_code:$c,staff_token:$t}' >> "$out"
+            done
+            echo ']' >> "$out"
+          }
+          make_classes SIM
+          node tools/trainlive/test-multiclass-sim.mjs http://localhost:3342 /tmp/trainlive-multiclass-SIM.json 30
+          make_classes UI --leave-scheduled
+          node tools/trainlive/test-ui-multiclass.mjs http://localhost:3342 /tmp/trainlive-multiclass-UI.json 32 2

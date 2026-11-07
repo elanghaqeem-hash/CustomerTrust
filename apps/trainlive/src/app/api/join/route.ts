@@ -54,5 +54,14 @@ export async function POST(req:NextRequest) {
    httpOnly:true,secure:process.env.NODE_ENV==='production'||req.nextUrl.protocol==='https:',sameSite:'lax',path:'/',maxAge:72*3600
   });
   return res;
- }catch(err){ return privateError(err); }
+ }catch(err){
+  // join_class raises fixed, data-free messages; map them to participant-facing text.
+  const e=err as {code?:string;message?:string};
+  if(e?.code==='22023'){
+   if(e.message==='class full')return NextResponse.json({error:'Kelas sudah penuh. Hubungi fasilitator.'},{status:422});
+   if(e.message==='join unavailable')return NextResponse.json({error:'Kode kelas tidak ditemukan atau kelas belum/tidak lagi dibuka. Periksa kode dari fasilitator.'},{status:403});
+   if(e.message==='join validation failed')return NextResponse.json({error:'Lengkapi data dan persetujuan peserta.'},{status:400});
+  }
+  return privateError(err);
+ }
 }
