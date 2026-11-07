@@ -21,14 +21,18 @@ export async function GET(_req:Request,{params}:{params:Promise<{classId:string}
  if(auth.response) return auth.response;
  const session=auth.session!;
  try {
-  const rows=await transaction({classId:session.classId,
+  const {rows,branding}=await transaction({classId:session.classId,
    participantId:session.kind==='participant'?session.participantId:undefined,
-   staffId:session.kind==='staff'?session.staffId:undefined},async db=>
-   (await db.query<Row>(
-    'SELECT id,item_key,type,module_no,slide_ref,order_no,payload,hidden,state,timer_sec,opened_at,closed_at FROM trainlive.class_item WHERE class_id=$1 ORDER BY order_no',
-    [classId])).rows
-  );
-  return NextResponse.json({classId:classId,items:rows.filter(r=>!r.hidden||session.kind==='staff').map(r=>({...r,payload:safePayload(r,session.kind==='staff')}))},
+   staffId:session.kind==='staff'?session.staffId:undefined},async db=>{
+    const rows=(await db.query<Row>(
+     'SELECT id,item_key,type,module_no,slide_ref,order_no,payload,hidden,state,timer_sec,opened_at,closed_at FROM trainlive.class_item WHERE class_id=$1 ORDER BY order_no',
+     [classId])).rows;
+    const branding=(await db.query<{clientName:string;trainingTitle:string}>(
+     'SELECT client_name AS "clientName",training_title AS "trainingTitle" FROM trainlive.class_session WHERE id=$1',
+     [classId])).rows[0];
+    return {rows,branding};
+   });
+  return NextResponse.json({classId,branding,items:rows.filter(r=>!r.hidden||session.kind==='staff').map(r=>({...r,payload:safePayload(r,session.kind==='staff')}))},
    {headers:{'Cache-Control':'no-store'}});
  }catch(err){return privateError(err)}
 }

@@ -82,13 +82,13 @@ a{text-underline-offset:3px}
 .participant-brand{display:inline-flex;align-items:center;gap:11px;font-size:22px;font-weight:850;letter-spacing:-.06em;text-decoration:none;color:#fff}
 .participant-brand-accent{color:#61dfc8}
 .participant-brand-mark{width:34px;height:34px;display:grid;place-items:center;color:#b3fcef;background:rgba(84,221,194,.15);border:1px solid rgba(106,241,218,.22);border-radius:11px}
-.participant-topbar-label{font-size:10px;letter-spacing:.13em;font-weight:750;color:#c5d5df;text-align:right}
+.participant-topbar-label{font-size:10px;letter-spacing:.10em;font-weight:750;color:#c5d5df;text-align:right;max-width:55%;overflow-wrap:anywhere;line-height:1.5;text-transform:uppercase}
 .participant-hero{position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:center;min-height:224px;padding:30px 32px;border-radius:26px;background:linear-gradient(118deg,#0c3044 0%,#105364 55%,#15877a 100%);color:#fff;box-shadow:0 22px 40px rgba(6,74,86,.16)}
 .participant-hero::before{content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;background:radial-gradient(circle at 87% 30%,rgba(175,255,218,.22),transparent 33%),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:auto,36px 36px}
 .participant-hero-content{position:relative;z-index:2;max-width:540px}
 .participant-eyebrow{display:inline-flex;align-items:center;gap:8px;color:#b3ffe6;font-size:10px;font-weight:850;letter-spacing:.16em}
 .participant-eyebrow span{font-size:16px}
-.participant-hero h1{font-size:clamp(27px,4.8vw,40px);line-height:1.14;letter-spacing:-.045em;font-weight:850;margin:13px 0 11px}
+.participant-hero h1{font-size:clamp(27px,4.8vw,40px);line-height:1.14;letter-spacing:-.045em;font-weight:850;margin:13px 0 11px;overflow-wrap:anywhere}
 .participant-hero h1 span{color:#adf7df}
 .participant-hero p{color:#dcefed;font-size:13px;line-height:1.75;max-width:430px}
 .participant-live-status{display:inline-flex;align-items:center;gap:8px;margin-top:20px;padding:8px 12px;border:1px solid rgba(215,255,240,.25);border-radius:999px;background:rgba(3,26,36,.22);color:#e9fff8;font-size:12px;font-weight:700}
