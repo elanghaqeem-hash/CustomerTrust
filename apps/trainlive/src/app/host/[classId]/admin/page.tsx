@@ -1,7 +1,7 @@
 'use client';
 import {useParams} from 'next/navigation';
 import {useEffect,useState,type FormEvent} from 'react';
-type NewClass={classId:string;joinCode:string;name:string;batch:string;date:string;capacity:number};
+type NewClass={classId:string;joinCode:string;name:string;batch:string;date:string;capacity:number;clientName:string;trainingTitle:string};
 type Mode='checking'|'sso_login'|'sso_ready'|'manual'|'blocked'|'invalid_class'|'unavailable';
 const isFullClassId=(value:string)=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 export default function AdminClassPage(){
@@ -10,6 +10,11 @@ export default function AdminClassPage(){
  const [authRetry,setAuthRetry]=useState(0);
  const [allowed,setAllowed]=useState(false),[busy,setBusy]=useState(false);
  const [name,setName]=useState('Customer Trust Challenge'),[batch,setBatch]=useState(''),[date,setDate]=useState('');
+ const [clientName,setClientName]=useState('PT Bank Pembangunan Daerah Sulawesi Tengah');
+ const [trainingTitle,setTrainingTitle]=useState('Customer Trust Challenge');
+ const [currentClient,setCurrentClient]=useState('');
+ const [currentTitle,setCurrentTitle]=useState('');
+ const [brandingSaved,setBrandingSaved]=useState(false);
  const [error,setError]=useState(''),[created,setCreated]=useState<NewClass|null>(null);
  const access=mode==='sso_ready'||(mode==='manual'&&Boolean(token));
  const authHeaders=():Record<string,string>=>mode==='manual'&&token?{Authorization:'Bearer '+token}:{};
@@ -36,7 +41,17 @@ export default function AdminClassPage(){
   let active=true;
   fetch('/api/class/'+id+'/admin',{headers:authHeaders(),cache:'no-store'})
    .then(async r=>{if(!r.ok)throw Error('Tidak memiliki hak admin');return r.json()})
-   .then(x=>{if(active)setAllowed(x.canCreate===true)})
+   .then(x=>{
+    if(active){
+     setAllowed(x.canCreate===true);
+     if(x.branding){
+      setCurrentClient(x.branding.clientName);
+      setCurrentTitle(x.branding.trainingTitle);
+      setClientName(x.branding.clientName);
+      setTrainingTitle(x.branding.trainingTitle);
+     }
+    }
+   })
    .catch(()=>{if(active)setAllowed(false)});
   return()=>{active=false};
  // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -48,12 +63,27 @@ export default function AdminClassPage(){
   try{
    const r=await fetch('/api/class/'+id+'/admin',{
     method:'POST',headers:{...authHeaders(),'Content-Type':'application/json'},
-    body:JSON.stringify({name,batch,date})
+    body:JSON.stringify({name,batch,date,clientName,trainingTitle})
    });
    const x=await r.json();
    if(!r.ok)throw Error(x.error||'Gagal membuat kelas');
    setCreated(x as NewClass);
   }catch(e){setError(e instanceof Error?e.message:'Kesalahan membuat kelas');}
+  finally{setBusy(false)}
+ }
+ async function saveExistingBranding(event:FormEvent){
+  event.preventDefault();
+  if(!allowed||busy)return;
+  setBusy(true);setError('');setBrandingSaved(false);
+  try{
+   const r=await fetch('/api/class/'+id+'/admin',{
+    method:'PUT',headers:{...authHeaders(),'Content-Type':'application/json'},
+    body:JSON.stringify({clientName:currentClient,trainingTitle:currentTitle})
+   });
+   const x=await r.json();
+   if(!r.ok)throw Error(x.error||'Gagal menyimpan identitas training');
+   setBrandingSaved(true);
+  }catch(e){setError(e instanceof Error?e.message:'Gagal menyimpan identitas training');}
   finally{setBusy(false)}
  }
  return <main className="trainlive-workspace min-h-screen pb-16">
@@ -75,8 +105,26 @@ export default function AdminClassPage(){
    </div>}
    {access&&!allowed&&<p role="alert" className="mt-5 rounded-xl bg-amber-50 p-4 text-amber-900">Hak Super Admin belum diberikan untuk kelas sumber ini.</p>}
    {error&&<p role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-red-900">{error}</p>}
+   {access&&allowed&&<form className="workspace-card mt-7 space-y-5 p-6 sm:p-8" onSubmit={saveExistingBranding}>
+    <div>
+     <span className="workspace-eyebrow">PENGATURAN TAMPILAN</span>
+     <h2 className="mt-2 text-xl font-extrabold">Identitas kelas saat ini</h2>
+     <p className="mt-2 text-sm text-slate-600">Ubah nama klien dan judul training yang ditampilkan kepada peserta kelas ini. Perubahan tidak mengubah kelas lain maupun isi training.</p>
+    </div>
+    <div><label htmlFor="current-client" className="field-label">Nama klien *</label>
+     <input id="current-client" className="field-input" required minLength={2} maxLength={160} value={currentClient} onChange={e=>{setCurrentClient(e.target.value);setBrandingSaved(false)}}/></div>
+    <div><label htmlFor="current-title" className="field-label">Judul training *</label>
+     <input id="current-title" className="field-input" required minLength={3} maxLength={160} value={currentTitle} onChange={e=>{setCurrentTitle(e.target.value);setBrandingSaved(false)}}/></div>
+    <button type="submit" disabled={busy} className="rounded-xl bg-teal px-6 py-3 font-bold text-white disabled:opacity-50">{busy?'Menyimpan…':'Simpan identitas kelas'}</button>
+    {brandingSaved&&<p role="status" className="text-sm font-semibold text-teal">Tersimpan. Tampilan peserta akan diperbarui otomatis.</p>}
+   </form>}
    <form className="workspace-card mt-7 space-y-5 p-6 sm:p-8" onSubmit={save}>
+    <div><span className="workspace-eyebrow">KELAS BARU</span><h2 className="mt-2 text-xl font-extrabold">Buat training untuk klien</h2></div>
     <div><label htmlFor="name" className="field-label">Nama kelas *</label><input id="name" className="field-input" required minLength={3} maxLength={160} value={name} onChange={e=>setName(e.target.value)}/></div>
+    <div><label htmlFor="clientName" className="field-label">Nama klien *</label>
+     <input id="clientName" className="field-input" required minLength={2} maxLength={160} placeholder="Contoh: PT Bank ABC" value={clientName} onChange={e=>setClientName(e.target.value)}/></div>
+    <div><label htmlFor="trainingTitle" className="field-label">Judul training *</label>
+     <input id="trainingTitle" className="field-input" required minLength={3} maxLength={160} placeholder="Contoh: Customer Experience Masterclass" value={trainingTitle} onChange={e=>setTrainingTitle(e.target.value)}/></div>
     <div><label htmlFor="batch" className="field-label">Kode batch *</label><input id="batch" className="field-input" required maxLength={32} pattern="[A-Za-z0-9_-]{1,32}" placeholder="BATCH-02" value={batch} onChange={e=>setBatch(e.target.value)}/></div>
     <div><label htmlFor="date" className="field-label">Tanggal kelas (WITA) *</label><input id="date" type="date" className="field-input" required value={date} onChange={e=>setDate(e.target.value)}/>
      <p className="mt-2 text-xs text-slate-500">Jadwal 09.00–16.00 WITA, kode peserta aktif satu hari sebelum hingga satu hari sesudah kelas.</p></div>
@@ -84,7 +132,7 @@ export default function AdminClassPage(){
    </form>
    {created&&<section aria-live="polite" className="mt-7 rounded-2xl border border-teal bg-white p-6">
     <h2 className="text-xl font-bold text-teal">Kelas berhasil dibuat</h2>
-    <p className="mt-3">{created.name} · {created.batch} · {created.date}</p>
+    <p className="mt-3">{created.trainingTitle} · {created.clientName}</p><p className="mt-1 text-sm text-slate-500">{created.name} · {created.batch} · {created.date}</p>
     <p className="mt-4 text-sm text-slate-500">Kode akses khusus peserta:</p>
     <p className="mt-1 font-mono text-4xl font-extrabold tracking-wider">{created.joinCode}</p>
     <p className="mt-2 text-sm">Kapasitas {created.capacity}. Kelas baru tidak berisi peserta maupun jawaban sebelumnya.</p>
