@@ -27,8 +27,12 @@ export async function GET(req:NextRequest){
      !Number.isFinite(flow.created)||Date.now()-flow.created>600000||
      Date.now()<flow.created||!safeEqual(flow.state,state))throw Error('Invalid state');
  }catch{return NextResponse.json({error:'Sesi login kadaluarsa atau tidak sesuai'},{status:400})}
+ // Operational diagnostics record only a coarse stage and login type.
+ // Never log authorization codes, tokens, cookies, email addresses, or subjects.
+ let stage:'discovery'|'token_exchange'|'identity_and_mfa'|'class_authorization'|'session'='discovery';
  try{
   const provider=await discover(config);
+  stage='token_exchange';
   const request=tokenRequest(config,code,flow.verifier);
   const tokens=await fetch(provider.token_endpoint,{
    method:'POST',headers:request.headers,
@@ -37,10 +41,12 @@ export async function GET(req:NextRequest){
   if(!tokens.ok)throw Error('OIDC code exchange rejected');
   const payload=await tokens.json() as {id_token?:unknown};
   if(typeof payload.id_token!=='string')throw Error('OIDC ID token missing');
+  stage='identity_and_mfa';
   const identity=await verifiedIdentity(payload.id_token,config,flow.nonce,provider);
   // A standalone Super Admin login uses the same OIDC MFA verification but
   // resolves the approved facilitator's class without accepting a class ID
   // from a public query parameter or granting any new permissions.
+  stage='class_authorization';
   const resolved=await transaction(null,async db=>{
    if(flow.classId==='admin'){
     const r=await db.query<{staff_id:string;class_id:string}>(
@@ -54,6 +60,7 @@ export async function GET(req:NextRequest){
    return r.rows[0]?.staff_id?{staffId:r.rows[0].staff_id,classId:flow.classId}:null;
   });
   if(!resolved)throw Error('Staff not assigned or not approved as Super Admin');
+  stage='session';
   const token=await signStaff(resolved.classId,resolved.staffId);
   const res=NextResponse.redirect(new URL('/host/'+resolved.classId+
     (flow.classId==='admin'?'/admin':''),config.origin));
@@ -64,6 +71,9 @@ export async function GET(req:NextRequest){
   res.headers.set('Cache-Control','no-store');
   return res;
  }catch{
+  console.warn('trainlive.staff.oidc_callback_failed',{
+   stage,loginType:flow.classId==='admin'?'admin':'facilitator'
+  });
   const res=NextResponse.json(
    {error:'Login ditolak. Verifikasi akun, MFA, dan penugasan kelas Anda.'},{status:403});
   res.cookies.set(FLOW_COOKIE,'',{httpOnly:true,secure:true,sameSite:'lax',path:'/',maxAge:0});

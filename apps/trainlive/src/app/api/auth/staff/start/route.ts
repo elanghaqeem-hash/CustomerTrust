@@ -41,6 +41,7 @@ export async function GET(req:NextRequest){
   res.headers.set('Cache-Control','no-store');
   return res;
  }catch{
+  console.warn('trainlive.staff.oidc_start_failed',{stage:'provider_discovery'});
   return NextResponse.json({error:'SSO tidak dapat dihubungi'}, {status:503});
  }
 }
