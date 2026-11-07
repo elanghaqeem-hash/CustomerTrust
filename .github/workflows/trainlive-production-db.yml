@@ -8,15 +8,16 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'status = read-only check; migrate-and-seed = apply pending migrations, then publish seed'
+        description: 'status = read-only; seed-only = publish immutable content; migrate-and-seed = migrate then seed'
         required: true
         default: status
         type: choice
         options:
           - status
+          - seed-only
           - migrate-and-seed
       confirm:
-        description: 'For migrate-and-seed type exactly: APPROVE-PRODUCTION-DB'
+        description: 'For either write action type exactly: APPROVE-PRODUCTION-DB'
         required: false
         default: ''
 
@@ -45,8 +46,11 @@ jobs:
           set -euo pipefail
           test "$REF" = "refs/heads/main" || { echo 'Run from main only.' >&2; exit 2; }
           test -n "$DATABASE_URL_ADMIN" || { echo 'Secret DATABASE_URL_ADMIN is not set for environment "production".' >&2; exit 2; }
-          if [ "$ACTION" = "migrate-and-seed" ] && [ "$CONFIRM" != "APPROVE-PRODUCTION-DB" ]; then
-            echo 'migrate-and-seed requires confirm = APPROVE-PRODUCTION-DB' >&2; exit 2
+          if [ "$ACTION" != "status" ] && [ "$ACTION" != "seed-only" ] && [ "$ACTION" != "migrate-and-seed" ]; then
+            echo 'Unsupported action.' >&2; exit 2
+          fi
+          if [ "$ACTION" != "status" ] && [ "$CONFIRM" != "APPROVE-PRODUCTION-DB" ]; then
+            echo 'Write action requires confirm = APPROVE-PRODUCTION-DB' >&2; exit 2
           fi
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -73,7 +77,7 @@ jobs:
         if: inputs.action == 'migrate-and-seed'
         run: node tools/trainlive/db-setup.mjs migrate
       - name: Publish seed versions (published versions are only verified)
-        if: inputs.action == 'migrate-and-seed'
+        if: inputs.action == 'migrate-and-seed' || inputs.action == 'seed-only'
         run: node tools/trainlive/seed.mjs
       - name: Summary (no personal data, no secrets)
         shell: bash
