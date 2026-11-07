@@ -73,6 +73,7 @@ jobs:
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/014_latest_content_and_capacity.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/015_class_branding.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/016_lms_catalog.sql
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/017_lms_learning.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -v app_password=trainlive_ci_web_only -f deploy/hostinger/create-runtime-role.sql
       - name: Real-PostgreSQL RLS isolation tests
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/01_rls_isolation.sql
@@ -124,6 +125,8 @@ jobs:
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/08_class_branding.sql
       - name: LMS tenant isolation and Super Admin catalog controls
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/09_lms_catalog.sql
+      - name: LMS published learning, enrollment and progress isolation
+        run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/10_lms_learning.sql
       - name: Production preflight validates restricted runtime, RLS and published seed
         run: psql "$DATABASE_URL_APP" -v ON_ERROR_STOP=1 -f db/tests/05_production_preflight.sql
       - name: Typecheck and build Next.js application

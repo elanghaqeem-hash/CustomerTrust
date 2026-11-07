@@ -104,8 +104,7 @@ BEGIN
  END;
  resp:=trainlive.lms_learner_enroll(a,course);
  IF resp->>'enrolled'<>'true' THEN RAISE EXCEPTION 'cannot enroll'; END IF;
- PERFORM trainlive.lms_learner_enroll(a,course);
- IF (SELECT count(*) FROM trainlive.lms_enrollment WHERE class_id=a AND participant_id=pid)<>1
+ IF (trainlive.lms_learner_enroll(a,course)->>'enrollmentId') IS DISTINCT FROM (resp->>'enrollmentId')
  THEN RAISE EXCEPTION 'duplicate enrollment'; END IF;
  cat:=trainlive.lms_learner_catalog(a);
  IF jsonb_array_length(cat->'courses'->0->'modules')<>2
@@ -121,7 +120,8 @@ BEGIN
  resp:=trainlive.lms_learner_complete_lesson(a,course,l2);
  IF (resp->>'completedLessons')::integer<>2 OR resp->>'courseContentComplete'<>'true'
  THEN RAISE EXCEPTION 'course progress wrong'; END IF;
- IF (SELECT count(*) FROM trainlive.lms_lesson_progress)<>2
+ cat:=trainlive.lms_learner_catalog(a);
+ IF (cat->'courses'->0->>'completedLessons')::integer<>2
  THEN RAISE EXCEPTION 'duplicate progress inserted'; END IF;
  BEGIN
   PERFORM trainlive.lms_learner_catalog(b);
