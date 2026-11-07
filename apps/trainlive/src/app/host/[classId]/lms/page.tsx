@@ -55,8 +55,8 @@ export default function LmsCatalogPage(){
 
  async function reload(){
   const r=await fetch('/api/class/'+classId+'/lms',{headers:headers(),cache:'no-store'});
-  const data=await r.json();
-  if(!r.ok)throw Error(data.error||'Gagal memuat katalog');
+  const data=await r.json() as Catalog;
+  if(!r.ok)throw Error('Gagal memuat katalog');
   setCatalog(data as Catalog);
   setModuleForm(v=>({...v,courseId:v.courseId||data.courses[0]?.id||''}));
   setLesson(v=>({...v,courseId:v.courseId||data.courses.find(c=>c.status==='draft')?.id||''}));
