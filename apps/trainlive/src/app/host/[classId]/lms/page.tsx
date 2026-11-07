@@ -5,11 +5,14 @@ import {LMS_ENABLED} from '@/lib/lms-flags';
 import {useEffect,useState,type FormEvent} from 'react';
 
 type Mode='checking'|'sso_login'|'sso_ready'|'manual'|'blocked'|'unavailable';
-type Module={id:string;moduleKey:string;title:string;kind:'lesson'|'assessment'|'live_session';estimatedMinutes:number;position:number};
+type Lesson={id:string;lessonKey:string;title:string;contentType:'text'|'link'|'video'|'pdf';body:string;externalUrl:string|null;position:number};
+type Module={id:string;moduleKey:string;title:string;kind:'lesson'|'assessment'|'live_session';estimatedMinutes:number;position:number;lessons:Lesson[]};
 type Course={id:string;code:string;title:string;description:string;deliveryMode:'live'|'self_paced'|'blended';passingGrade:number;sequentialModules:boolean;status:'draft'|'published'|'archived';modules:Module[]};
 type Catalog={organization:{id:string;name:string};program:{id:string;code:string;title:string};courses:Course[]};
 type CourseForm={code:string;title:string;description:string;deliveryMode:Course['deliveryMode'];passingGrade:number;sequentialModules:boolean};
 type ModuleForm={courseId:string;moduleKey:string;title:string;kind:Module['kind'];estimatedMinutes:number};
+type LessonForm={courseId:string;moduleId:string;lessonKey:string;title:string;contentType:Lesson['contentType'];body:string;externalUrl:string};
+const initialLesson:LessonForm={courseId:'',moduleId:'',lessonKey:'',title:'',contentType:'text',body:'',externalUrl:''};
 const initialCourse:CourseForm={code:'',title:'',description:'',deliveryMode:'blended',passingGrade:70,sequentialModules:true};
 const initialModule:ModuleForm={courseId:'',moduleKey:'',title:'',kind:'lesson',estimatedMinutes:30};
 const validClass=(value:string)=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
@@ -25,6 +28,7 @@ export default function LmsCatalogPage(){
  const [course,setCourse]=useState<CourseForm>(initialCourse);
  const [editingId,setEditingId]=useState<string|null>(null);
  const [moduleForm,setModuleForm]=useState<ModuleForm>(initialModule);
+ const [lesson,setLesson]=useState<LessonForm>(initialLesson);
  const access=mode==='sso_ready'||(mode==='manual'&&Boolean(token));
  const headers=():Record<string,string>=>mode==='manual'&&token?{Authorization:'Bearer '+token}:{};
 
@@ -52,10 +56,11 @@ export default function LmsCatalogPage(){
 
  async function reload(){
   const r=await fetch('/api/class/'+classId+'/lms',{headers:headers(),cache:'no-store'});
-  const data=await r.json();
-  if(!r.ok)throw Error(data.error||'Gagal memuat katalog');
+  const data=await r.json() as Catalog;
+  if(!r.ok)throw Error('Gagal memuat katalog');
   setCatalog(data as Catalog);
   setModuleForm(v=>({...v,courseId:v.courseId||data.courses[0]?.id||''}));
+  setLesson(v=>({...v,courseId:v.courseId||data.courses.find(c=>c.status==='draft')?.id||''}));
  }
 
  async function submitCourse(event:FormEvent<HTMLFormElement>){
@@ -95,6 +100,43 @@ export default function LmsCatalogPage(){
   finally{setBusy(false);}
  }
 
+
+ async function submitLesson(event:FormEvent<HTMLFormElement>){
+  event.preventDefault();
+  if(!catalog||busy||!lesson.moduleId)return;
+  setBusy(true);setError('');setNotice('');
+  try{
+   const payload={action:'create_lesson',courseId:lesson.courseId,moduleId:lesson.moduleId,
+    lessonKey:lesson.lessonKey,title:lesson.title,contentType:lesson.contentType,
+    body:lesson.body,externalUrl:lesson.contentType==='text'?null:lesson.externalUrl};
+   const r=await fetch('/api/class/'+classId+'/lms',{
+    method:'POST',headers:{...headers(),'Content-Type':'application/json'},body:JSON.stringify(payload)
+   });
+   const data=await r.json();
+   if(!r.ok)throw Error(data.error||'Gagal menyimpan materi');
+   await reload();setNotice('Materi ditambahkan ke modul draft.');
+   setLesson(v=>({...initialLesson,courseId:v.courseId,moduleId:v.moduleId}));
+  }catch(e){setError(e instanceof Error?e.message:'Gagal menyimpan materi');}
+  finally{setBusy(false);}
+ }
+
+ async function publishCourse(item:Course){
+  if(busy||item.status!=='draft')return;
+  if(!window.confirm('Publikasikan kursus '+item.title+'? Setelah dipublikasikan, materi tidak dapat diubah.'))return;
+  setBusy(true);setError('');setNotice('');
+  try{
+   const r=await fetch('/api/class/'+classId+'/lms',{
+    method:'POST',headers:{...headers(),'Content-Type':'application/json'},
+    body:JSON.stringify({action:'publish_course',courseId:item.id})
+   });
+   const data=await r.json();
+   if(!r.ok)throw Error(data.error||'Publikasi ditolak. Pastikan semua modul berjenis Materi dan berisi pelajaran.');
+   await reload();setNotice('Kursus terpublikasi dan tersedia untuk enrolment peserta dalam program ini.');
+   if(editingId===item.id){setEditingId(null);setCourse(initialCourse);}
+  }catch(e){setError(e instanceof Error?e.message:'Gagal mempublikasikan kursus');}
+  finally{setBusy(false);}
+ }
+
  function editCourse(item:Course){
   setEditingId(item.id);
   setCourse({code:item.code,title:item.title,description:item.description,
@@ -115,9 +157,9 @@ export default function LmsCatalogPage(){
   </header>
   <div className="mx-auto max-w-6xl px-5 py-8">
    <div className="mb-8">
-    <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-teal-700">Learning Management System · P0</p>
+    <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-teal-700">Learning Management System · P1</p>
     <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900">Course & Module Builder</h1>
-    <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">Kelola kursus dan struktur modul berdasarkan program klien. Semua kursus baru disimpan sebagai draft; sesi TrainLive yang sudah berjalan tidak berubah.</p>
+    <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">Kelola kursus, modul dan materi pembelajaran. Publikasi hanya untuk kursus dengan modul materi lengkap; sesi TrainLive yang telah berjalan tidak berubah.</p>
    </div>
 
    {mode==='checking'&&<p role="status" className="rounded-xl bg-white p-5 text-slate-700">Memeriksa akses administrator…</p>}
@@ -168,12 +210,30 @@ export default function LmsCatalogPage(){
        <div><label className="field-label" htmlFor="lms-module-duration">Estimasi durasi (menit)</label><input id="lms-module-duration" className="field-input" type="number" min={1} max={10080} value={moduleForm.estimatedMinutes} onChange={e=>setModuleForm(v=>({...v,estimatedMinutes:Number(e.target.value)}))}/></div>
       </div>
       <button className="tl-staff-button" type="submit" disabled={busy||!moduleForm.courseId}>{busy?'Menyimpan…':'Tambah modul'}</button>
-      <p className="text-xs leading-relaxed text-slate-500">P0 membuat struktur modul. Upload konten, enrolment, ujian dan sertifikat dikembangkan pada tahap berikutnya.</p>
+      <p className="text-xs leading-relaxed text-slate-500">P0 membuat struktur modul. Modul assessment dan live session belum dapat dipublikasikan sampai engine penilaian dan absensi dirilis.</p>
      </form>
     </div>
 
+    <form onSubmit={submitLesson} className="workspace-card mt-6 space-y-4 p-5 sm:p-6" aria-labelledby="lesson-form-title">
+     <div><p className="workspace-eyebrow">03 / CONTENT BUILDER</p><h2 id="lesson-form-title" className="mt-1 text-xl font-extrabold text-slate-900">Tambah materi pembelajaran</h2>
+      <p className="mt-1 text-sm text-slate-600">Materi berupa teks atau tautan HTTPS menuju video, PDF, dan bahan bacaan. File belum diunggah ke server LMS.</p></div>
+     <div className="grid gap-4 md:grid-cols-2">
+      <div><label className="field-label" htmlFor="lesson-course">Kursus draft *</label><select id="lesson-course" className="field-input" required value={lesson.courseId} onChange={e=>setLesson(v=>({...v,courseId:e.target.value,moduleId:''}))}>
+       <option value="">Pilih kursus</option>{catalog.courses.filter(c=>c.status==='draft').map(c=><option key={c.id} value={c.id}>{c.code} — {c.title}</option>)}</select></div>
+      <div><label className="field-label" htmlFor="lesson-module">Modul materi *</label><select id="lesson-module" className="field-input" required value={lesson.moduleId} onChange={e=>setLesson(v=>({...v,moduleId:e.target.value}))}>
+       <option value="">Pilih modul</option>{catalog.courses.find(c=>c.id===lesson.courseId)?.modules.filter(m=>m.kind==='lesson').map(m=><option key={m.id} value={m.id}>{m.moduleKey} — {m.title}</option>)}</select></div>
+      <div><label className="field-label" htmlFor="lesson-key">Kode materi *</label><input id="lesson-key" className="field-input" required pattern="[A-Z][A-Z0-9_-]{1,31}" maxLength={32} placeholder="LESSON01" value={lesson.lessonKey} onChange={e=>setLesson(v=>({...v,lessonKey:e.target.value.toUpperCase()}))}/></div>
+      <div><label className="field-label" htmlFor="lesson-type">Format materi</label><select id="lesson-type" className="field-input" value={lesson.contentType} onChange={e=>setLesson(v=>({...v,contentType:e.target.value as Lesson['contentType']}))}>
+       <option value="text">Teks</option><option value="link">Tautan bacaan</option><option value="video">Tautan video</option><option value="pdf">Tautan PDF</option></select></div>
+      <div className="md:col-span-2"><label className="field-label" htmlFor="lesson-title">Judul materi *</label><input id="lesson-title" className="field-input" minLength={3} maxLength={160} required value={lesson.title} onChange={e=>setLesson(v=>({...v,title:e.target.value}))} placeholder="Contoh: Prinsip Keamanan Informasi"/></div>
+      {lesson.contentType!=='text'&&<div className="md:col-span-2"><label className="field-label" htmlFor="lesson-url">URL HTTPS *</label><input id="lesson-url" className="field-input" type="url" pattern="https://.*" maxLength={2048} required value={lesson.externalUrl} onChange={e=>setLesson(v=>({...v,externalUrl:e.target.value}))} placeholder="https://example.org/materi.pdf"/></div>}
+      <div className="md:col-span-2"><label className="field-label" htmlFor="lesson-body">{lesson.contentType==='text'?'Isi materi *':'Deskripsi materi (opsional)'}</label><textarea id="lesson-body" className="field-input min-h-32" maxLength={10000} required={lesson.contentType==='text'} value={lesson.body} onChange={e=>setLesson(v=>({...v,body:e.target.value}))} placeholder="Tuliskan materi tanpa data sensitif pelanggan"/></div>
+     </div>
+     <button className="tl-staff-button" type="submit" disabled={busy||!lesson.courseId||!lesson.moduleId}>{busy?'Menyimpan…':'Simpan materi'}</button>
+    </form>
+
     <section className="mt-8" aria-labelledby="course-list-title"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div>
-     <p className="workspace-eyebrow">03 / COURSE LIBRARY</p><h2 id="course-list-title" className="mt-1 text-xl font-extrabold text-slate-900">Katalog kursus klien</h2></div>
+     <p className="workspace-eyebrow">04 / COURSE LIBRARY</p><h2 id="course-list-title" className="mt-1 text-xl font-extrabold text-slate-900">Katalog kursus klien</h2></div>
      <button type="button" onClick={()=>void reload().catch(e=>setError(e instanceof Error?e.message:'Gagal memuat katalog'))} className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Muat ulang</button>
     </div>
     {!catalog.courses.length?<div className="workspace-card p-8 text-center text-slate-600">Belum ada kursus. Gunakan Course Builder untuk membuat kursus pertama.</div>:
@@ -183,8 +243,12 @@ export default function LmsCatalogPage(){
       {item.description&&<p className="mt-3 text-sm text-slate-600">{item.description}</p>}
       <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-600"><span className="rounded-lg bg-slate-100 px-2 py-1">{modes[item.deliveryMode]}</span><span className="rounded-lg bg-slate-100 px-2 py-1">Lulus ≥ {item.passingGrade}%</span><span className="rounded-lg bg-slate-100 px-2 py-1">{item.sequentialModules?'Berurutan':'Bebas urutan'}</span></div>
       <div className="mt-4 border-t border-slate-100 pt-4"><p className="mb-2 text-xs font-bold uppercase text-slate-500">Modul ({item.modules.length})</p>
-       {item.modules.length?<ol className="space-y-2">{item.modules.map(m=><li key={m.id} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 text-sm"><span className="min-w-0"><strong className="text-slate-900">{m.position}. {m.title}</strong><span className="ml-2 text-xs text-slate-500">{kinds[m.kind]}</span></span><span className="shrink-0 text-xs text-slate-500">{m.estimatedMinutes} mnt</span></li>)}</ol>:<p className="text-sm text-slate-500">Belum ada modul</p>}</div>
-      {item.status==='draft'&&<button type="button" onClick={()=>editCourse(item)} className="mt-4 rounded-xl border border-teal-200 px-4 py-2 text-sm font-bold text-teal-800 hover:bg-teal-50">Ubah parameter</button>}
+       {item.modules.length?<ol className="space-y-2">{item.modules.map(m=><li key={m.id} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 text-sm"><span className="min-w-0"><strong className="text-slate-900">{m.position}. {m.title}</strong><span className="ml-2 text-xs text-slate-500">{kinds[m.kind]}</span></span><span className="shrink-0 text-xs text-slate-500">{m.lessons?.length||0} materi · {m.estimatedMinutes} mnt</span></li>)}</ol>:<p className="text-sm text-slate-500">Belum ada modul</p>}</div>
+      {item.status==='draft'&&<div className="mt-4 flex flex-wrap gap-2">
+       <button type="button" onClick={()=>editCourse(item)} className="rounded-xl border border-teal-200 px-4 py-2 text-sm font-bold text-teal-800 hover:bg-teal-50">Ubah parameter</button>
+       <button type="button" disabled={busy||!item.modules.length||item.modules.some(m=>m.kind!=='lesson'||!m.lessons?.length)} onClick={()=>void publishCourse(item)} className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-bold text-white disabled:bg-slate-300">Publikasikan kursus</button>
+      </div>}
+      {item.status==='published'&&<p className="mt-4 text-xs font-semibold text-teal-800">Materi terkunci; peserta program ini dapat mendaftar.</p>}
      </article>)}</div>}
     </section>
    </>}
