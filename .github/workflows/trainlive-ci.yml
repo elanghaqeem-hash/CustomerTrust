@@ -72,6 +72,7 @@ jobs:
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/013_super_admin_sso_entry.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/014_latest_content_and_capacity.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/015_class_branding.sql
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/016_lms_catalog.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -v app_password=trainlive_ci_web_only -f deploy/hostinger/create-runtime-role.sql
       - name: Real-PostgreSQL RLS isolation tests
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/01_rls_isolation.sql
@@ -121,6 +122,8 @@ jobs:
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/07_super_admin_sso_entry.sql
       - name: Branding is class-specific and only Super Admin can edit
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/08_class_branding.sql
+      - name: LMS tenant isolation and Super Admin catalog controls
+        run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/09_lms_catalog.sql
       - name: Production preflight validates restricted runtime, RLS and published seed
         run: psql "$DATABASE_URL_APP" -v ON_ERROR_STOP=1 -f db/tests/05_production_preflight.sql
       - name: Typecheck and build Next.js application
@@ -141,6 +144,15 @@ jobs:
           done
           grep -q 'Login Administrator' /tmp/trainlive-admin.html
           grep -q '/api/auth/staff/start?role=admin' /tmp/trainlive-admin.html
+          # Default-OFF LMS must not expose pages or database-dependent APIs.
+          lms_class='00000000-0000-0000-0000-000000000000'
+          for route in "/host/$lms_class/lms" "/api/class/$lms_class/lms"; do
+            status="$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3350$route")"
+            test "$status" = '404' || { echo "LMS gate failed: $route status=$status"; exit 1; }
+          done
+          post_status="$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{}' "http://localhost:3350/api/class/$lms_class/lms")"
+          test "$post_status" = '404'
+          echo 'PASS: default-off LMS catalog page and GET/POST API are hidden'
           echo 'PASS: standalone admin entry route'
       - name: Hostinger VPS Compose contract and container builds
         run: |
