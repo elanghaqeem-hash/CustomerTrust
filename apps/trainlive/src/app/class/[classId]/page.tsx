@@ -274,11 +274,11 @@ export default function ClassPage(){
     </a>
    </div>
    <div className="participant-tabs" role="tablist" aria-label="Menu peserta">
-    <button type="button" role="tab" aria-selected={tab==='active'} onClick={()=>setTab('active')}
+    <button type="button" role="tab" aria-selected={tab==='active'} disabled={loading} onClick={()=>setTab('active')}
      className={'participant-tab '+(tab==='active'?'is-active':'')}><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 17h7M17.5 14v7"/></svg>Aktivitas</button>
-    <button type="button" role="tab" aria-selected={tab==='agenda'} onClick={()=>setTab('agenda')}
+    <button type="button" role="tab" aria-selected={tab==='agenda'} disabled={loading} onClick={()=>setTab('agenda')}
      className={'participant-tab '+(tab==='agenda'?'is-active':'')}><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 15h3M14 15h3"/></svg>Rundown</button>
-    <button type="button" role="tab" aria-selected={tab==='score'} onClick={()=>setTab('score')}
+    <button type="button" role="tab" aria-selected={tab==='score'} disabled={loading} onClick={()=>setTab('score')}
      className={'participant-tab '+(tab==='score'?'is-active':'')}><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 21h8M12 17v4M7 4H5a2 2 0 0 0-2 2c0 4 3 6 6 6M17 4h2a2 2 0 0 1 2 2c0 4-3 6-6 6M7 3h10v6a5 5 0 0 1-10 0z"/></svg>Skor</button>
    </div>
    {error&&<div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-800">

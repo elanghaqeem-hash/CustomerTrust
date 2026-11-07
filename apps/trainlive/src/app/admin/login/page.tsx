@@ -21,7 +21,7 @@ export default function AdminLoginPage(){
    </aside>
    <section className="tl-login-panel" aria-labelledby="admin-title">
     <span className="tl-login-badge">● &nbsp; Login Administrator · Akses khusus staf</span>
-    <h1 id="admin-title">Selamat datang kembali.</h1>
+    <h1 id="admin-title" aria-label="Login Administrator">Selamat datang kembali.</h1>
     <p className="mt-4">Masuk ke area administrator menggunakan akun staf dengan peran Super Admin yang telah disetujui.</p>
     {configured
      ? <a href="/api/auth/staff/start?role=admin" className="tl-staff-button mt-8 w-full">Masuk dengan SSO + MFA <span aria-hidden="true">→</span></a>
