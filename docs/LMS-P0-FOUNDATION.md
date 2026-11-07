@@ -45,3 +45,7 @@ All writes require same-origin browser requests and valid staff SSO session. Dup
 P1: tenant CRUD / tenant admin roles, course publication workflow, lesson assets (PDF/video/link), enrollment and progress tracking. P2: assessment bank, grading, completion rules, certificates and reporting. P3: white-label domains, notifications, integrations and scale/performance acceptance.
 
 Current P0 is an **authoring/catalog increment**, not a functioning self-paced LMS. Production app status must be assessed independently.
+
+## Feature activation gate (default OFF)
+
+The LMS course catalog is protected by a single explicit `NEXT_PUBLIC_TRAINLIVE_LMS_ENABLED=true` build flag. **Unset or any other value disables the LMS**: its navigation link is hidden, its page returns 404, and GET/POST LMS APIs return 404 before reading the database. This prevents releasing routes that depend on migrations 016/017 into an environment that only has migrations 001–015. Do not set the flag before approved database migration, role/SSO verification, UAT and a new approved build. Merely merging code does not activate LMS.
