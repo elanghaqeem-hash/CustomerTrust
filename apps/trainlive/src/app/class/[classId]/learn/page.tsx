@@ -1,5 +1,6 @@
 'use client';
-import {useParams} from 'next/navigation';
+import {notFound,useParams} from 'next/navigation';
+import {LMS_ENABLED} from '@/lib/lms-flags';
 import {useEffect,useState} from 'react';
 
 type Lesson={id:string;title:string;contentType:'text'|'link'|'video'|'pdf';body:string;externalUrl:string|null;position:number;completed:boolean};
@@ -42,6 +43,7 @@ export default function LearningPage(){
   }catch(e){setError(e instanceof Error?e.message:'Gagal menyimpan progres');}
   finally{setBusy(false);}
  }
+ if(!LMS_ENABLED)notFound();
  return <main className="trainlive-workspace min-h-screen bg-slate-50 pb-20">
   <header className="workspace-nav text-white"><div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-5 py-4">
    <a href={'/class/'+classId} className="text-lg font-extrabold text-white no-underline">Train<span className="text-teal-300">Live</span> <span className="ml-3 border-l border-white/20 pl-3 text-sm text-white/80">LMS</span></a>

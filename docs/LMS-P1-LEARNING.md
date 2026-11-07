@@ -25,3 +25,7 @@ This is a stacked increment on the P0 Course & Module Builder branch. **Not prod
 
 ## Next stage
 P2: tenant administration, durable learner identity/enrollment independent of class session, private media storage, question bank/assessment scoring with passing-grade logic, certificate issuance and verification.
+
+## Release feature gate
+
+LMS is disabled by default, requiring `NEXT_PUBLIC_TRAINLIVE_LMS_ENABLED=true` in an approved build. The learner shortcut is hidden; the learner page returns not found; staff and learner LMS GET/POST APIs return 404 before database access. P0 admin navigation uses the same flag. Do not enable before migrations 016/017, production SSO/MFA, privacy review and browser UAT.

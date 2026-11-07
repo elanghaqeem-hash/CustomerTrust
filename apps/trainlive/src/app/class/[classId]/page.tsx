@@ -1,6 +1,7 @@
 'use client';
 import {useParams} from 'next/navigation';
 import { useEffect,useRef,useState } from 'react';
+import {LMS_ENABLED} from '@/lib/lms-flags';
 type Payload={title?:string;prompt?:string;scenario?:string;tag?:string;options?:string[];multi_max?:number;
  questions?:Array<{q:string;options?:string[];scale?:number;type?:string}>;
  correct?:string;explanation?:string;legal_basis?:string;timer_sec?:number};
@@ -269,11 +270,11 @@ export default function ClassPage(){
      <span className="participant-shortcut-copy"><strong>Pengingat kuis {alerts&&<span className="participant-alert-enabled">AKTIF</span>}</strong><small aria-live="polite">{alertDetail}</small></span>
      <span className={'participant-shortcut-toggle '+(alerts?'is-on':'')} aria-hidden="true"><span></span></span>
     </button>
-    <a href={'/class/'+id+'/learn'} className="participant-shortcut participant-worksheet">
+    {LMS_ENABLED&&<a href={'/class/'+id+'/learn'} className="participant-shortcut participant-worksheet">
      <span className="participant-shortcut-icon" aria-hidden="true">📚</span>
      <span className="participant-shortcut-copy"><strong>Belajar mandiri</strong><small>Kursus, materi & progres LMS</small></span>
      <span className="participant-shortcut-arrow" aria-hidden="true">↗</span>
-    </a>
+    </a>}
     <a href={'/class/'+id+'/worksheets'} className="participant-shortcut participant-worksheet">
      <span className="participant-shortcut-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3h8l4 4v14H4V3h4zM16 3v5h4M8 13h8M8 17h6"/></svg></span>
      <span className="participant-shortcut-copy"><strong>Lembar kerja</strong><small>Isi LK1–LK5 dan kumpulkan poin</small></span>

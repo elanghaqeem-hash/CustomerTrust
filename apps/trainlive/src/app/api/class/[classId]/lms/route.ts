@@ -2,6 +2,7 @@ import {NextResponse} from 'next/server';
 import {z} from 'zod';
 import {transaction} from '@/lib/db';
 import {guardClass,privateError,requireSameOrigin} from '@/lib/api';
+import {LMS_ENABLED} from '@/lib/lms-flags';
 
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
@@ -52,6 +53,7 @@ const mutations=z.discriminatedUnion('action',[
 ]);
 
 export async function GET(_req:Request,{params}:{params:Promise<{classId:string}>}){
+ if(!LMS_ENABLED)return NextResponse.json({error:'not_found'},{status:404});
  const {classId}=await params;
  const auth=await guardClass(classId,'staff');
  if(auth.response)return auth.response;
@@ -66,6 +68,7 @@ export async function GET(_req:Request,{params}:{params:Promise<{classId:string}
 }
 
 export async function POST(req:Request,{params}:{params:Promise<{classId:string}>}){
+ if(!LMS_ENABLED)return NextResponse.json({error:'not_found'},{status:404});
  const denied=requireSameOrigin(req);if(denied)return denied;
  const {classId}=await params;
  const auth=await guardClass(classId,'staff');
