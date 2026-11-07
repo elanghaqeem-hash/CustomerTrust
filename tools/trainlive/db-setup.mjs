@@ -72,8 +72,24 @@ async function ensureMeta(db) {
   return new Map(rows.map(r => [r.filename, r.sha256]));
 }
 
+// Unlike migrate(), status must not create schemas, tables or change grants.
+// This allows checking production state with a truly read-only database account.
+async function readMeta(db) {
+  const exists = (await db.query(
+    "SELECT to_regclass('trainlive_meta.schema_migration') IS NOT NULL AS present"
+  )).rows[0].present;
+  if (!exists) {
+    console.info('Migration tracking table is not initialized.');
+    return new Map();
+  }
+  const rows = (await db.query(
+    'SELECT filename,sha256 FROM trainlive_meta.schema_migration'
+  )).rows;
+  return new Map(rows.map(r => [r.filename,r.sha256]));
+}
+
 async function status(db) {
-  const applied = await ensureMeta(db);
+  const applied = await readMeta(db);
   let pending = 0;
   for (const m of migrationFiles()) {
     const sha = applied.get(m.file);
