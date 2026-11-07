@@ -94,7 +94,7 @@ export default function AdminClassPage(){
  return <main className="trainlive-workspace tl-class-create min-h-screen pb-16">
   <header className="workspace-nav text-white"><div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-4 px-5 py-4">
    <a href="/" className="text-xl font-extrabold tracking-tight text-white no-underline">Train<span className="text-[#5eead4]">Live</span><span className="ml-3 border-l border-white/20 pl-3 text-xs font-medium text-slate-300">Administrator</span></a>
-   <a className="rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white no-underline hover:bg-white/20" href={'/host/'+id}>← Kembali ke kelas</a>
+   <div className="flex flex-wrap gap-2"><a className="rounded-lg border border-teal-200/40 bg-teal-500/20 px-4 py-2 text-sm font-semibold text-white no-underline hover:bg-teal-500/30" href={'/host/'+id+'/lms'}>LMS Course Builder →</a><a className="rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white no-underline hover:bg-white/20" href={'/host/'+id}>← Kembali ke kelas</a></div>
   </div></header>
   <div className="mx-auto max-w-5xl px-5 py-7 sm:py-10">
    <section className="tl-create-hero" aria-labelledby="create-title">
