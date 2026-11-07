@@ -70,7 +70,9 @@ try{
    }
    assert.equal(new URL(page.url()).pathname,'/class/'+classId,
     'Real UI registration must navigate to the intended class');
-   await page.getByRole('tab',{name:'Rundown'}).click();
+   // Wait for hydration and initial data before interacting with SSR tab controls.
+  await page.getByText('Memuat kelas…').waitFor({state:'hidden',timeout:30000});
+  await page.getByRole('tab',{name:'Rundown'}).click();
    await page.getByRole('heading',{name:'Rundown aktivitas'}).waitFor();
    assert.equal(await page.getByText(/Kunci:/).count(),0,'Answer exposed before reveal');
    await page.getByRole('tab',{name:'Aktivitas'}).click();

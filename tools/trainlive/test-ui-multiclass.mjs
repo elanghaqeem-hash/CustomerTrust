@@ -50,7 +50,9 @@ async function participantJoin(ctx,cls,n){
  await page.waitForURL(u=>u.pathname==='/class/'+cls.class_id);
  pass('peserta: form gabung + redirect kelas');
  // Tabs and shortcuts.
- await page.getByRole('tab',{name:'Rundown'}).click();
+ // Wait for hydration and initial data before interacting with SSR tab controls.
+  await page.getByText('Memuat kelas…').waitFor({state:'hidden',timeout:30000});
+  await page.getByRole('tab',{name:'Rundown'}).click();
  await page.getByRole('heading',{name:'Rundown aktivitas'}).waitFor();
  const rundown=await page.locator('main ol').innerText();
  assert.ok(!/POLL-TRUST-BREAKER|CHAT-WARMUP|\bEVAL\b/.test(rundown),'raw item key shown in rundown');
