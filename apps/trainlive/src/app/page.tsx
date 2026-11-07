@@ -22,6 +22,7 @@ export default function JoinPage() {
  const [busy, setBusy] = useState(false);
  const [error, setError] = useState('');
  const [readiness, setReadiness] = useState<'checking' | 'ready' | 'offline'>('checking');
+ const [branding, setBranding] = useState<{clientName:string|null;trainingTitle:string|null}|null>(null);
 
  useEffect(() => {
   const queryCode = new URLSearchParams(window.location.search).get('code');
@@ -34,6 +35,16 @@ export default function JoinPage() {
    .catch(() => { if (mounted) setReadiness('offline'); });
   return () => { mounted = false; };
  }, []);
+
+ useEffect(() => {
+  if(code.length!==6){setBranding(null);return;}
+  const controller=new AbortController();
+  fetch('/api/branding?code='+encodeURIComponent(code),{cache:'no-store',signal:controller.signal})
+   .then(r=>r.ok?r.json():null)
+   .then(x=>{if(!controller.signal.aborted)setBranding(x)})
+   .catch(()=>{if(!controller.signal.aborted)setBranding(null)});
+  return()=>controller.abort();
+ },[code]);
 
  async function submit(event: FormEvent) {
   event.preventDefault();
@@ -65,7 +76,7 @@ export default function JoinPage() {
      <span className="text-2xl font-extrabold tracking-[-.05em]">Train<span className="text-[#5eead4]">Live</span></span>
     </a>
     <nav className="flex items-center gap-3 sm:gap-7" aria-label="Navigasi utama">
-     <span className="hidden text-[11px] font-bold uppercase tracking-[.19em] text-[#c6d8e4] md:inline">Customer Trust Challenge</span>
+     <span className="hidden text-[11px] font-bold uppercase tracking-[.19em] text-[#c6d8e4] md:inline">{branding?.trainingTitle||'PLATFORM TRAINING INTERAKTIF'}</span>
      <a href="/admin/login" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 text-sm font-semibold text-white no-underline transition hover:border-white/60 hover:bg-white/20">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" aria-hidden="true"><path d="M10 17l5-5-5-5m5 5H3m10-9h5a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
       Login Admin
@@ -158,7 +169,7 @@ export default function JoinPage() {
    </div>
   </section>
   <footer className="border-t border-[#e0e8ed] bg-white px-5 py-6 text-center text-xs leading-6 text-slate-500 sm:text-sm">
-   TrainLive · Customer Trust Challenge · PT Bank Pembangunan Daerah Sulawesi Tengah
+   TrainLive{branding?.trainingTitle?' · '+branding.trainingTitle:''}{branding?.clientName?' · '+branding.clientName:''} · Platform pembelajaran interaktif
   </footer>
  </main>;
 }
