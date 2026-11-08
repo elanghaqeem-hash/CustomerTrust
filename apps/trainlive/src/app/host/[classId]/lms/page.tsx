@@ -1,6 +1,7 @@
 'use client';
 
 import {notFound,useParams} from 'next/navigation';
+import TenantSettings from './tenant-settings';
 import {LMS_ENABLED} from '@/lib/lms-flags';
 import {useEffect,useState,type FormEvent} from 'react';
 
@@ -180,6 +181,8 @@ export default function LmsCatalogPage(){
      <div className="workspace-card p-5"><p className="text-xs font-bold uppercase tracking-widest text-slate-500">Program</p><p className="mt-2 text-lg font-extrabold text-slate-900">{catalog.program.title}</p><p className="text-xs text-slate-500">{catalog.program.code}</p></div>
      <div className="workspace-card p-5"><p className="text-xs font-bold uppercase tracking-widest text-slate-500">Kursus Terdaftar</p><p className="mt-2 text-3xl font-extrabold text-teal-700">{catalog.courses.length}</p></div>
     </section>
+
+    <TenantSettings classId={classId} headers={headers}/>
 
     <div className="grid items-start gap-6 lg:grid-cols-2">
      <form onSubmit={submitCourse} className="workspace-card space-y-4 p-5 sm:p-6" aria-labelledby="course-form-title">
