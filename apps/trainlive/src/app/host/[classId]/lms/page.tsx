@@ -2,6 +2,7 @@
 
 import {notFound,useParams} from 'next/navigation';
 import TenantSettings from './tenant-settings';
+import TenantManagement from './tenant-management';
 import {LMS_ENABLED} from '@/lib/lms-flags';
 import {useEffect,useState,type FormEvent} from 'react';
 
@@ -182,6 +183,7 @@ export default function LmsCatalogPage(){
      <div className="workspace-card p-5"><p className="text-xs font-bold uppercase tracking-widest text-slate-500">Kursus Terdaftar</p><p className="mt-2 text-3xl font-extrabold text-teal-700">{catalog.courses.length}</p></div>
     </section>
 
+    <TenantManagement classId={classId} headers={headers}/>
     <TenantSettings classId={classId} headers={headers}/>
 
     <div className="grid items-start gap-6 lg:grid-cols-2">
