@@ -237,7 +237,7 @@ SET search_path=trainlive,pg_temp AS $$
    OR (p_key='branding.logo_url' AND
     (jsonb_typeof(p_value)<>'string' OR length(p_value#>>'{}')>512
       OR ((p_value#>>'{}')<>'' AND (p_value#>>'{}') !~ '^https://[^[:space:]@<>]+$'))
-    (jsonb_typeof(p_value)<>'number' OR (p_value#>>'{}') !~ '^[0-9]{1,3}$'
+    OR (p_key='learning.default_passing_grade' AND
      OR (p_value#>>'{}')::integer NOT BETWEEN 0 AND 100))
    OR (p_key IN ('learning.default_sequential','certificate.enabled')
     AND jsonb_typeof(p_value)<>'boolean')
