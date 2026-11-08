@@ -43,17 +43,15 @@ BEGIN
   PERFORM trainlive.lms_admin_set_scoped_setting(a,new_tenant,'auth.disable_mfa','true'::jsonb);
   RAISE EXCEPTION 'invalid auth setting accepted';
  EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
- r:=trainlive.lms_admin_set_scoped_setting(a,new_tenant,'branding.primary_color','"#112233"'::jsonb);
- IF (r->>'revision')::integer<>1 THEN RAISE EXCEPTION 'first revision mismatch'; END IF;
- r:=trainlive.lms_admin_set_scoped_setting(a,new_tenant,'branding.primary_color','"#445566"'::jsonb);
- IF (r->>'revision')::integer<>2 THEN RAISE EXCEPTION 'second revision mismatch'; END IF;
- r:=trainlive.lms_admin_scoped_setting_history(a,new_tenant,'branding.primary_color');
- IF jsonb_array_length(r->'history')<>2 THEN RAISE EXCEPTION 'tenant history missing'; END IF;
- r:=trainlive.lms_admin_rollback_scoped_setting(a,new_tenant,'branding.primary_color',1);
- IF (r->>'revision')::integer<>3 THEN RAISE EXCEPTION 'rollback revision not incremented'; END IF;
- r:=trainlive.lms_admin_tenant_settings(a,new_tenant);
- IF r->'settings'->>'branding.primary_color'<>'#112233'
- THEN RAISE EXCEPTION 'rollback not restored in tenant'; END IF;
+  -- Migration 022 routes writes through proposal/review maker-checker.
+  BEGIN
+   PERFORM trainlive.lms_admin_set_scoped_setting(a,new_tenant,'branding.primary_color','"#112233"'::jsonb);
+   RAISE EXCEPTION 'legacy scoped direct write still executable';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+   PERFORM trainlive.lms_admin_rollback_scoped_setting(a,new_tenant,'branding.primary_color',1);
+   RAISE EXCEPTION 'legacy scoped direct rollback still executable';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
  BEGIN
   PERFORM trainlive.lms_admin_rollback_scoped_setting(a,foreign_tenant,'branding.primary_color',1);
   RAISE EXCEPTION 'foreign rollback allowed';
