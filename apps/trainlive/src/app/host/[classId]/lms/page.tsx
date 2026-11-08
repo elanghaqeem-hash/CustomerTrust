@@ -1,7 +1,6 @@
 'use client';
 
 import {notFound,useParams} from 'next/navigation';
-import TenantSettings from './tenant-settings';
 import TenantManagement from './tenant-management';
 import {LMS_ENABLED} from '@/lib/lms-flags';
 import {useEffect,useState,type FormEvent} from 'react';
@@ -205,7 +204,6 @@ export default function LmsCatalogPage(){
     </section>
 
     <TenantManagement classId={classId} headers={headers}/>
-    <TenantSettings classId={classId} headers={headers}/>
 
     <div className="grid items-start gap-6 lg:grid-cols-2">
      <form onSubmit={submitCourse} className="workspace-card space-y-4 p-5 sm:p-6" aria-labelledby="course-form-title">
