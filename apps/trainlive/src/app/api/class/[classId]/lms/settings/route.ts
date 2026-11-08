@@ -57,16 +57,17 @@ export async function POST(req:Request,{params}:{params:Promise<{classId:string}
  const input=definitions.safeParse(await req.json().catch(()=>null));
  if(!input.success)return NextResponse.json({error:'Parameter tenant tidak valid'},{status:400});
  try{
-  const data=await transaction({classId,staffId:auth.staffId},async db=>
-   (await db.query<{result:Record<string,unknown>}>(
-    'SELECT trainlive.lms_admin_get_tenant_settings($1) AS current',[classId]
-   );
-   const tenantId=current.rows[0]?.current?.organizationId;
+  const data=await transaction({classId,staffId:auth.staffId},async db=>{
+   const current=await db.query<{tenant_settings:{organizationId:string}}>(
+    'SELECT trainlive.lms_admin_get_tenant_settings($1) AS tenant_settings',[classId]);
+   const tenantId=current.rows[0]?.tenant_settings?.organizationId;
    if(!tenantId)throw Object.assign(new Error('tenant not found'),{code:'42501'});
-   return (await db.query<{result:Record<string,unknown>}> (
+   const proposed=await db.query<{result:Record<string,unknown>}>(
     'SELECT trainlive.lms_tenant_setting_propose($1::uuid,$2,$3::jsonb) AS result',
-    [tenantId,input.data.key,JSON.stringify(input.data.value)]
-   )).rows[0]?.result);
-  return NextResponse.json(data,{status:data?.status==='no_change'?200:202,headers:{'Cache-Control':'private, no-store'}});
+    [tenantId,input.data.key,JSON.stringify(input.data.value)]);
+   return proposed.rows[0]?.result;
+  });
+  return NextResponse.json(data,{status:data?.status==='no_change'?200:202,
+   headers:{'Cache-Control':'private, no-store'}});
  }catch(e){return privateError(e);}
 }
