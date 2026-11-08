@@ -41,10 +41,15 @@ export async function POST(req:Request,{params}:{params:Promise<{classId:string}
   .safeParse(await req.json().catch(()=>null));
  if(!input.success)return NextResponse.json({error:'Revisi pengaturan tidak valid'},{status:400});
  try{
-  const result=await transaction({classId,staffId:auth.staffId},async db=>
-   (await db.query<{result:Record<string,unknown>}>(
-    'SELECT trainlive.lms_admin_rollback_setting($1,$2,$3::bigint) AS result',
-    [classId,input.data.key,input.data.revision])).rows[0]?.result);
+  const result=await transaction({classId,staffId:auth.staffId},async db=>{
+   const current=await db.query<{result:{organizationId:string}}>(
+    'SELECT trainlive.lms_admin_get_tenant_settings($1) AS result',[classId]);
+   const tenantId=current.rows[0]?.result?.organizationId;
+   if(!tenantId)throw Object.assign(new Error('tenant not found'),{code:'42501'});
+   return (await db.query<{result:Record<string,unknown>}>(
+    'SELECT trainlive.lms_tenant_setting_request_rollback($1::uuid,$2,$3::bigint) AS result',
+    [tenantId,input.data.key,input.data.revision])).rows[0]?.result;
+  });
   return NextResponse.json(result,{headers:{'Cache-Control':'private, no-store'}});
  }catch(e){return privateError(e);}
 }
