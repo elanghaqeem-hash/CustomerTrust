@@ -47,8 +47,8 @@ export async function POST(req:Request,{params}:{params:Promise<{classId:string;
  try{
   const result=await transaction({classId,staffId:auth.staffId},async db=>
    (await db.query<{result:Record<string,unknown>}>(
-    'SELECT trainlive.lms_admin_rollback_scoped_setting($1,$2::uuid,$3,$4::bigint) AS result',
-    [classId,tenantId,input.data.key,input.data.revision])).rows[0]?.result);
+    'SELECT trainlive.lms_tenant_setting_request_rollback($1::uuid,$2,$3::bigint) AS result',
+    [tenantId,input.data.key,input.data.revision])).rows[0]?.result);
   return NextResponse.json(result,{headers:{'Cache-Control':'private, no-store'}});
  }catch(e){return privateError(e);}
 }
