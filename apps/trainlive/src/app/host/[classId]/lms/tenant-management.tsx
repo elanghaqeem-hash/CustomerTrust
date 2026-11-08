@@ -17,6 +17,7 @@ export default function TenantManagement({classId,headers}:{
  const [edit,setEdit]=useState<Record<string,{name:string;status:Tenant['status']}>>({});
  const [assign,setAssign]=useState({tenantId:'',email:'',role:'viewer' as Membership['role']});
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
+ const [inviteLink,setInviteLink]=useState('');
  async function reload(){
   const res=await fetch('/api/class/'+classId+'/lms/tenants',{headers:headers(),cache:'no-store'});
   const result=await res.json();
