@@ -22,7 +22,7 @@ export default function JoinPage() {
  const [busy, setBusy] = useState(false);
  const [error, setError] = useState('');
  const [readiness, setReadiness] = useState<'checking' | 'ready' | 'offline'>('checking');
- const [branding, setBranding] = useState<{clientName:string|null;trainingTitle:string|null}|null>(null);
+ const [branding, setBranding] = useState<{clientName:string|null;trainingTitle:string|null;logoUrl:string|null;primaryColor:string|null}|null>(null);
 
  useEffect(() => {
   const queryCode = new URLSearchParams(window.location.search).get('code');
@@ -70,13 +70,13 @@ export default function JoinPage() {
   <div className="trainlive-stage">
    <header className="relative z-20 mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-6 sm:px-8 lg:py-8">
     <a href="/" className="inline-flex items-center gap-3 rounded-lg text-white no-underline" aria-label="TrainLive — beranda">
-     <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#2dd4bf] text-[#08283c] shadow-lg shadow-teal-950/20">
+     <span className="flex h-10 w-10 items-center justify-center rounded-xl text-[#08283c] shadow-lg shadow-teal-950/20" style={{backgroundColor:branding?.primaryColor||"#2dd4bf"}}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="h-6 w-6" aria-hidden="true"><path d="m8 5 11 7-11 7V5Z" strokeLinejoin="round"/><path d="M4 6v12" strokeLinecap="round"/></svg>
      </span>
      <span className="text-2xl font-extrabold tracking-[-.05em]">Train<span className="text-[#5eead4]">Live</span></span>
     </a>
     <nav className="flex items-center gap-3 sm:gap-7" aria-label="Navigasi utama">
-     <span className="hidden text-[11px] font-bold uppercase tracking-[.19em] text-[#c6d8e4] md:inline">{branding?.trainingTitle||'PLATFORM TRAINING INTERAKTIF'}</span>
+     <span className="hidden text-[11px] font-bold uppercase tracking-[.19em] text-[#c6d8e4] md:inline">{branding?.trainingTitle||branding?.clientName||'PLATFORM TRAINING INTERAKTIF'}</span>
      <a href="/admin/login" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 text-sm font-semibold text-white no-underline transition hover:border-white/60 hover:bg-white/20">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" aria-hidden="true"><path d="M10 17l5-5-5-5m5 5H3m10-9h5a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
       Login Admin
