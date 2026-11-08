@@ -19,10 +19,15 @@ export async function GET(_req:Request,{params}:{params:Promise<{classId:string}
  if(auth.response)return auth.response;
  if(auth.session?.kind!=='participant')return NextResponse.json({error:'forbidden'},{status:403});
  try{
-  const data=await transaction({classId,participantId:auth.session.participantId},async db=>
-   (await db.query<{catalog:Record<string,unknown>}>(
+  const data=await transaction({classId,participantId:auth.session.participantId},async db=>{
+   const catalog=(await db.query<{catalog:Record<string,unknown>}>(
     'SELECT trainlive.lms_learner_catalog($1) AS catalog',[classId]
-   )).rows[0]?.catalog);
+   )).rows[0]?.catalog;
+   const branding=(await db.query<{result:Record<string,unknown>}>(
+    'SELECT trainlive.lms_learner_class_branding($1) AS result',[classId]
+   )).rows[0]?.result;
+   return {...catalog,branding};
+  });
   return NextResponse.json(data,{headers:{'Cache-Control':'private, no-store'}});
  }catch(e){return privateError(e);}
 }
