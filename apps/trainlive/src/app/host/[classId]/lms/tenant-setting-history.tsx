@@ -14,7 +14,7 @@ export default function TenantSettingHistory({classId,headers,refresh,tenantId}:
  const [history,setHistory]=useState<ResponseData|null>(null);
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  async function load(value:string){
-  const res=await fetch('/api/class/'+classId+'/lms/settings/history?key='+encodeURIComponent(value),
+  const res=await fetch(endpoint+'?key='+encodeURIComponent(value),
    {headers:headers(),cache:'no-store'});
   const result=await res.json();
   if(!res.ok)throw Error(result.error||'Riwayat parameter gagal dimuat');
@@ -34,13 +34,13 @@ export default function TenantSettingHistory({classId,headers,refresh,tenantId}:
    const body=await res.json();
    if(!res.ok)throw Error(body.error||'Pemulihan parameter gagal');
    await Promise.all([load(key),refresh()]);
-   setNotice('Revisi '+revision+' berhasil dipulihkan sebagai versi baru.');
+   setNotice('Usulan pemulihan revisi '+revision+' dikirim dan menunggu persetujuan checker.');
   }catch(e){setError(e instanceof Error?e.message:'Pemulihan gagal');}
   finally{setBusy(false);}
  }
  return <div className="mt-5 border-t border-slate-200 pt-5">
   <h3 className="text-lg font-extrabold text-slate-900">Riwayat revisi & pemulihan parameter</h3>
-  <p className="mt-1 text-sm text-slate-600">Hanya perubahan parameter tenant yang telah tersimpan; pemulihan melewati validasi dan menulis audit baru.</p>
+  <p className="mt-1 text-sm text-slate-600">Riwayat berisi revisi yang sudah diterapkan. Pemulihan dibuat sebagai usulan baru dan memerlukan checker berbeda.</p>
   <label htmlFor="lms-history-key" className="field-label mt-3">Parameter yang ditinjau</label>
   <select id="lms-history-key" className="field-input max-w-md" value={key} onChange={e=>{setKey(e.target.value);setError('');setNotice('');}}>
    {options.map(o=><option key={o} value={o}>{o}</option>)}
