@@ -28,7 +28,7 @@ export default function LearningPage(){
    const data=await r.json();
    if(!r.ok)throw Error(r.status===403?'Sesi peserta tidak aktif. Bergabung kembali melalui kode kelas.':data.error||'Gagal memuat kursus');
    return data as Catalog;
-  }).then(data=>{if(active){setCourses(data.courses||[]);setLoading(false);}})
+  }).then(data=>{if(active){setCourses(data.courses||[]);setBranding(data.branding);setLoading(false);}})
    .catch(e=>{if(active){setError(e instanceof Error?e.message:'LMS belum tersedia');setLoading(false);}});
   return()=>{active=false};
  },[api]);
