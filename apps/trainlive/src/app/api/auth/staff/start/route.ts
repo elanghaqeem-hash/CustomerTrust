@@ -1,5 +1,6 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {z} from 'zod';
+import {LMS_ENABLED} from '@/lib/lms-flags';
 import {callbackUrl,discover,FLOW_COOKIE,isGoogle,matchesPublicOrigin,randomURLSafe,sha256URLSafe,signLoginFlow,staffOIDCConfig} from '@/lib/staff-oidc';
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
@@ -11,6 +12,7 @@ export async function GET(req:NextRequest){
  const role=req.nextUrl.searchParams.get('role');
  if(role!==null && role!=='admin' && role!=='tenant_admin')
   return NextResponse.json({error:'Jenis login tidak valid'},{status:400});
+ if(role==='tenant_admin'&&!LMS_ENABLED)return NextResponse.json({error:'not_found'},{status:404});
  const tenantId=role==='tenant_admin'?req.nextUrl.searchParams.get('tenantId')||'':undefined;
  if(role==='admin'&&(req.nextUrl.searchParams.has('classId')||req.nextUrl.searchParams.has('tenantId')))
   return NextResponse.json({error:'Parameter login tidak sesuai'},{status:400});
