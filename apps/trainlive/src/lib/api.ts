@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { readSession, type Session } from './auth';
+import { readSession,readTenantSession,type Session } from './auth';
 
 export const classParam=z.string().uuid();
 export async function guardClass(classId:string,kind?:Session['kind']) {
@@ -11,9 +11,16 @@ export async function guardClass(classId:string,kind?:Session['kind']) {
   return {response:NextResponse.json({error:'role not authorized'},{status:403})};
  return {session};
 }
+export async function guardTenant(tenantId:string){
+ if(!classParam.safeParse(tenantId).success)
+  return {response:NextResponse.json({error:'invalid tenant id'},{status:400})};
+ const session=await readTenantSession(tenantId);
+ if(!session)return {response:NextResponse.json({error:'tenant admin SSO session required'},{status:403})};
+ return {session};
+}
 export function privateError(e:unknown) {
  const err=e as {code?:string};
- if (err?.code==='23505') return NextResponse.json({error:'already submitted'},{status:409});
+ if (err?.code==='23505') return NextResponse.json({error:'already submitted or pending approval exists'},{status:409});
  if (err?.code==='23503'||err?.code==='42501') return NextResponse.json({error:'forbidden'},{status:403});
  if (err?.code==='22023') return NextResponse.json({error:'request rejected by class rules'},{status:422});
  // SQL driver messages can contain query parameters or participant details.

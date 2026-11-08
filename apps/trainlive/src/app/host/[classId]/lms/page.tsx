@@ -1,6 +1,7 @@
 'use client';
 
 import {notFound,useParams} from 'next/navigation';
+import TenantManagement from './tenant-management';
 import {LMS_ENABLED} from '@/lib/lms-flags';
 import {useEffect,useState,type FormEvent} from 'react';
 
@@ -137,6 +138,27 @@ export default function LmsCatalogPage(){
   finally{setBusy(false);}
  }
 
+ async function applyTenantDefaults(){
+  if(busy)return;
+  setBusy(true);setError('');setNotice('');
+  try{
+   const r=await fetch('/api/class/'+classId+'/lms/settings',{headers:headers(),cache:'no-store'});
+   const result=await r.json();
+   if(!r.ok)throw Error(result.error||'Gagal membaca parameter klien');
+   const e=result.effective as Record<string,{value:string|number|boolean}>;
+   const mode=e['learning.default_delivery_mode']?.value;
+   const grade=e['learning.default_passing_grade']?.value;
+   const sequential=e['learning.default_sequential']?.value;
+   if(!['live','self_paced','blended'].includes(String(mode))||
+    typeof grade!=='number'||grade<0||grade>100||typeof sequential!=='boolean')
+    throw Error('Default tenant tidak valid');
+   setCourse(v=>({...v,deliveryMode:mode as Course['deliveryMode'],
+    passingGrade:grade,sequentialModules:sequential}));
+   setNotice('Default tenant diterapkan ke form. Nilai dapat diubah sebelum kursus disimpan.');
+  }catch(e){setError(e instanceof Error?e.message:'Default tenant tidak tersedia');}
+  finally{setBusy(false);}
+ }
+
  function editCourse(item:Course){
   setEditingId(item.id);
   setCourse({code:item.code,title:item.title,description:item.description,
@@ -181,6 +203,8 @@ export default function LmsCatalogPage(){
      <div className="workspace-card p-5"><p className="text-xs font-bold uppercase tracking-widest text-slate-500">Kursus Terdaftar</p><p className="mt-2 text-3xl font-extrabold text-teal-700">{catalog.courses.length}</p></div>
     </section>
 
+    <TenantManagement classId={classId} headers={headers}/>
+
     <div className="grid items-start gap-6 lg:grid-cols-2">
      <form onSubmit={submitCourse} className="workspace-card space-y-4 p-5 sm:p-6" aria-labelledby="course-form-title">
       <div><p className="workspace-eyebrow">01 / COURSE CONFIGURATION</p>
@@ -195,6 +219,7 @@ export default function LmsCatalogPage(){
        <label className="flex items-center gap-2 self-end rounded-lg border border-slate-200 p-3 text-sm font-semibold text-slate-700"><input type="checkbox" className="h-4 w-4 accent-teal-700" checked={course.sequentialModules} onChange={e=>setCourse(v=>({...v,sequentialModules:e.target.checked}))}/>Modul berurutan</label>
       </div>
       <div className="flex flex-wrap gap-2"><button className="tl-staff-button" disabled={busy} type="submit">{busy?'Menyimpan…':editingId?'Simpan perubahan':'Buat kursus draft'}</button>
+       {!editingId&&<button type="button" className="rounded-xl border border-teal-300 px-4 py-2 text-sm font-semibold text-teal-800" disabled={busy} onClick={()=>void applyTenantDefaults()}>Gunakan default tenant</button>}
        {editingId&&<button className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700" type="button" onClick={()=>{setEditingId(null);setCourse(initialCourse);}}>Batal edit</button>}
       </div>
      </form>

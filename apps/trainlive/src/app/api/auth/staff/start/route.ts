@@ -1,5 +1,6 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {z} from 'zod';
+import {LMS_ENABLED} from '@/lib/lms-flags';
 import {callbackUrl,discover,FLOW_COOKIE,isGoogle,matchesPublicOrigin,randomURLSafe,sha256URLSafe,signLoginFlow,staffOIDCConfig} from '@/lib/staff-oidc';
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
@@ -9,12 +10,20 @@ export async function GET(req:NextRequest){
  if(!config)return NextResponse.json({error:'SSO staf belum dikonfigurasi'}, {status:503});
  if(!matchesPublicOrigin(req,config.origin))return NextResponse.json({error:'Host SSO tidak sesuai'}, {status:400});
  const role=req.nextUrl.searchParams.get('role');
- if(role!==null && role!=='admin')
+ if(role!==null && role!=='admin' && role!=='tenant_admin')
   return NextResponse.json({error:'Jenis login tidak valid'},{status:400});
- if(role==='admin'&&req.nextUrl.searchParams.has('classId'))
+ if(role==='tenant_admin'&&!LMS_ENABLED)return NextResponse.json({error:'not_found'},{status:404});
+ const tenantId=role==='tenant_admin'?req.nextUrl.searchParams.get('tenantId')||'':undefined;
+ if(role==='admin'&&(req.nextUrl.searchParams.has('classId')||req.nextUrl.searchParams.has('tenantId')))
   return NextResponse.json({error:'Parameter login tidak sesuai'},{status:400});
- const classId=role==='admin'?'admin':req.nextUrl.searchParams.get('classId')||'';
- if(classId!=='admin'&&!z.string().uuid().safeParse(classId).success)
+ if(role==='tenant_admin'&&req.nextUrl.searchParams.has('classId'))
+  return NextResponse.json({error:'Parameter login tidak sesuai'},{status:400});
+ if(role===null&&req.nextUrl.searchParams.has('tenantId'))
+  return NextResponse.json({error:'Parameter login tidak sesuai'},{status:400});
+ if(role==='tenant_admin'&&!z.string().uuid().safeParse(tenantId).success)
+  return NextResponse.json({error:'tenantId tidak valid'},{status:400});
+ const classId=role==='admin'?'admin':role==='tenant_admin'?'tenant-admin':req.nextUrl.searchParams.get('classId')||'';
+ if(classId!=='admin'&&classId!=='tenant-admin'&&!z.string().uuid().safeParse(classId).success)
   return NextResponse.json({error:'classId tidak valid'},{status:400});
  try{
   const provider=await discover(config),state=randomURLSafe(),nonce=randomURLSafe();
@@ -36,7 +45,7 @@ export async function GET(req:NextRequest){
   if(config.requestAcrValues)authorization.searchParams.set('acr_values',config.requestAcrValues);
   const res=NextResponse.redirect(authorization);
   res.cookies.set(FLOW_COOKIE,await signLoginFlow({
-   state,nonce,verifier,classId,created:Date.now()
+   state,nonce,verifier,classId,tenantId,created:Date.now()
   }),{httpOnly:true,secure:true,sameSite:'lax',path:'/',maxAge:600});
   res.headers.set('Cache-Control','no-store');
   return res;

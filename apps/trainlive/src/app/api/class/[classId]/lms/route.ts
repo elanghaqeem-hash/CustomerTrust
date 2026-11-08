@@ -18,7 +18,10 @@ const mutations=z.discriminatedUnion('action',[
  z.object({
   action:z.literal('create_course'),
   code:z.string().regex(/^[A-Z][A-Z0-9_-]{2,31}$/),
-  ...courseSettings
+  ...courseSettings,
+  deliveryMode:courseSettings.deliveryMode.optional(),
+  passingGrade:courseSettings.passingGrade.optional(),
+  sequentialModules:courseSettings.sequentialModules.optional()
  }).strict(),
  z.object({
   action:z.literal('update_course'),
@@ -84,9 +87,20 @@ export async function POST(req:Request,{params}:{params:Promise<{classId:string}
  try{
   const result=await transaction({classId,staffId:auth.session.staffId},async db=>{
    if(data.action==='create_course'){
+    // Resolve inherited tenant defaults on the server. An explicitly supplied
+    // course override takes precedence; the DB definer still enforces tenancy.
+    const config=(await db.query<{result:{settings:Record<string,unknown>}}>(
+     'SELECT trainlive.lms_admin_get_tenant_settings($1) AS result',[classId]
+    )).rows[0]?.result?.settings||{};
+    const inheritedMode=courseSettings.deliveryMode.safeParse(config['learning.default_delivery_mode']);
+    const inheritedGrade=courseSettings.passingGrade.safeParse(config['learning.default_passing_grade']);
+    const inheritedSequential=courseSettings.sequentialModules.safeParse(config['learning.default_sequential']);
+    const deliveryMode=data.deliveryMode??(inheritedMode.success?inheritedMode.data:'blended');
+    const passingGrade=data.passingGrade??(inheritedGrade.success?inheritedGrade.data:70);
+    const sequentialModules=data.sequentialModules??(inheritedSequential.success?inheritedSequential.data:true);
     return (await db.query<{result:Record<string,unknown>}>(
      'SELECT trainlive.lms_admin_create_course($1,$2,$3,$4,$5,$6,$7) AS result',
-     [classId,data.code,data.title,data.description,data.deliveryMode,data.passingGrade,data.sequentialModules]
+     [classId,data.code,data.title,data.description,deliveryMode,passingGrade,sequentialModules]
     )).rows[0]?.result;
    }
    if(data.action==='update_course'){
