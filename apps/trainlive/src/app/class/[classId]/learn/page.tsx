@@ -7,11 +7,12 @@ type Lesson={id:string;title:string;contentType:'text'|'link'|'video'|'pdf';body
 type Module={id:string;title:string;position:number;lessons:Lesson[]};
 type Course={id:string;code:string;title:string;description:string;deliveryMode:string;sequentialModules:boolean;
  enrolled:boolean;totalLessons:number;completedLessons:number;modules:Module[]};
-type Catalog={courses:Course[]};
+type Catalog={courses:Course[];branding?:{clientName:string;trainingTitle:string;logoUrl:string|null;primaryColor:string|null}};
 
 export default function LearningPage(){
  const {classId}=useParams<{classId:string}>();
  const [courses,setCourses]=useState<Course[]>([]);
+ const [branding,setBranding]=useState<Catalog['branding']>();
  const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false);
  const [error,setError]=useState(''),[notice,setNotice]=useState('');
  const api='/api/class/'+classId+'/learn';
@@ -19,7 +20,7 @@ export default function LearningPage(){
   const r=await fetch(api,{cache:'no-store'});
   const data=await r.json();
   if(!r.ok)throw Error(r.status===403?'Sesi peserta tidak aktif. Bergabung kembali melalui kode kelas.':data.error||'Gagal memuat kursus');
-  setCourses((data as Catalog).courses||[]);
+  setCourses((data as Catalog).courses||[]);setBranding((data as Catalog).branding);
  }
  useEffect(()=>{
   let active=true;
