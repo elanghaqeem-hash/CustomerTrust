@@ -37,29 +37,14 @@ BEGIN
   PERFORM (SELECT count(*) FROM trainlive.lms_tenant_setting_revision);
   RAISE EXCEPTION 'runtime direct history read allowed';
  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
- r:=trainlive.lms_admin_set_tenant_setting(v_a,'branding.primary_color','"#123456"'::jsonb);
- IF (r->>'revision')::integer<>1 THEN RAISE EXCEPTION 'first revision incorrect'; END IF;
- r:=trainlive.lms_admin_set_tenant_setting(v_a,'branding.primary_color','"#abcdef"'::jsonb);
- IF (r->>'revision')::integer<>2 THEN RAISE EXCEPTION 'second revision incorrect'; END IF;
- r:=trainlive.lms_admin_setting_history(v_a,'branding.primary_color');
- IF jsonb_array_length(r->'history')<>2 OR
- (r->'history'->0->>'revision')::integer<>2 OR
- r->'history'->1->>'value'<>'#123456'
- THEN RAISE EXCEPTION 'history snapshot incorrect'; END IF;
- BEGIN
-  PERFORM trainlive.lms_admin_rollback_setting(v_a,'branding.primary_color',9999);
-  RAISE EXCEPTION 'nonexistent revision accepted';
- EXCEPTION WHEN insufficient_privilege THEN NULL; END;
- r:=trainlive.lms_admin_rollback_setting(v_a,'branding.primary_color',1);
- IF (r->>'revision')::integer<>3 OR (r->>'restoredRevision')::integer<>1
- THEN RAISE EXCEPTION 'rollback revision mismatch'; END IF;
- r:=trainlive.lms_admin_get_tenant_settings(v_a);
- IF r->'settings'->>'branding.primary_color'<>'#123456'
- THEN RAISE EXCEPTION 'rollback value not restored'; END IF;
- r:=trainlive.lms_admin_setting_history(v_a,'branding.primary_color');
- IF jsonb_array_length(r->'history')<>3 THEN RAISE EXCEPTION 'rollback not recorded'; END IF;
- IF (SELECT count(*) FROM trainlive.audit_log WHERE class_id=v_a
- AND action='lms.setting.rollback')<>1
- THEN RAISE EXCEPTION 'rollback audit event missing'; END IF;
+  -- Migration 022 requires proposal + second-person approval for writes/rollback.
+  BEGIN
+   PERFORM trainlive.lms_admin_set_tenant_setting(v_a,'branding.primary_color','"#123456"'::jsonb);
+   RAISE EXCEPTION 'legacy direct write still executable';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+   PERFORM trainlive.lms_admin_rollback_setting(v_a,'branding.primary_color',1);
+   RAISE EXCEPTION 'legacy direct rollback still executable';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 END $$;
 ROLLBACK;
