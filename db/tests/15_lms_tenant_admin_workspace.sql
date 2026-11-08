@@ -4,11 +4,11 @@ BEGIN;
 DO $$
 DECLARE a uuid;b uuid;platform uuid;maker uuid;checker uuid;foreign_tenant uuid;
  tenant uuid;program_id uuid;inv jsonb;login record;request jsonb;request_id uuid;
- result jsonb;class_org uuid;join_code text;brand record;
+ result jsonb;class_org uuid;v_join_code text;brand record;
 BEGIN
  SELECT id INTO a FROM trainlive.class_session WHERE batch_no='A' ORDER BY created_at DESC LIMIT 1;
  SELECT id INTO b FROM trainlive.class_session WHERE batch_no='B' ORDER BY created_at DESC LIMIT 1;
- SELECT join_code INTO join_code FROM trainlive.class_session WHERE id=a;
+ SELECT c.join_code INTO v_join_code FROM trainlive.class_session c WHERE c.id=a;
  INSERT INTO trainlive.staff_user(email,display_name,is_super_admin,oidc_issuer,oidc_subject)
  VALUES('p17-platform@example.invalid','P17 Platform',true,'https://login.example.invalid','p17-platform-sub')
  RETURNING id INTO platform;
@@ -86,16 +86,18 @@ BEGIN
  -- Public pre-join branding returns only safe, approved display fields.
  SELECT p.organization_id INTO class_org FROM trainlive.class_session s
  JOIN trainlive.program p ON p.id=s.program_id WHERE s.id=a;
- PERFORM set_config('trainlive.tenant_id','',true);
- PERFORM set_config('trainlive.class_id',a::text,true);
- PERFORM set_config('trainlive.staff_id',platform::text,true);
+ UPDATE trainlive.class_session SET join_open_from=now()-interval '1 hour',
+  join_open_until=now()+interval '1 hour',status='scheduled' WHERE id=a;
+ INSERT INTO trainlive.lms_tenant_membership(organization_id,staff_id,role,active,assigned_by)
+ VALUES(class_org,maker,'tenant_admin',true,platform),(class_org,checker,'tenant_admin',true,platform);
+ PERFORM set_config('trainlive.tenant_id',class_org::text,true);
+ PERFORM set_config('trainlive.class_id','',true);
+ PERFORM set_config('trainlive.staff_id',maker::text,true);
  result:=trainlive.lms_tenant_setting_propose(class_org,'branding.primary_color','"#abcdef"'::jsonb);
  request_id:=(result->>'id')::uuid;
- PERFORM set_config('trainlive.staff_id',maker::text,true);
- -- Use class-scoped Super Admin context for a distinct checker in the source tenant.
- PERFORM set_config('trainlive.staff_id',platform::text,true);
+ PERFORM set_config('trainlive.staff_id',checker::text,true);
  result:=trainlive.lms_tenant_setting_review(class_org,request_id,'approve','source tenant checker');
- brand:=trainlive.public_class_branding_v2(join_code);
+ brand:=trainlive.public_class_branding_v2(v_join_code);
  IF brand.primary_color<>'#abcdef' THEN RAISE EXCEPTION 'approved white-label color not exposed'; END IF;
  IF brand.client_name IS NULL OR brand.training_title IS NULL THEN
   RAISE EXCEPTION 'safe class branding missing'; END IF;
