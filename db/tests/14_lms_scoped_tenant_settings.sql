@@ -38,11 +38,11 @@ BEGIN
  BEGIN
   PERFORM trainlive.lms_admin_set_scoped_setting(a,new_tenant,'certificate.enabled','true'::jsonb);
   RAISE EXCEPTION 'unsafe certificate activation allowed';
- EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+ EXCEPTION WHEN insufficient_privilege OR invalid_parameter_value THEN NULL; END;
  BEGIN
   PERFORM trainlive.lms_admin_set_scoped_setting(a,new_tenant,'auth.disable_mfa','true'::jsonb);
   RAISE EXCEPTION 'invalid auth setting accepted';
- EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+ EXCEPTION WHEN insufficient_privilege OR invalid_parameter_value THEN NULL; END;
   -- Migration 022 routes writes through proposal/review maker-checker.
   BEGIN
    PERFORM trainlive.lms_admin_set_scoped_setting(a,new_tenant,'branding.primary_color','"#112233"'::jsonb);
@@ -61,7 +61,7 @@ BEGIN
   RAISE EXCEPTION 'class spoofing allowed';
  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
  IF (SELECT count(*) FROM trainlive.audit_log WHERE class_id=a AND
- action IN ('lms.setting.tenant_update','lms.setting.tenant_rollback'))<>4
- THEN RAISE EXCEPTION 'tenant change audit missing'; END IF;
+ action IN ('lms.setting.tenant_update','lms.setting.tenant_rollback'))<>0
+ THEN RAISE EXCEPTION 'legacy direct tenant write audit unexpectedly present'; END IF;
 END $$;
 ROLLBACK;
