@@ -1,7 +1,7 @@
 import { Pool, type PoolClient } from 'pg';
 import { runtimePoolConfig } from './db-config';
 
-type Claims = { classId:string; participantId?:string; staffId?:string };
+type Claims = { classId?:string; tenantId?:string; participantId?:string; staffId?:string };
 const globalForPg = globalThis as unknown as { trainlivePg?:Pool };
 function getPool() {
  if (globalForPg.trainlivePg) return globalForPg.trainlivePg;
@@ -18,9 +18,9 @@ export async function transaction<T>(claims:Claims|null, fn:(c:PoolClient)=>Prom
   await client.query('SET LOCAL ROLE trainlive_app');
   if (claims) {
    await client.query(
-    'SELECT set_config($1,$2,true),set_config($3,$4,true),set_config($5,$6,true)',
-    ['trainlive.class_id',claims.classId,'trainlive.participant_id',claims.participantId||'',
-     'trainlive.staff_id',claims.staffId||'']
+    'SELECT set_config($1,$2,true),set_config($3,$4,true),set_config($5,$6,true),set_config($7,$8,true)',
+    ['trainlive.class_id',claims.classId||'','trainlive.participant_id',claims.participantId||'',
+     'trainlive.staff_id',claims.staffId||'','trainlive.tenant_id',claims.tenantId||'']
    );
   }
   const result=await fn(client);
