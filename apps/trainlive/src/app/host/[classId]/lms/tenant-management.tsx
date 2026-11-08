@@ -1,6 +1,7 @@
 'use client';
 
 import {useEffect,useState,type FormEvent} from 'react';
+import TenantSettings from './tenant-settings';
 
 type Membership={staffId:string;email:string;displayName:string;
  role:'tenant_admin'|'learning_manager'|'course_author'|'viewer';active:boolean};
@@ -11,6 +12,7 @@ export default function TenantManagement({classId,headers}:{
  classId:string;headers:()=>Record<string,string>
 }){
  const [data,setData]=useState<TenantList|null>(null);
+ const [selectedTenant,setSelectedTenant]=useState<string|null>(null);
  const [create,setCreate]=useState({name:'',slug:''});
  const [edit,setEdit]=useState<Record<string,{name:string;status:Tenant['status']}>>({});
  const [assign,setAssign]=useState({tenantId:'',email:'',role:'viewer' as Membership['role']});
@@ -74,6 +76,7 @@ export default function TenantManagement({classId,headers}:{
       <div><p className="text-xs font-bold uppercase tracking-widest text-teal-700">{tenant.slug}</p>
        <h3 className="mt-1 font-extrabold text-slate-900">{tenant.name}</h3>
        <p className="mt-1 text-xs text-slate-500">{tenant.id}</p></div>
+      <button type="button" className="rounded-lg border border-teal-300 px-3 py-2 text-sm font-semibold text-teal-800" onClick={()=>setSelectedTenant(v=>v===tenant.id?null:tenant.id)}>{selectedTenant===tenant.id?'Tutup parameter':'Kelola parameter / white-label'}</button>
       <form className="space-y-3" onSubmit={e=>{e.preventDefault();void mutate({
        action:'update_tenant',tenantId:tenant.id,name:form.name,status:form.status
       },'Informasi dan status tenant diperbarui.');}}>
@@ -121,6 +124,8 @@ export default function TenantManagement({classId,headers}:{
     </div>
     <button type="submit" className="tl-staff-button" disabled={busy}>Tetapkan membership</button>
    </form>
+   {selectedTenant&&data.tenants.some(t=>t.id===selectedTenant)&&
+    <TenantSettings key={selectedTenant} classId={classId} tenantId={selectedTenant} headers={headers}/>}
   </>}
  </section>;
 }
