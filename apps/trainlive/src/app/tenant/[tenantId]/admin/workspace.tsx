@@ -8,7 +8,7 @@ type Tenant={id:string;name:string;slug:string;status:'onboarding'|'active'|'sus
 type Workspace={tenant:Tenant;programs:Program[];settings:Record<string,unknown>;revisions:Record<string,number>};
 type Effective={value:string|number|boolean;source:'tenant'|'global'};
 type SettingResponse={effective:Record<string,Effective>;revisions:Record<string,number>};
-type Approval={id:string;key:string;value:unknown;baseRevision:number;requestedBy:string;requesterEmail:string;requestedAt:string;status:string};
+type Approval={id:string;key:string;value:unknown;baseRevision:number;requestedBy:string;requesterEmail:string;requestedAt:string;status:string;canApprove:boolean};
 type ApprovalResponse={requests:Approval[]};
 const settingFields=[
  {key:'branding.primary_color',label:'Warna utama brand',kind:'color'},
@@ -149,8 +149,8 @@ export default function TenantAdminWorkspace({tenantId}:{tenantId:string}){
       <div className="mt-4 space-y-3">{approvals.map(a=><article key={a.id} className="rounded-xl border border-slate-200 p-4">
        <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-xs font-bold uppercase tracking-wider text-teal-700">{a.key}</p><p className="mt-1 break-all font-semibold text-slate-900">{String(a.value)}</p><p className="mt-1 text-xs text-slate-500">Pemohon: {a.requesterEmail} · revisi dasar {a.baseRevision}</p></div>
         <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800">Menunggu</span></div>
-       <div className="mt-3 flex flex-wrap gap-2"><button type="button" className="tl-staff-button" disabled={Boolean(busy)} onClick={()=>void review(a.id,'approve')}>Setujui</button>
-        <button type="button" className="rounded-lg border border-rose-300 px-4 py-2 text-sm font-bold text-rose-800" disabled={Boolean(busy)} onClick={()=>void review(a.id,'reject')}>Tolak</button></div>
+       {a.canApprove?<div className="mt-3 flex flex-wrap gap-2"><button type="button" className="tl-staff-button" disabled={Boolean(busy)} onClick={()=>void review(a.id,'approve')}>Setujui</button>
+        <button type="button" className="rounded-lg border border-rose-300 px-4 py-2 text-sm font-bold text-rose-800" disabled={Boolean(busy)} onClick={()=>void review(a.id,'reject')}>Tolak</button></div>:<p className="mt-3 text-xs font-semibold text-amber-800">Dibuat oleh akun Anda. Minta Tenant Admin lain untuk memeriksa.</p>}
        <p className="mt-2 text-xs text-slate-500">Pembuat usulan tidak dapat menyetujui permintaannya sendiri. Database memverifikasi pemisahan tugas.</p>
       </article>)}</div>}
     </section>
