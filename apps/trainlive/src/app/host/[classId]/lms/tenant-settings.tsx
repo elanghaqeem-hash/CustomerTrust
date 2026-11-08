@@ -13,14 +13,15 @@ const fields=[
  {key:'certificate.issuer_name',label:'Nama penerbit sertifikat (persiapan)',kind:'text'},
  {key:'certificate.enabled',label:'Penerbitan sertifikat (belum tersedia)',kind:'disabled'}
 ] as const;
-export default function TenantSettings({classId,headers}:{
- classId:string;headers:()=>Record<string,string>
+export default function TenantSettings({classId,headers,tenantId}:{
+ classId:string;headers:()=>Record<string,string>;tenantId?:string
 }){
+ const endpoint='/api/class/'+classId+'/lms'+(tenantId?'/tenants/'+tenantId:'')+'/settings';
  const [data,setData]=useState<ResponseData|null>(null);
  const [values,setValues]=useState<Record<string,string|number|boolean>>({});
  const [busy,setBusy]=useState(''),[error,setError]=useState(''),[notice,setNotice]=useState('');
  async function load(){
-  const res=await fetch('/api/class/'+classId+'/lms/settings',{headers:headers(),cache:'no-store'});
+  const res=await fetch(endpoint,{headers:headers(),cache:'no-store'});
   const body=await res.json();
   if(!res.ok)throw Error(body.error||'Gagal memuat parameter tenant');
   const value=body as ResponseData;
@@ -29,12 +30,12 @@ export default function TenantSettings({classId,headers}:{
  }
  useEffect(()=>{void load().catch(e=>setError(e instanceof Error?e.message:'Gagal memuat parameter')); 
  // eslint-disable-next-line react-hooks/exhaustive-deps
- },[classId]);
+ },[classId,tenantId]);
  async function submit(event:FormEvent<HTMLFormElement>,key:string){
   event.preventDefault();if(busy)return;
   setBusy(key);setNotice('');setError('');
   try{
-   const res=await fetch('/api/class/'+classId+'/lms/settings',{
+   const res=await fetch(endpoint,{
     method:'POST',headers:{...headers(),'Content-Type':'application/json'},
     body:JSON.stringify({key,value:values[key]})
    });
@@ -83,7 +84,7 @@ export default function TenantSettings({classId,headers}:{
      </form>;
     })}
    </div></>}
-  <TenantSettingHistory classId={classId} headers={headers} refresh={load}/>
+  <TenantSettingHistory classId={classId} tenantId={tenantId} headers={headers} refresh={load}/>
  </section>;
 }
 
