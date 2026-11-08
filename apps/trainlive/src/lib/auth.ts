@@ -4,6 +4,7 @@ import { cookies, headers } from 'next/headers';
 export type Session =
  | { kind:'participant'; classId:string; participantId:string }
  | { kind:'staff'; classId:string; staffId:string };
+export type TenantAdminSession={kind:'tenant_admin';tenantId:string;staffId:string};
 // The only production-build bearer-token exception is the synthetic GitHub CI
 // environment on a reserved, non-routable example.invalid origin. Hostinger
 // and Vercel real production domains always require cookie-based SSO/MFA.
@@ -22,8 +23,16 @@ function key():Uint8Array {
 export function sessionCookie(classId:string):string {
  return 'tl_'+classId.replace(/-/g,'').toLowerCase();
 }
+export function tenantSessionCookie(tenantId:string):string {
+ return 'tl_tenant_'+tenantId.replace(/-/g,'').toLowerCase();
+}
 export async function signStaff(classId:string,staffId:string) {
  return new SignJWT({kind:'staff',classId,staffId})
+  .setProtectedHeader({alg:'HS256'}).setIssuer('trainlive')
+  .setAudience('trainlive-web').setIssuedAt().setExpirationTime('8h').sign(key());
+}
+export async function signTenantAdmin(tenantId:string,staffId:string) {
+ return new SignJWT({kind:'tenant_admin',tenantId,staffId})
   .setProtectedHeader({alg:'HS256'}).setIssuer('trainlive')
   .setAudience('trainlive-web').setIssuedAt().setExpirationTime('8h').sign(key());
 }
@@ -50,4 +59,16 @@ export async function readSession(requestedClassId:string):Promise<Session|null>
   }
  }catch {}
  return null;
+}
+export async function readTenantSession(requestedTenantId:string):Promise<TenantAdminSession|null> {
+ if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestedTenantId))return null;
+ // Tenant administrator sessions are cookie-only; bearer credentials are never accepted.
+ const token=(await cookies()).get(tenantSessionCookie(requestedTenantId))?.value;
+ if(!token)return null;
+ try{
+  const {payload}=await jwtVerify(token,key(),{issuer:'trainlive',audience:'trainlive-web',algorithms:['HS256']});
+  if(payload.kind!=='tenant_admin'||payload.tenantId!==requestedTenantId||
+   typeof payload.staffId!=='string')return null;
+  return {kind:'tenant_admin',tenantId:requestedTenantId,staffId:payload.staffId};
+ }catch{return null;}
 }
