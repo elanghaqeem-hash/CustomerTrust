@@ -6,9 +6,10 @@ const options=[
  'branding.primary_color','branding.logo_url','learning.default_passing_grade',
  'learning.default_sequential','learning.default_delivery_mode','certificate.issuer_name'
 ];
-export default function TenantSettingHistory({classId,headers,refresh}:{
- classId:string;headers:()=>Record<string,string>;refresh:()=>Promise<void>
+export default function TenantSettingHistory({classId,headers,refresh,tenantId}:{
+ classId:string;headers:()=>Record<string,string>;refresh:()=>Promise<void>;tenantId?:string
 }){
+ const endpoint='/api/class/'+classId+'/lms'+(tenantId?'/tenants/'+tenantId:'')+'/settings/history';
  const [key,setKey]=useState(options[0]);
  const [history,setHistory]=useState<ResponseData|null>(null);
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
@@ -21,12 +22,12 @@ export default function TenantSettingHistory({classId,headers,refresh}:{
  }
  useEffect(()=>{setHistory(null);void load(key).catch(e=>setError(e instanceof Error?e.message:'Gagal membaca riwayat'));
  // eslint-disable-next-line react-hooks/exhaustive-deps
- },[classId,key]);
+ },[classId,tenantId,key]);
  async function restore(revision:number){
   if(busy||!window.confirm('Pulihkan parameter '+key+' ke revisi '+revision+'? Perubahan akan dicatat sebagai revisi baru.'))return;
   setBusy(true);setError('');setNotice('');
   try{
-   const res=await fetch('/api/class/'+classId+'/lms/settings/history',{
+   const res=await fetch(endpoint,{
     method:'POST',headers:{...headers(),'Content-Type':'application/json'},
     body:JSON.stringify({action:'rollback',key,revision})
    });
