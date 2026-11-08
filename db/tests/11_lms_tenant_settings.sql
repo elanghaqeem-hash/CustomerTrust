@@ -58,18 +58,13 @@ BEGIN
   PERFORM (SELECT count(*) FROM trainlive.lms_tenant_setting);
   RAISE EXCEPTION 'runtime read tenant setting table';
  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
- result:=trainlive.lms_admin_set_tenant_setting(a,'branding.primary_color','"#112233"'::jsonb);
- IF (result->>'revision')::int<>1 THEN RAISE EXCEPTION 'first revision mismatch'; END IF;
- result:=trainlive.lms_admin_set_tenant_setting(a,'branding.primary_color','"#445566"'::jsonb);
- IF (result->>'revision')::int<>2 THEN RAISE EXCEPTION 'second revision mismatch'; END IF;
- result:=trainlive.lms_admin_get_tenant_settings(a);
- IF result->'settings'->>'branding.primary_color'<>'#445566' OR
-    (result->'revisions'->>'branding.primary_color')::int<>2
- THEN RAISE EXCEPTION 'tenant parameters readback failed'; END IF;
- IF result->>'organizationId'<>initial_org::text THEN RAISE EXCEPTION 'wrong tenant'; END IF;
- IF (SELECT count(*) FROM trainlive.audit_log WHERE class_id=a
- AND action='lms.setting.update' AND payload_json ? 'previousValue')<>2
- THEN RAISE EXCEPTION 'previous-value audit missing'; END IF;
+  -- Migration 022 removes the legacy direct-write path; writes use maker-checker.
+  BEGIN
+   PERFORM trainlive.lms_admin_set_tenant_setting(a,'branding.primary_color','"#112233"'::jsonb);
+   RAISE EXCEPTION 'legacy direct tenant write remained available';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  IF (SELECT count(*) FROM trainlive.audit_log WHERE class_id=a AND action='lms.setting.update')<>0
+  THEN RAISE EXCEPTION 'legacy direct write created an audit event'; END IF;
  PERFORM set_config('trainlive.class_id',b::text,true);
  BEGIN
   PERFORM trainlive.lms_admin_get_tenant_settings(a);
