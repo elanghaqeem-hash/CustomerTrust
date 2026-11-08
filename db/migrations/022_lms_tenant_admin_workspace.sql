@@ -477,6 +477,33 @@ END $$;
 REVOKE ALL ON FUNCTION trainlive.lms_learner_class_branding(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION trainlive.lms_learner_class_branding(uuid) TO trainlive_app;
 
+
+CREATE FUNCTION trainlive.lms_staff_class_branding(p_class uuid)
+RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=trainlive,pg_temp AS $
+DECLARE v_result jsonb;
+BEGIN
+ IF p_class IS DISTINCT FROM trainlive.claim_class()
+  OR trainlive.claim_staff() IS NULL
+  OR NOT EXISTS(SELECT 1 FROM trainlive.class_staff s
+   WHERE s.class_id=p_class AND s.user_id=trainlive.claim_staff())
+ THEN RAISE EXCEPTION 'staff branding forbidden' USING ERRCODE='42501'; END IF;
+ SELECT jsonb_build_object(
+  'clientName',CASE WHEN c.client_name='PT Bank Pembangunan Daerah Sulawesi Tengah'
+   THEN o.name ELSE c.client_name END,
+  'trainingTitle',c.training_title,
+  'logoUrl',NULLIF((SELECT s.setting_value#>>'{}' FROM trainlive.lms_tenant_setting s
+   WHERE s.organization_id=o.id AND s.setting_key='branding.logo_url'),''),
+  'primaryColor',NULLIF((SELECT s.setting_value#>>'{}' FROM trainlive.lms_tenant_setting s
+   WHERE s.organization_id=o.id AND s.setting_key='branding.primary_color'),'')
+ ) INTO v_result
+ FROM trainlive.class_session c JOIN trainlive.program p ON p.id=c.program_id
+ JOIN trainlive.organization o ON o.id=p.organization_id WHERE c.id=p_class;
+ IF v_result IS NULL THEN RAISE EXCEPTION 'class not found' USING ERRCODE='42501'; END IF;
+ RETURN v_result;
+END $;
+REVOKE ALL ON FUNCTION trainlive.lms_staff_class_branding(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION trainlive.lms_staff_class_branding(uuid) TO trainlive_app;
+
 COMMIT;
 )))
    OR (p_key='learning.default_passing_grade' AND
