@@ -123,3 +123,4 @@ export default function TenantManagement({classId,headers}:{
    </form>
   </>}
  </section>;
+}
