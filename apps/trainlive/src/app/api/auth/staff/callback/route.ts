@@ -1,5 +1,6 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {z} from 'zod';
+import {LMS_ENABLED} from '@/lib/lms-flags';
 import {transaction} from '@/lib/db';
 import {signStaff,sessionCookie,signTenantAdmin,tenantSessionCookie} from '@/lib/auth';
 import {
@@ -31,6 +32,7 @@ export async function GET(req:NextRequest){
      !Number.isFinite(flow.created)||Date.now()-flow.created>600000||
      Date.now()<flow.created||!safeEqual(flow.state,state))throw Error('Invalid state');
  }catch{return NextResponse.json({error:'Sesi login kadaluarsa atau tidak sesuai'},{status:400})}
+ if(tenantFlow&&!LMS_ENABLED)return NextResponse.json({error:'not_found'},{status:404});
  let stage:'discovery'|'token_exchange'|'identity_and_mfa'|'class_authorization'|'session'='discovery';
  try{
   const provider=await discover(config);
