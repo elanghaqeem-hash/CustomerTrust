@@ -74,6 +74,7 @@ jobs:
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/015_class_branding.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/016_lms_catalog.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/017_lms_learning.sql
+          psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/migrations/018_lms_tenant_settings.sql
           psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -v app_password=trainlive_ci_web_only -f deploy/hostinger/create-runtime-role.sql
       - name: Real-PostgreSQL RLS isolation tests
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/01_rls_isolation.sql
@@ -127,6 +128,8 @@ jobs:
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/09_lms_catalog.sql
       - name: LMS published learning, enrollment and progress isolation
         run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/10_lms_learning.sql
+      - name: LMS tenant parameters authorization, audit and isolation
+        run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f db/tests/11_lms_tenant_settings.sql
       - name: Production preflight validates restricted runtime, RLS and published seed
         run: psql "$DATABASE_URL_APP" -v ON_ERROR_STOP=1 -f db/tests/05_production_preflight.sql
       - name: Typecheck and build Next.js application
@@ -149,7 +152,7 @@ jobs:
           grep -q '/api/auth/staff/start?role=admin' /tmp/trainlive-admin.html
           # Default-OFF LMS: no page or learner/admin API may be reachable.
           lms_class='00000000-0000-0000-0000-000000000000'
-          for route in "/host/$lms_class/lms" "/class/$lms_class/learn" "/api/class/$lms_class/lms" "/api/class/$lms_class/learn"; do
+          for route in "/host/$lms_class/lms" "/class/$lms_class/learn" "/api/class/$lms_class/lms" "/api/class/$lms_class/lms/settings" "/api/class/$lms_class/learn"; do
             status="$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3350$route")"
             test "$status" = '404' || { echo "LMS gate failed: $route status=$status"; exit 1; }
           done
