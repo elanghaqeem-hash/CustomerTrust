@@ -7,7 +7,7 @@ type Membership={staffId:string;email:string;displayName:string;
  role:'tenant_admin'|'learning_manager'|'course_author'|'viewer';active:boolean};
 type Tenant={id:string;name:string;slug:string;status:'onboarding'|'active'|'suspended';members:Membership[]};
 type TenantList={sourceOrganizationId:string;tenants:Tenant[]};
-const roles:Membership['role'][]=['tenant_admin','learning_manager','course_author','viewer'];
+const roles:Membership['role'][]=['tenant_admin'];
 export default function TenantManagement({classId,headers}:{
  classId:string;headers:()=>Record<string,string>
 }){
@@ -15,7 +15,7 @@ export default function TenantManagement({classId,headers}:{
  const [selectedTenant,setSelectedTenant]=useState<string|null>(null);
  const [create,setCreate]=useState({name:'',slug:''});
  const [edit,setEdit]=useState<Record<string,{name:string;status:Tenant['status']}>>({});
- const [assign,setAssign]=useState({tenantId:'',email:'',role:'viewer' as Membership['role']});
+ const [assign,setAssign]=useState({tenantId:'',email:'',role:'tenant_admin' as Membership['role']});
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [inviteLink,setInviteLink]=useState('');
  async function reload(){
