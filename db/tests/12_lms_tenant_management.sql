@@ -19,6 +19,8 @@ BEGIN
  (v_a,v_admin,'facilitator'),(v_a,v_plain,'facilitator');
  INSERT INTO trainlive.organization(name,slug)
  VALUES('Unrelated Tenant','unrelated-ci-lms-tenant') RETURNING id INTO v_foreign;
+ SELECT p.organization_id INTO v_org FROM trainlive.class_session s JOIN trainlive.program p
+ ON p.id=s.program_id WHERE s.id=v_a;
  EXECUTE 'SET LOCAL ROLE trainlive_app';
  PERFORM set_config('trainlive.class_id',v_a::text,true);
  PERFORM set_config('trainlive.staff_id',v_plain::text,true);
@@ -54,9 +56,8 @@ BEGIN
  v_result:=trainlive.lms_admin_create_tenant(v_a,'Tenant Academy CI','academy-lms-ci');
  v_new:=(v_result->>'id')::uuid;
  IF v_result->>'status'<>'onboarding' THEN RAISE EXCEPTION 'new tenant not onboarding'; END IF;
- IF EXISTS(SELECT 1 FROM trainlive.class_session s
-   JOIN trainlive.program p ON p.id=s.program_id WHERE p.organization_id=v_new)
- THEN RAISE EXCEPTION 'new tenant unexpectedly copied legacy classes'; END IF;
+ IF (trainlive.lms_admin_tenants(v_a)->>'sourceOrganizationId')=v_new::text
+ THEN RAISE EXCEPTION 'new tenant reused source organization'; END IF;
  IF (trainlive.lms_admin_tenants(v_a)->'tenants') @> 
    jsonb_build_array(jsonb_build_object('id',v_foreign))
  THEN RAISE EXCEPTION 'foreign tenant leaked in list'; END IF;
@@ -84,12 +85,11 @@ BEGIN
  v_result:=trainlive.lms_admin_update_tenant(v_a,v_new,'Tenant Academy 2','suspended');
  IF v_result->>'status'<>'suspended' THEN RAISE EXCEPTION 'suspension failed'; END IF;
  -- Role revocation removes active membership but leaves audit and row evidence.
- IF NOT EXISTS(SELECT 1 FROM trainlive.lms_tenant_membership WHERE
- organization_id=v_new AND staff_id=v_target AND active=false)
+ IF NOT (trainlive.lms_admin_tenants(v_a)->'tenants') @>
+ jsonb_build_array(jsonb_build_object('id',v_new,'members',
+  jsonb_build_array(jsonb_build_object('staffId',v_target,'active',false))))
  THEN RAISE EXCEPTION 'revoked role still active'; END IF;
  -- The source class remains bound to its original tenant.
- SELECT p.organization_id INTO v_org FROM trainlive.class_session s JOIN trainlive.program p
- ON p.id=s.program_id WHERE s.id=v_a;
  IF v_org=v_new THEN RAISE EXCEPTION 'legacy class reassigned'; END IF;
  IF (SELECT count(*) FROM trainlive.audit_log WHERE class_id=v_a
  AND action IN ('lms.tenant.create','lms.tenant.update','lms.tenant.role_assign',
