@@ -235,21 +235,23 @@ SET search_path=trainlive,pg_temp AS $$
    (p_key='branding.primary_color' AND
     (jsonb_typeof(p_value)<>'string' OR (p_value#>>'{}') !~ '^#[0-9A-Fa-f]{6}$'))
    OR (p_key='branding.logo_url' AND
-    (jsonb_typeof(p_value)<>'string' OR length(p_value#>>'{}')>512
-      OR ((p_value#>>'{}')<>'' AND (p_value#>>'{}') !~ '^https://[^[:space:]@<>]+$'))
-    OR (p_key='learning.default_passing_grade' AND
-     (jsonb_typeof(p_value)<>'number' OR (p_value#>>'{}') !~ '^[0-9]{1,3}$'
+    (jsonb_typeof(p_value)<>'string' OR length(p_value#>>'{}')>512 OR
+     ((p_value#>>'{}')<>'' AND (p_value#>>'{}') !~ '^https://[^[:space:]@<>]+$')))
+   OR (p_key='learning.default_passing_grade' AND
+    (jsonb_typeof(p_value)<>'number' OR (p_value#>>'{}') !~ '^[0-9]{1,3}$' OR
+     (p_value#>>'{}')::integer NOT BETWEEN 0 AND 100))
    OR (p_key IN ('learning.default_sequential','certificate.enabled')
     AND jsonb_typeof(p_value)<>'boolean')
    OR (p_key='learning.default_delivery_mode' AND
     (jsonb_typeof(p_value)<>'string' OR (p_value#>>'{}') NOT IN ('live','self_paced','blended')))
    OR (p_key='certificate.issuer_name' AND
-    (jsonb_typeof(p_value)<>'string' OR length(btrim(p_value#>>'{}')) NOT BETWEEN 2 AND 160
-     OR (p_value#>>'{}') ~ '[[:cntrl:]<>]'))
+    (jsonb_typeof(p_value)<>'string' OR length(btrim(p_value#>>'{}')) NOT BETWEEN 2 AND 160 OR
+     (p_value#>>'{}') ~ '[[:cntrl:]<>]'))
    OR (p_key='certificate.enabled' AND p_value<>'false'::jsonb)
   ),false)
 $$;
 REVOKE ALL ON FUNCTION trainlive.lms_tenant_setting_valid(text,jsonb) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION trainlive.lms_tenant_setting_valid(text,jsonb) TO trainlive_app;
 GRANT EXECUTE ON FUNCTION trainlive.lms_tenant_setting_valid(text,jsonb) TO trainlive_app;
 
 CREATE FUNCTION trainlive.lms_tenant_setting_apply(
