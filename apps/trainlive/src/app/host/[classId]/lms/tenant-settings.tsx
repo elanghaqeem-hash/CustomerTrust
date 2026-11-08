@@ -1,6 +1,7 @@
 'use client';
 
 import {useEffect,useState,type FormEvent} from 'react';
+import TenantSettingHistory from './tenant-setting-history';
 type Item={value:string|number|boolean;source:'tenant'|'global'};
 type ResponseData={organizationId:string;effective:Record<string,Item>;revisions:Record<string,number>};
 const fields=[
@@ -82,6 +83,7 @@ export default function TenantSettings({classId,headers}:{
      </form>;
     })}
    </div></>}
+  <TenantSettingHistory classId={classId} headers={headers} refresh={load}/>
  </section>;
 }
 
