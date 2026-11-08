@@ -2,6 +2,7 @@
 
 import {useEffect,useState,type FormEvent} from 'react';
 import TenantSettingHistory from './tenant-setting-history';
+import TenantSettingApprovals from './tenant-setting-approvals';
 type Item={value:string|number|boolean;source:'tenant'|'global'};
 type ResponseData={organizationId:string;effective:Record<string,Item>;revisions:Record<string,number>};
 const fields=[
@@ -41,14 +42,14 @@ export default function TenantSettings({classId,headers,tenantId}:{
    });
    const body=await res.json();
    if(!res.ok)throw Error(body.error||'Perubahan ditolak');
-   await load();setNotice('Parameter '+key+' tersimpan dan tercatat dalam audit.');
+   await load();setNotice('Usulan parameter '+key+' dikirim dan menunggu persetujuan checker.');
   }catch(e){setError(e instanceof Error?e.message:'Gagal menyimpan');}
   finally{setBusy('');}
  }
  return <section className="workspace-card mt-6 p-5 sm:p-6" aria-labelledby="tenant-settings-title">
   <p className="workspace-eyebrow">TENANT PARAMETERS / SUPER ADMIN</p>
   <h2 id="tenant-settings-title" className="mt-1 text-xl font-extrabold text-slate-900">Pengaturan klien dan nilai efektif</h2>
-  <p className="mt-2 text-sm text-slate-600">Perubahan berlaku untuk tenant yang terhubung dengan kelas ini. Kursus yang sudah dibuat tidak diubah otomatis. Hanya Super Admin terotorisasi dapat menyimpan.</p>
+  <p className="mt-2 text-sm text-slate-600">Perubahan menjadi usulan dan tidak aktif sebelum disetujui Tenant Admin lain. Kursus yang sudah dibuat tidak diubah otomatis.</p>
   {error&&<p role="alert" className="mt-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-800">{error}</p>}
   {notice&&<p role="status" className="mt-3 rounded-lg bg-teal-50 p-3 text-sm text-teal-900">{notice}</p>}
   {!data?<p className="mt-4 text-sm text-slate-500">Memuat parameter…</p>:
@@ -85,6 +86,7 @@ export default function TenantSettings({classId,headers,tenantId}:{
     })}
    </div></>}
   <TenantSettingHistory classId={classId} tenantId={tenantId} headers={headers} refresh={load}/>
+  {data&&<TenantSettingApprovals classId={classId} tenantId={data.organizationId} headers={headers}/>}
  </section>;
 }
 
