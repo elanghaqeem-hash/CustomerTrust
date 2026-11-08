@@ -45,10 +45,31 @@ try{
    await page.locator('#unit-name').fill('UAT-SYNTHETIC');
    await page.locator('input[type=checkbox]').check();
    // Exercise the hydrated UI in EVERY browser, not an API shortcut.
-   await page.waitForFunction(()=>{
-    const submit=document.querySelector('button[type=submit]');
-    return submit instanceof HTMLButtonElement && !submit.disabled;
-   },null,{timeout:25000});
+   // A loaded HTML form is not proof that React hydration has settled.
+   // Refill on a bounded retry when late hydration resets early input state.
+   // Retain the same real-browser form/redirect assertions after readiness.
+   for(let readyAttempt=0;readyAttempt<3;readyAttempt++){
+    await page.locator('#display-name').fill('Peserta Simulasi '+String(i+1).padStart(2,'0'));
+    await page.locator('#unit-name').fill('UAT-SYNTHETIC');
+    await page.locator('input[type=checkbox]').check();
+    try{
+     await page.waitForFunction(()=>{
+      const submit=document.querySelector('button[type=submit]');
+      return submit instanceof HTMLButtonElement && !submit.disabled;
+     },null,{timeout:15000});
+     break;
+    }catch(error){
+     if(readyAttempt===2){
+      const details=await page.evaluate(()=>{
+       const button=document.querySelector('button[type=submit]');
+       const form=document.querySelector('form');
+       return {url:location.pathname,submitDisabled:button instanceof HTMLButtonElement?button.disabled:null,
+        formValid:form instanceof HTMLFormElement?form.checkValidity():null};
+      }).catch(()=>({error:'page inaccessible'}));
+      throw Error('Participant '+(i+1)+' form hydration failed: '+JSON.stringify(details)+' cause='+String(error));
+     }
+    }
+   }
    // Refill AFTER hydration: uncontrolled fills during early React hydration
    // can be replaced by the first state render and silently prevent submit.
    await page.locator('#join-code').fill(joinCode);
