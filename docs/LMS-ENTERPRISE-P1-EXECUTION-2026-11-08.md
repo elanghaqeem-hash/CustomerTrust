@@ -11,6 +11,7 @@
 | P1.2 Tenant Management | Migration 019, onboarding tenant creation, list/update, status lifecycle (onboarding, active, suspended), Super Admin management UI, test 12 | Implemented as controlled onboarding; tenant course/bootstrap journey not yet delivered |
 | P1.3 Membership & RBAC | Migration 019, scoped pre-verified OIDC staff grant/revoke, no self-escalation, audit, test 12 | Core membership registry implemented; no tenant-admin self-service login or delegation |
 | P1.4 Parameter versioning | Migration 020, history trigger, read and rollback SECURITY DEFINER functions, history UI, test 13 | Revision history/rollback implemented; maker-checker approval and broader inheritance pending |
+| P1.6 Scoped onboarding parameters | Migration 021, settings/history/rollback of selected tenant through explicit authorized membership, per-client UI within Tenant Management, test 14 | Implemented on branch; full latest-SHA CI/browser UAT required |
 | P1.5 Course Builder defaults | Existing P0/P1 builder reused. On-demand "Gunakan default tenant" UI and API server resolution of defaults when fields are omitted | Incremental; multi-program tenant-independent authoring is pending |
 | P2/P3/P4 | Durable learner identity, assessment engine, issuance, private media, reporting, integrations, 420-case UAT | Not yet implemented / verified |
 
@@ -39,7 +40,7 @@ All methods refuse unapproved actors in SQL, not merely by hiding UI buttons.
 
 ## CI and UAT
 
-- \`.github/workflows/trainlive-ci.yml\` applies migrations 001–020 in order in disposable PostgreSQL 16 and runs DB tests 01–13 (including negative cross-class/tenant and runtime privilege checks).
+- \`.github/workflows/trainlive-ci.yml\` applies migrations 001–021 in order in disposable PostgreSQL 16 and runs DB tests 01–14 (including negative cross-class/tenant and runtime privilege checks).
 - Existing TrainLive live training, browser participation, regression and load jobs remain in the same CI pipeline.
 - P1 tenant management runs for commit \`2574c3d66cd13492535292116b8216abc6059ce6\`: both succeeded, e.g. GitHub Actions run \`42471999229\`.
 - Later commits must be checked against **their own SHA** before treating these results as current. A green earlier run cannot prove subsequent code.
@@ -47,14 +48,14 @@ All methods refuse unapproved actors in SQL, not merely by hiding UI buttons.
 
 ## Deployment and database findings
 
-- At the time of read-only Neon verification on 8 Nov 2026, production branch \`production\` did not have any LMS tables from 016–020. QA clone had \`lms_course\` from migration 016. No production SQL write was performed.
+- At the time of read-only Neon verification on 8 Nov 2026, production branch \`production\` did not have the checked LMS catalog/setting/tenant-management tables from 016–021. QA clone had \`lms_course\` from migration 016. No production SQL write was performed.
 - Vercel production deployment \`dpl_9N9CeVC5z7SaZibMueStbK9ieAFP\` was READY at main SHA \`aed36960d97a36170e107b4c88b2859dcab3e7ec\` when checked; it is not proof that LMS is activated. Preview deployments are separate.
 - Main branch protection was reported as disabled when checked; branch safety and independent review must be established before production promotion.
 
 ## Outstanding gates for safe production
 
 1. G0/G1: architecture and access review, database function audit, mandatory branch protection and reviewed PR.
-2. G2: verified production backup/PITR and restore drill, migration status/checksum, independent approval; only then evaluate applying 016–020 on production.
+2. G2: verified production backup/PITR and restore drill, migration status/checksum, independent approval; only then evaluate applying 016–021 on production.
 3. G3: working SSO/MFA proof for actual authorized Super Admin and tenant-admin path; learner long-lived identity not yet available.
 4. G4: LMS-on staging browser UAT, tenant-switch/suspended behavior, negative access checks and full live TrainLive regression.
 5. G5/G6: measured load/accessibility, privacy and operations approvals, monitoring and rollback evidence.
@@ -65,3 +66,7 @@ All methods refuse unapproved actors in SQL, not merely by hiding UI buttons.
 ## Next executable work
 
 Implement tenant-owned program bootstrap and class-independent catalog authoring without copying client data; introduce verified Tenant Admin login/role-bound sessions, maker-checker parameter approval, course versions and cross-scope inheritance; then P2 durable learner accounts and enrollments. Apply CI to every increment and keep production LMS disabled until release gates pass.
+
+## P1.6 tenant-scoped settings enforcement
+
+For a newly created tenant, the Super Admin selects **Kelola parameter / white-label** on the Tenant Management card. Both the settings endpoint and the history endpoint pass a tenant UUID only as an untrusted target selector; the PostgreSQL `lms_admin_can_manage_tenant` guard checks active membership or the source class organization. Arbitrary tenant IDs and unrelated class claims fail with SQLSTATE 42501. These changes are additive and do not activate branding in existing live classes until a separate controlled publishing integration is implemented.
