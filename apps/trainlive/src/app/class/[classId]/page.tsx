@@ -14,7 +14,7 @@ const kindLabel=(i:Item)=>i.payload.tag==='focus'?'FOKUS PENUH':i.payload.tag===
 export default function ClassPage(){
  const id=useParams<{classId:string}>().classId;
  const [items,setItems]=useState<Item[]>([]),[leader,setLeader]=useState<Leader[]>([]);
- const [branding,setBranding]=useState<{clientName:string;trainingTitle:string}|null>(null);
+ const [branding,setBranding]=useState<{clientName:string;trainingTitle:string;logoUrl:string|null;primaryColor:string|null}|null>(null);
  const trainingTitle=branding?.trainingTitle||'Training interaktif';
  const [answers,setAnswers]=useState<Record<string,unknown>>({}),[submitted,setSubmitted]=useState<Record<string,boolean>>({});
  const [loading,setLoading]=useState(true),[error,setError]=useState(''),[busy,setBusy]=useState(false);
@@ -238,7 +238,7 @@ export default function ClassPage(){
    <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
     <a href="/" className="participant-brand" aria-label="TrainLive — beranda">
      <span className="participant-brand-mark" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 13h4l3-8 4 14 3-6h2"/></svg></span>
-     <span>Train<span className="participant-brand-accent">Live</span></span>
+     <span>Train<span className="participant-brand-accent" style={{color:branding?.primaryColor||undefined}}>Live</span></span>
     </a>
     <span className="participant-topbar-label" title={trainingTitle}>{trainingTitle}</span>
    </div>
