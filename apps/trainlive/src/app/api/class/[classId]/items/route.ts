@@ -27,9 +27,11 @@ export async function GET(_req:Request,{params}:{params:Promise<{classId:string}
     const rows=(await db.query<Row>(
      'SELECT id,item_key,type,module_no,slide_ref,order_no,payload,hidden,state,timer_sec,opened_at,closed_at FROM trainlive.class_item WHERE class_id=$1 ORDER BY order_no',
      [classId])).rows;
-    const branding=(await db.query<{clientName:string;trainingTitle:string}>(
-     'SELECT client_name AS "clientName",training_title AS "trainingTitle" FROM trainlive.class_session WHERE id=$1',
-     [classId])).rows[0];
+    const branding=(await db.query<{result:{clientName:string;trainingTitle:string;logoUrl:string|null;primaryColor:string|null}}>(
+     session.kind==='participant'
+      ?'SELECT trainlive.lms_learner_class_branding($1) AS result'
+      :'SELECT trainlive.lms_staff_class_branding($1) AS result',
+     [classId])).rows[0]?.result;
     return {rows,branding};
    });
   return NextResponse.json({classId,branding,items:rows.filter(r=>!r.hidden||session.kind==='staff').map(r=>({...r,payload:safePayload(r,session.kind==='staff')}))},
