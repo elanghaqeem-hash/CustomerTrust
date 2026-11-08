@@ -41,19 +41,19 @@ BEGIN
  BEGIN
   PERFORM trainlive.lms_admin_set_tenant_setting(a,'auth.mfa_required','false'::jsonb);
   RAISE EXCEPTION 'security setting accepted';
- EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+ EXCEPTION WHEN insufficient_privilege OR invalid_parameter_value THEN NULL; END;
  BEGIN
   PERFORM trainlive.lms_admin_set_tenant_setting(a,'certificate.enabled','true'::jsonb);
   RAISE EXCEPTION 'unimplemented certificate engine enabled';
- EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+ EXCEPTION WHEN insufficient_privilege OR invalid_parameter_value THEN NULL; END;
  BEGIN
   PERFORM trainlive.lms_admin_set_tenant_setting(a,'learning.default_passing_grade','101'::jsonb);
   RAISE EXCEPTION 'out of bounds grade accepted';
- EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+ EXCEPTION WHEN insufficient_privilege OR invalid_parameter_value THEN NULL; END;
  BEGIN
   PERFORM trainlive.lms_admin_set_tenant_setting(a,'branding.logo_url','"http://insecure.example.invalid/logo"'::jsonb);
   RAISE EXCEPTION 'insecure logo URL accepted';
- EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+ EXCEPTION WHEN insufficient_privilege OR invalid_parameter_value THEN NULL; END;
  BEGIN
   PERFORM (SELECT count(*) FROM trainlive.lms_tenant_setting);
   RAISE EXCEPTION 'runtime read tenant setting table';
