@@ -82,4 +82,5 @@ export default function TenantSettings({classId,headers}:{
      </form>;
     })}
    </div></>}
+ }
  </section>;
