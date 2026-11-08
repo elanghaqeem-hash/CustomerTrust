@@ -7,7 +7,8 @@ export const runtime='nodejs';
 export const dynamic='force-dynamic';
 const definitions=z.discriminatedUnion('key',[
  z.object({key:z.literal('branding.primary_color'),value:z.string().regex(/^#[0-9a-fA-F]{6}$/)}).strict(),
- z.object({key:z.literal('branding.logo_url'),value:z.string().url().max(512).refine(v=>{
+ z.object({key:z.literal('branding.logo_url'),value:z.string().max(512).refine(v=>{
+  if(v==='')return true;
   try{const u=new URL(v);return u.protocol==='https:'&&!u.username&&!u.password&&!u.hash;}catch{return false;}
  })}).strict(),
  z.object({key:z.literal('learning.default_passing_grade'),value:z.number().int().min(0).max(100)}).strict(),
