@@ -21,7 +21,7 @@ export const GOOGLE_ISSUER='https://accounts.google.com';
 export const isGoogle=(config:StaffOIDCConfig)=>config.issuer===GOOGLE_ISSUER;
 export const FLOW_COOKIE='__Host-trainlive-staff-flow';
 export type LoginFlow = {
- state:string;nonce:string;verifier:string;classId:string;created:number
+ state:string;nonce:string;verifier:string;classId:string;tenantId?:string;created:number
 };
 const FLOW_ISSUER='trainlive';
 const FLOW_AUDIENCE='trainlive-staff-oidc-flow';
